@@ -1,0 +1,273 @@
+import Link from "next/link";
+import { UserPlus, Users } from "lucide-react";
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import {
+  listPatients,
+  type PatientListRow,
+} from "@/lib/queries/patients";
+import {
+  patientListFiltersSchema,
+} from "@/lib/validations/patient";
+import {
+  calculateAge,
+  formatClinicalDate,
+  formatPatientId,
+  getInitials,
+} from "@/lib/utils";
+
+import { PatientListFilters } from "./_components/patient-list-filters";
+import { PatientListPagination } from "./_components/patient-list-pagination";
+import { NewPatientButton } from "./_components/new-patient-button";
+
+export const metadata = {
+  title: "Patients",
+};
+
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/**
+ * Patients index — read-only list, search, filter, paginate.
+ * Mutations live in the New Patient sheet (client component → server action).
+ */
+export default async function PatientsPage({ searchParams }: PageProps) {
+  const raw = await searchParams;
+
+  // Normalise: arrays → first value, undefined → undefined
+  const cleaned: Record<string, string | undefined> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    cleaned[k] = Array.isArray(v) ? v[0] : v;
+  }
+
+  const parsed = patientListFiltersSchema.safeParse(cleaned);
+  // On invalid params, fall back to defaults silently rather than crash.
+  const filters = parsed.success
+    ? parsed.data
+    : patientListFiltersSchema.parse({});
+
+  const { rows, total, page, totalPages, pageSize } = await listPatients(filters);
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-6 p-6 lg:p-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
+            Records
+          </div>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">Patients</h1>
+          <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
+            {total === 0
+              ? "No patients yet. Add your first to get started."
+              : `${total.toLocaleString()} record${total === 1 ? "" : "s"} in the system`}
+          </p>
+        </div>
+        <NewPatientButton size="md" />
+      </div>
+
+      {/* Filters */}
+      <PatientListFilters
+        q={filters.q ?? ""}
+        sex={filters.sex}
+        bloodType={filters.bloodType}
+        sort={filters.sort}
+        view={filters.view}
+      />
+
+      {/* Body */}
+      {total === 0 ? (
+        <EmptyState query={filters.q} hasFilters={!!filters.sex || !!filters.bloodType} />
+      ) : filters.view === "list" ? (
+        <ListView rows={rows} />
+      ) : (
+        <GridView rows={rows} />
+      )}
+
+      <PatientListPagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        pageSize={pageSize}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Grid view
+// ─────────────────────────────────────────────────────────────────
+function GridView({ rows }: { rows: PatientListRow[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {rows.map((p) => (
+        <PatientGridCard key={p.id} p={p} />
+      ))}
+    </div>
+  );
+}
+
+function PatientGridCard({ p }: { p: PatientListRow }) {
+  const fullName = `${p.firstName} ${p.lastName}`;
+  const age = calculateAge(p.dateOfBirth);
+  return (
+    <Link href={`/patients/${p.id}`} className="group">
+      <Card className="h-full transition-all hover:-translate-y-1 hover:shadow-lg">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-3">
+            <Avatar className="size-12">
+              <AvatarFallback>{getInitials(fullName)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold tracking-tight">
+                {fullName}
+              </div>
+              <div className="mt-0.5 text-[11px] font-mono text-[color:var(--color-muted-foreground)]">
+                {formatPatientId(p.id)}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="text-[color:var(--color-muted-foreground)]">
+                  {age} yrs · {p.sex.charAt(0).toUpperCase()}
+                </span>
+                {p.bloodType && p.bloodType !== "unknown" && (
+                  <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                    {p.bloodType}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[color:var(--color-border)] pt-3 text-[11px]">
+            <div>
+              <div className="text-[color:var(--color-muted-foreground)]">Phone</div>
+              <div className="truncate font-medium">{p.phone ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[color:var(--color-muted-foreground)]">Insurance</div>
+              <div className="truncate font-medium">
+                {p.insuranceProvider ?? "Cash"}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  List view
+// ─────────────────────────────────────────────────────────────────
+function ListView({ rows }: { rows: PatientListRow[] }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Patient</TableHead>
+          <TableHead>ID</TableHead>
+          <TableHead>Age / Sex</TableHead>
+          <TableHead>Blood</TableHead>
+          <TableHead>Phone</TableHead>
+          <TableHead>Insurance</TableHead>
+          <TableHead>Updated</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((p) => {
+          const fullName = `${p.firstName} ${p.lastName}`;
+          return (
+            <TableRow key={p.id} className="cursor-pointer">
+              <TableCell>
+                <Link
+                  href={`/patients/${p.id}`}
+                  className="flex items-center gap-3 hover:text-[color:var(--color-brand-magenta)]"
+                >
+                  <Avatar className="size-8">
+                    <AvatarFallback className="text-[10px]">
+                      {getInitials(fullName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold">{fullName}</span>
+                </Link>
+              </TableCell>
+              <TableCell className="font-mono text-xs text-[color:var(--color-muted-foreground)]">
+                {formatPatientId(p.id)}
+              </TableCell>
+              <TableCell className="text-sm">
+                {calculateAge(p.dateOfBirth)} ·{" "}
+                <span className="capitalize">{p.sex}</span>
+              </TableCell>
+              <TableCell>
+                {p.bloodType && p.bloodType !== "unknown" ? (
+                  <Badge variant="outline" className="text-[10px]">
+                    {p.bloodType}
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-[color:var(--color-muted-foreground)]">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-sm">{p.phone ?? "—"}</TableCell>
+              <TableCell className="text-sm">
+                {p.insuranceProvider ? (
+                  p.insuranceProvider
+                ) : (
+                  <span className="text-[color:var(--color-muted-foreground)]">Cash</span>
+                )}
+              </TableCell>
+              <TableCell className="text-xs text-[color:var(--color-muted-foreground)]">
+                {formatClinicalDate(p.updatedAt)}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Empty state
+// ─────────────────────────────────────────────────────────────────
+function EmptyState({
+  query,
+  hasFilters,
+}: {
+  query?: string;
+  hasFilters: boolean;
+}) {
+  const filtered = !!query || hasFilters;
+
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
+        <div className="grid size-16 place-items-center rounded-2xl bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]">
+          {filtered ? <Users className="size-7" /> : <UserPlus className="size-7" />}
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <h3 className="text-lg font-bold tracking-tight">
+            {filtered ? "No patients match those filters" : "No patients yet"}
+          </h3>
+          <p className="text-sm text-[color:var(--color-muted-foreground)]">
+            {filtered
+              ? "Try adjusting your search or clearing the filters."
+              : "Add your first patient to start using MediScript, PharmaX and the rest of your clinical workspace."}
+          </p>
+        </div>
+        {!filtered && <NewPatientButton size="md" />}
+      </CardContent>
+    </Card>
+  );
+}

@@ -1,0 +1,19 @@
+{
+  "Common": {
+    "appName": "MediSoft",
+    "tagline": "Inspiring Minds",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search"
+  },
+  "Locale": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية"
+  }
+}
