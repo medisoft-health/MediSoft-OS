@@ -44,3 +44,4 @@ medisoft-chatbot-*.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.github/workflows/ci.yml
