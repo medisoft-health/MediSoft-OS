@@ -51,7 +51,9 @@ export type AuditAction =
   // auth
   | "auth.signin"
   | "auth.signout"
-  | "auth.signup";
+  | "auth.signup"
+  // medibot
+  | "medibot.chat";
 
 export type AuditResourceType =
   | "patient"
@@ -62,7 +64,8 @@ export type AuditResourceType =
   | "vital"
   | "document"
   | "user"
-  | "session";
+  | "session"
+  | "medibot_session";
 
 interface AuditInput {
   /** The user performing the action. `null` for unauthenticated events (rare). */

@@ -704,6 +704,47 @@ export const clinicalNotifications = pgTable(
 export type ClinicalNotification = typeof clinicalNotifications.$inferSelect;
 export type NewClinicalNotification = typeof clinicalNotifications.$inferInsert;
 
+// MediBot Chat Sessions
+export const medibotSessions = pgTable(
+  "medibot_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    patientId: integer("patient_id")
+      .references(() => patients.id, { onDelete: "set null" }),
+
+    mode: varchar("mode", { length: 20 }).notNull().default("physician"), // "physician" | "patient"
+    title: text("title"), // Auto-generated from first message
+
+    messages: jsonb("messages").$type<
+      Array<{
+        role: "user" | "assistant";
+        content: string;
+        citations?: Array<{ id: number; title: string; source: string; url?: string }>;
+        timestamp: string;
+      }>
+    >().notNull().default([]),
+
+    metadata: jsonb("metadata").$type<{
+      patientName?: string;
+      totalMessages?: number;
+      lastTopic?: string;
+    }>(),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("medibot_user_idx").on(t.userId),
+    index("medibot_patient_idx").on(t.patientId),
+  ],
+);
+
+export type MedibotSession = typeof medibotSessions.$inferSelect;
+export type NewMedibotSession = typeof medibotSessions.$inferInsert;
+
 // ─────────────────────────────────────────────────────────────────
 //  OTHER TYPE EXPORTS
 // ─────────────────────────────────────────────────────────────────

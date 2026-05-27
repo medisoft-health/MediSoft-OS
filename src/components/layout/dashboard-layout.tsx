@@ -34,6 +34,7 @@ import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { NewPatientButton } from "@/components/clinical/new-patient-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { MedibotDrawer } from "@/components/medibot/medibot-drawer";
 import {
   GlobalSearchProvider,
   useGlobalSearch,
@@ -193,6 +194,7 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
         </header>
 
         <main className="flex-1 overflow-y-auto">{children}</main>
+        <MedibotDrawer />
       </div>
     </div>
   );
