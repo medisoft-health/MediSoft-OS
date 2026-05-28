@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+// كل الصفحات تُعرض وقت التشغيل (SSR) وليس وقت البناء (SSG)
+// هذا يمنع database calls أثناء next build داخل Docker
+export const dynamic = "force-dynamic";
+
 /**
  * Root layout — locale-agnostic.
  *
