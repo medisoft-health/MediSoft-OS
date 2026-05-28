@@ -2,6 +2,9 @@ import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { DiagnosisPageClient } from "./_components/diagnosis-page-client";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const metadata = {
   title: "Differential Diagnosis | MediSoft C-OS",
 };

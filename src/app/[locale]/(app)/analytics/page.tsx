@@ -2,6 +2,9 @@ import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { AnalyticsDashboard } from "./_components/analytics-dashboard";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const metadata = { title: "Analytics | MediSoft C-OS" };
 
 export default async function AnalyticsPage() {

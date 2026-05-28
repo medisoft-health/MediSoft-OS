@@ -25,6 +25,9 @@ import { HealthDashboard } from "./_components/health-dashboard";
 import { PatientTimeline } from "./_components/patient-timeline";
 import { RiskAssessmentPanel } from "@/app/[locale]/(app)/medilab/[id]/_components/risk-assessment-panel";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 interface PageProps {
   // Next.js 16: dynamic-route params are async.
   params: Promise<{ id: string }>;

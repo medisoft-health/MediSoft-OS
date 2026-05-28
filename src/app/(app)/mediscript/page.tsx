@@ -24,6 +24,9 @@ import { db } from "@/db";
 import { encounters, patients } from "@/db/schema";
 import { formatClinicalDate, formatPatientId } from "@/lib/utils";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const metadata = {
   title: "MediScript",
 };

@@ -12,6 +12,9 @@ import { SecurityTab } from "./_components/security-tab";
 import { SessionsTab } from "./_components/sessions-tab";
 import { PreferencesTab } from "./_components/preferences-tab";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const metadata = {
   title: "Settings",
 };

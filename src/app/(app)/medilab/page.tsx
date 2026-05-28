@@ -25,6 +25,9 @@ import {
 } from "@/lib/queries/labs";
 import { formatClinicalDate, formatPatientId } from "@/lib/utils";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const metadata = {
   title: "MediLab",
 };

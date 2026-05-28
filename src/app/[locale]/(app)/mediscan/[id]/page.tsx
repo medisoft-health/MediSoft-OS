@@ -27,6 +27,9 @@ import type { Annotation, Severity } from "@/lib/validations/scan";
 import { ScanDetailViewer } from "./_components/scan-detail-viewer";
 import { ScanNarrativePanel } from "./_components/scan-narrative-panel";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface PageProps {

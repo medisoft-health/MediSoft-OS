@@ -26,6 +26,9 @@ import {
 import { ModuleLogo } from "@/components/brand/module-logo";
 import { formatClinicalDate, formatPatientId } from "@/lib/utils";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const metadata = {
   title: "MediLab",
 };

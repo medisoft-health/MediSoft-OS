@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
   // مطلوب لـ Docker و Cloud Run
   output: "standalone",
 
+  // تعطيل ISR memory cache — يمنع مشاكل الكاش وقت البناء في Docker
+  experimental: {
+    isrMemoryCacheSize: 0,
+  },
+
   // Pin Turbopack to this project's root so it ignores stray lockfiles elsewhere
   // on the system (e.g. ~/package-lock.json from prior projects).
   turbopack: {

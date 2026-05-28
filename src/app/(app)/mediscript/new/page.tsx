@@ -4,6 +4,9 @@ import { getPatientById } from "@/lib/queries/patients";
 import { formatPatientId } from "@/lib/utils";
 import { SessionWizard } from "./_components/session-wizard";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const metadata = {
   title: "New MediScript session",
 };

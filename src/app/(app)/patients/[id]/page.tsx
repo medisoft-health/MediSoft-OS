@@ -23,6 +23,9 @@ import { TabVitals } from "./_components/tab-vitals";
 import { TabDocuments } from "./_components/tab-documents";
 import { TabTimeline } from "./_components/tab-timeline";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 interface PageProps {
   // Next.js 16: dynamic-route params are async.
   params: Promise<{ id: string }>;

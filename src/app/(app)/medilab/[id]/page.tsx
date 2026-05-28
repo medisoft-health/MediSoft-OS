@@ -32,6 +32,9 @@ import { BiomarkerTrendChart } from "./_components/biomarker-trend-chart";
 import { NarrativePanel } from "./_components/narrative-panel";
 import type { NarrativeOutput } from "@/lib/medilab/narrative";
 
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface PageProps {
