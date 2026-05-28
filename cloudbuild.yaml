@@ -1,0 +1,50 @@
+# ── MediSoft C-OS — Cloud Build Configuration ────────────────────
+# Builds Docker image + deploys to Cloud Run.
+# Triggered by push to main branch.
+
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:$COMMIT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:latest'
+      - '.'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'medisoft-app'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:$COMMIT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--port'
+      - '3000'
+      - '--allow-unauthenticated'
+
+substitutions:
+  _REGION: me-central1
+
+options:
+  logging: CLOUD_LOGGING_ONLY
