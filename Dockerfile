@@ -67,6 +67,13 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_ENV_VALIDATION=1
 
+# ─── متغيرات مؤقتة للبناء فقط ────────────────────────────────────
+# Better-Auth و Next.js يحتاجون هذه المتغيرات وقت البناء حتى لو مش هنستخدمها
+# القيم الحقيقية تُحقن من Secret Manager وقت التشغيل على Cloud Run
+ENV BETTER_AUTH_SECRET="build-time-placeholder-secret-not-used-in-production"
+ENV BETTER_AUTH_URL="http://localhost:3000"
+ENV NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
 # بناء التطبيق
 # next.config.ts يحتوي output: "standalone"
 # المخرجات تكون في:
