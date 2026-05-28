@@ -70,9 +70,10 @@ ENV SKIP_ENV_VALIDATION=1
 # ─── متغيرات مؤقتة للبناء فقط ────────────────────────────────────
 # Better-Auth و Next.js يحتاجون هذه المتغيرات وقت البناء حتى لو مش هنستخدمها
 # القيم الحقيقية تُحقن من Secret Manager وقت التشغيل على Cloud Run
-ENV BETTER_AUTH_SECRET="build-time-placeholder-secret-not-used-in-production"
+ENV BETTER_AUTH_SECRET="build-time-placeholder-secret"
 ENV BETTER_AUTH_URL="http://localhost:3000"
 ENV NEXT_PUBLIC_APP_URL="http://localhost:3000"
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # بناء التطبيق
 # next.config.ts يحتوي output: "standalone"
