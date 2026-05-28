@@ -1,97 +1,154 @@
 # ══════════════════════════════════════════════════════════════════
-#  MediSoft C-OS — Google Cloud Build Configuration
+#  MediSoft C-OS — Google Cloud Build CI/CD Pipeline
 # ══════════════════════════════════════════════════════════════════
 #
-#  الهدف: بناء + نشر التطبيق تلقائياً على Cloud Run عند كل push
-#  المنطقة: me-central1 (الدمام، السعودية) — لامتثال SDAIA
+#  GCP Project: gen-lang-client-0619493108
+#  Region: me-central1 (الدمام، السعودية)
+#  Service: medisoft-app
+#  Cloud SQL: gen-lang-client-0619493108:me-central1:medisoft-db
+#  Artifact Registry: me-central1-docker.pkg.dev/gen-lang-client-0619493108/medisoft
 #
 #  المتطلبات قبل أول استخدام:
-#    1. تفعيل APIs: Cloud Build, Cloud Run, Artifact Registry
-#    2. إنشاء Artifact Registry repo:
-#       gcloud artifacts repositories create medisoft \
-#         --repository-format=docker \
-#         --location=me-central1
-#    3. إعداد الأسرار في Secret Manager:
-#       gcloud secrets create medisoft-env --data-file=.env.production
-#    4. إعطاء Cloud Build صلاحية الوصول لـ Secret Manager:
-#       gcloud projects add-iam-policy-binding $PROJECT_ID \
-#         --member="serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com" \
-#         --role="roles/secretmanager.secretAccessor"
+#  ─────────────────────────────────────────────────────────────────
+#  1. تفعيل الـ APIs:
+#     gcloud services enable \
+#       cloudbuild.googleapis.com \
+#       run.googleapis.com \
+#       artifactregistry.googleapis.com \
+#       secretmanager.googleapis.com \
+#       sqladmin.googleapis.com
 #
-#  التشغيل يدوياً:
-#    gcloud builds submit --config=cloudbuild.yaml .
+#  2. إنشاء Artifact Registry (مرة واحدة فقط):
+#     gcloud artifacts repositories create medisoft \
+#       --repository-format=docker \
+#       --location=me-central1 \
+#       --description="MediSoft Docker images"
+#
+#  3. إنشاء الأسرار في Secret Manager:
+#     echo -n "postgresql://..." | gcloud secrets create medisoft-database-url --data-file=-
+#     echo -n "your-secret-key" | gcloud secrets create medisoft-auth-secret --data-file=-
+#     echo -n "https://medisoft-app-xxx.a.run.app" | gcloud secrets create medisoft-nextauth-url --data-file=-
+#
+#  4. منح Cloud Build صلاحية الوصول:
+#     PROJECT_NUMBER=$(gcloud projects describe gen-lang-client-0619493108 --format='value(projectNumber)')
+#     gcloud projects add-iam-policy-binding gen-lang-client-0619493108 \
+#       --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+#       --role="roles/secretmanager.secretAccessor"
+#     gcloud projects add-iam-policy-binding gen-lang-client-0619493108 \
+#       --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+#       --role="roles/run.admin"
+#     gcloud projects add-iam-policy-binding gen-lang-client-0619493108 \
+#       --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+#       --role="roles/iam.serviceAccountUser"
+#
+#  التشغيل:
+#     gcloud builds submit --config=cloudbuild.yaml .
 #
 # ══════════════════════════════════════════════════════════════════
 
 steps:
+
   # ─── الخطوة 1: بناء صورة Docker ─────────────────────────────────
-  # نبني الصورة باستخدام Dockerfile الموجود في المشروع
-  # نعطيها tagين: واحد بـ commit hash (للتتبع) وواحد latest
+  #
+  # نستخدم الـ Dockerfile في جذر المشروع
+  # نعطي الصورة tagين:
+  #   - $COMMIT_SHA: للتتبع الدقيق (أي commit أنتج هذه الصورة)
+  #   - latest: لسهولة الرجوع لآخر نسخة
+  #
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-image'
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:$COMMIT_SHA'
+      - 'me-central1-docker.pkg.dev/gen-lang-client-0619493108/medisoft/medisoft-app:$COMMIT_SHA'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:latest'
+      - 'me-central1-docker.pkg.dev/gen-lang-client-0619493108/medisoft/medisoft-app:latest'
       - '.'
 
   # ─── الخطوة 2: رفع الصورة لـ Artifact Registry ──────────────────
-  # Artifact Registry هو بديل Google لـ Docker Hub
-  # أسرع لأنه في نفس المنطقة
+  #
+  # Artifact Registry = Docker Hub خاص بـ Google Cloud
+  # الصورة تُحفظ في me-central1 (نفس منطقة Cloud Run → أسرع pull)
+  #
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-image'
     args:
       - 'push'
       - '--all-tags'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app'
+      - 'me-central1-docker.pkg.dev/gen-lang-client-0619493108/medisoft/medisoft-app'
 
   # ─── الخطوة 3: نشر على Cloud Run ────────────────────────────────
-  # Cloud Run = serverless containers (يشبه Vercel لكن أقوى)
-  # يشتغل فقط لما يكون فيه requests (min-instances=0 يوفر تكلفة)
+  #
+  # Cloud Run = serverless containers
+  # يشتغل فقط لما يكون فيه HTTP requests
+  # min-instances=0 → لا تكلفة وقت عدم الاستخدام
+  #
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'deploy-cloud-run'
+    id: 'deploy-to-cloud-run'
     entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
-      - 'medisoft-app'
-      - '--image'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:$COMMIT_SHA'
-      - '--region'
-      - '${_REGION}'
-      # ─── موارد الحاوية ───────────────────────────────────
-      - '--memory'
-      - '2Gi'          # 2GB RAM — كافي لـ Next.js + PDF generation
-      - '--cpu'
-      - '2'            # 2 vCPU — كافي للـ server-side rendering
-      # ─── التوسع التلقائي ─────────────────────────────────
-      - '--min-instances'
-      - '0'            # 0 = لا يشتغل لما مفيش traffic (يوفر $$$)
-      - '--max-instances'
-      - '5'            # 5 instances كحد أقصى
-      # ─── إعدادات الشبكة ──────────────────────────────────
-      - '--port'
-      - '3000'         # المنفذ الذي يسمع عليه Next.js
-      - '--allow-unauthenticated'  # التطبيق يدير الـ auth بنفسه عبر Better-Auth
-      # ─── المتغيرات البيئية من Secret Manager ─────────────
-      - '--set-secrets'
-      - 'DATABASE_URL=medisoft-database-url:latest,BETTER_AUTH_SECRET=medisoft-auth-secret:latest,GOOGLE_GEMINI_API_KEY=medisoft-gemini-key:latest'
-      # ─── timeout ─────────────────────────────────────────
-      - '--timeout'
-      - '300'          # 5 دقائق — لأن بعض AI requests تاخد وقت
+      - 'medisoft-app'                   # اسم الخدمة على Cloud Run
 
-# ─── المتغيرات القابلة للتخصيص ────────────────────────────────────
-# يمكن تغييرها عند التشغيل:
-#   gcloud builds submit --substitutions=_REGION=europe-west1
-substitutions:
-  _REGION: me-central1   # الدمام، السعودية (الأقرب لـ SDAIA compliance)
+      # ─── الصورة المراد نشرها ──────────────────────────────
+      - '--image'
+      - 'me-central1-docker.pkg.dev/gen-lang-client-0619493108/medisoft/medisoft-app:$COMMIT_SHA'
+
+      # ─── المنطقة ──────────────────────────────────────────
+      - '--region'
+      - 'me-central1'                   # الدمام — لامتثال SDAIA
+
+      # ─── الموارد ──────────────────────────────────────────
+      - '--memory'
+      - '2Gi'                           # 2GB RAM (كافي لـ Next.js SSR + PDF generation)
+      - '--cpu'
+      - '2'                             # 2 vCPU
+
+      # ─── التوسع التلقائي ──────────────────────────────────
+      - '--min-instances'
+      - '0'                             # 0 = لا يشتغل بدون traffic (يوفر $$$)
+      - '--max-instances'
+      - '5'                             # 5 instances كحد أقصى
+
+      # ─── الشبكة ───────────────────────────────────────────
+      - '--port'
+      - '8080'                          # المنفذ اللي Next.js يسمع عليه
+      - '--allow-unauthenticated'       # التطبيق يدير auth بنفسه عبر Better-Auth
+
+      # ─── اتصال Cloud SQL ──────────────────────────────────
+      # Cloud Run يتصل بـ Cloud SQL عبر Unix socket (أسرع وأأمن من TCP)
+      # الاتصال عبر: /cloudsql/PROJECT:REGION:INSTANCE
+      - '--add-cloudsql-instances'
+      - 'gen-lang-client-0619493108:me-central1:medisoft-db'
+
+      # ─── المتغيرات البيئية (ثابتة) ────────────────────────
+      - '--set-env-vars'
+      - 'NODE_ENV=production,SKIP_ENV_VALIDATION=1'
+
+      # ─── الأسرار من Secret Manager ────────────────────────
+      # كل secret يتم حقنه كمتغير بيئة في وقت التشغيل
+      # الصيغة: ENV_VAR_NAME=SECRET_NAME:VERSION
+      - '--set-secrets'
+      - 'DATABASE_URL=medisoft-database-url:latest,BETTER_AUTH_SECRET=medisoft-auth-secret:latest,BETTER_AUTH_URL=medisoft-nextauth-url:latest,NEXT_PUBLIC_APP_URL=medisoft-nextauth-url:latest'
+
+      # ─── Timeout ──────────────────────────────────────────
+      - '--timeout'
+      - '300'                           # 5 دقائق (بعض AI requests تاخد وقت)
+
+      # ─── Concurrency ──────────────────────────────────────
+      - '--concurrency'
+      - '80'                            # 80 request متزامن لكل instance
 
 # ─── خيارات البناء ────────────────────────────────────────────────
 options:
-  logging: CLOUD_LOGGING_ONLY   # التسجيل في Cloud Logging فقط (أرخص)
-  machineType: 'E2_HIGHCPU_8'  # 8 vCPU للبناء — أسرع بكثير من الافتراضي
+  logging: CLOUD_LOGGING_ONLY            # أرخص من GCS logging
+  machineType: 'E2_HIGHCPU_8'           # 8 vCPU — بناء أسرع بكثير
 
-# ─── timeout البناء ───────────────────────────────────────────────
-timeout: '1200s'  # 20 دقيقة — أول build يأخذ وقت لأن npm ci يحمل كل شيء
+# ─── timeout البناء الكلي ──────────────────────────────────────────
+timeout: '1200s'                         # 20 دقيقة (أول build يأخذ وقت أطول)
+
+# ─── الصور الناتجة (للتتبع في Cloud Build history) ────────────────
+images:
+  - 'me-central1-docker.pkg.dev/gen-lang-client-0619493108/medisoft/medisoft-app:$COMMIT_SHA'
+  - 'me-central1-docker.pkg.dev/gen-lang-client-0619493108/medisoft/medisoft-app:latest'
