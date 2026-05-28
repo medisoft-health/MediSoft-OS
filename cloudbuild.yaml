@@ -143,7 +143,6 @@ steps:
 # ─── خيارات البناء ────────────────────────────────────────────────
 options:
   logging: CLOUD_LOGGING_ONLY            # أرخص من GCS logging
-  machineType: 'E2_HIGHCPU_8'           # 8 vCPU — بناء أسرع بكثير
 
 # ─── timeout البناء الكلي ──────────────────────────────────────────
 timeout: '1200s'                         # 20 دقيقة (أول build يأخذ وقت أطول)
