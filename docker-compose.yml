@@ -1,0 +1,95 @@
+# ══════════════════════════════════════════════════════════════════
+#  MediSoft C-OS — Docker Compose (بيئة التطوير المحلية)
+# ══════════════════════════════════════════════════════════════════
+#
+#  الاستخدام:
+#    docker compose up -d          # تشغيل الخدمات
+#    docker compose logs -f app    # متابعة لوقات التطبيق
+#    docker compose down           # إيقاف الخدمات
+#    docker compose down -v        # إيقاف + حذف البيانات
+#
+#  ملاحظة: هذا للتطوير فقط — الإنتاج يستخدم Cloud Run + Cloud SQL
+#
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  # ─── قاعدة البيانات: PostgreSQL 16 ──────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: medisoft-db
+    restart: unless-stopped
+
+    # ─── بيانات الاتصال ───────────────────────────────────
+    environment:
+      POSTGRES_USER: medisoft
+      POSTGRES_PASSWORD: medisoft_dev_2024
+      POSTGRES_DB: medisoft_db
+
+    # ─── المنفذ: 5432 ────────────────────────────────────
+    # متاح من الـ host للاتصال عبر psql أو DBeaver
+    ports:
+      - "5432:5432"
+
+    # ─── تخزين دائم ──────────────────────────────────────
+    # البيانات تبقى حتى بعد docker compose down
+    # فقط docker compose down -v يحذفها
+    volumes:
+      - medisoft_pgdata:/var/lib/postgresql/data
+
+    # ─── Health Check ────────────────────────────────────
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medisoft -d medisoft_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── التطبيق: Next.js (Development Mode) ───────────────────────
+  app:
+    container_name: medisoft-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps   # نستخدم مرحلة deps فقط — التطوير يحتاج كل الاعتمادات
+    restart: unless-stopped
+
+    # ─── أمر التشغيل ─────────────────────────────────────
+    # في وضع التطوير نستخدم next dev بدلاً من production server
+    command: sh -c "npm run dev"
+    working_dir: /app
+
+    # ─── ربط الملفات (Hot Reload) ────────────────────────
+    # كل تغيير في الكود ينعكس فوراً بدون إعادة بناء
+    volumes:
+      - .:/app
+      - /app/node_modules    # نحمي node_modules من الـ bind mount
+      - /app/.next           # نحمي .next cache
+
+    # ─── متغيرات البيئة ──────────────────────────────────
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://medisoft:medisoft_dev_2024@db:5432/medisoft_db
+      DIRECT_URL: postgresql://medisoft:medisoft_dev_2024@db:5432/medisoft_db
+      BETTER_AUTH_SECRET: dev-secret-at-least-32-characters-long-for-better-auth
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      SKIP_ENV_VALIDATION: "1"
+
+    # ─── ملف المتغيرات الإضافية ──────────────────────────
+    # ضع الـ API keys في .env.local (لا يُرفع لـ GitHub)
+    env_file:
+      - .env.local
+
+    # ─── المنفذ ──────────────────────────────────────────
+    ports:
+      - "3000:3000"
+
+    # ─── الاعتمادية ──────────────────────────────────────
+    # التطبيق ينتظر قاعدة البيانات قبل ما يبدأ
+    depends_on:
+      db:
+        condition: service_healthy
+
+# ─── وحدات التخزين الدائمة ────────────────────────────────────────
+volumes:
+  medisoft_pgdata:
+    driver: local

@@ -20,6 +20,12 @@ const withBundleAnalyzer = bundleAnalyzer({
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // ─── مخرجات standalone ─────────────────────────────────────────
+  // ينتج مجلد .next/standalone يحتوي server.js مستقل بدون node_modules كامل
+  // الحجم النهائي ~150MB بدلاً من 1GB+
+  // مطلوب لـ Docker و Cloud Run
+  output: "standalone",
+
   // Pin Turbopack to this project's root so it ignores stray lockfiles elsewhere
   // on the system (e.g. ~/package-lock.json from prior projects).
   turbopack: {

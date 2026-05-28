@@ -1,10 +1,34 @@
-# ── MediSoft C-OS — Cloud Build Configuration ────────────────────
-# Builds Docker image + deploys to Cloud Run.
-# Triggered by push to main branch.
+# ══════════════════════════════════════════════════════════════════
+#  MediSoft C-OS — Google Cloud Build Configuration
+# ══════════════════════════════════════════════════════════════════
+#
+#  الهدف: بناء + نشر التطبيق تلقائياً على Cloud Run عند كل push
+#  المنطقة: me-central1 (الدمام، السعودية) — لامتثال SDAIA
+#
+#  المتطلبات قبل أول استخدام:
+#    1. تفعيل APIs: Cloud Build, Cloud Run, Artifact Registry
+#    2. إنشاء Artifact Registry repo:
+#       gcloud artifacts repositories create medisoft \
+#         --repository-format=docker \
+#         --location=me-central1
+#    3. إعداد الأسرار في Secret Manager:
+#       gcloud secrets create medisoft-env --data-file=.env.production
+#    4. إعطاء Cloud Build صلاحية الوصول لـ Secret Manager:
+#       gcloud projects add-iam-policy-binding $PROJECT_ID \
+#         --member="serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com" \
+#         --role="roles/secretmanager.secretAccessor"
+#
+#  التشغيل يدوياً:
+#    gcloud builds submit --config=cloudbuild.yaml .
+#
+# ══════════════════════════════════════════════════════════════════
 
 steps:
-  # Build Docker image
+  # ─── الخطوة 1: بناء صورة Docker ─────────────────────────────────
+  # نبني الصورة باستخدام Dockerfile الموجود في المشروع
+  # نعطيها tagين: واحد بـ commit hash (للتتبع) وواحد latest
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
     args:
       - 'build'
       - '-t'
@@ -13,15 +37,21 @@ steps:
       - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:latest'
       - '.'
 
-  # Push to Artifact Registry
+  # ─── الخطوة 2: رفع الصورة لـ Artifact Registry ──────────────────
+  # Artifact Registry هو بديل Google لـ Docker Hub
+  # أسرع لأنه في نفس المنطقة
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
     args:
       - 'push'
       - '--all-tags'
       - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app'
 
-  # Deploy to Cloud Run
+  # ─── الخطوة 3: نشر على Cloud Run ────────────────────────────────
+  # Cloud Run = serverless containers (يشبه Vercel لكن أقوى)
+  # يشتغل فقط لما يكون فيه requests (min-instances=0 يوفر تكلفة)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-cloud-run'
     entrypoint: gcloud
     args:
       - 'run'
@@ -31,20 +61,37 @@ steps:
       - '${_REGION}-docker.pkg.dev/$PROJECT_ID/medisoft/app:$COMMIT_SHA'
       - '--region'
       - '${_REGION}'
+      # ─── موارد الحاوية ───────────────────────────────────
       - '--memory'
-      - '2Gi'
+      - '2Gi'          # 2GB RAM — كافي لـ Next.js + PDF generation
       - '--cpu'
-      - '2'
+      - '2'            # 2 vCPU — كافي للـ server-side rendering
+      # ─── التوسع التلقائي ─────────────────────────────────
       - '--min-instances'
-      - '0'
+      - '0'            # 0 = لا يشتغل لما مفيش traffic (يوفر $$$)
       - '--max-instances'
-      - '10'
+      - '5'            # 5 instances كحد أقصى
+      # ─── إعدادات الشبكة ──────────────────────────────────
       - '--port'
-      - '3000'
-      - '--allow-unauthenticated'
+      - '3000'         # المنفذ الذي يسمع عليه Next.js
+      - '--allow-unauthenticated'  # التطبيق يدير الـ auth بنفسه عبر Better-Auth
+      # ─── المتغيرات البيئية من Secret Manager ─────────────
+      - '--set-secrets'
+      - 'DATABASE_URL=medisoft-database-url:latest,BETTER_AUTH_SECRET=medisoft-auth-secret:latest,GOOGLE_GEMINI_API_KEY=medisoft-gemini-key:latest'
+      # ─── timeout ─────────────────────────────────────────
+      - '--timeout'
+      - '300'          # 5 دقائق — لأن بعض AI requests تاخد وقت
 
+# ─── المتغيرات القابلة للتخصيص ────────────────────────────────────
+# يمكن تغييرها عند التشغيل:
+#   gcloud builds submit --substitutions=_REGION=europe-west1
 substitutions:
-  _REGION: me-central1
+  _REGION: me-central1   # الدمام، السعودية (الأقرب لـ SDAIA compliance)
 
+# ─── خيارات البناء ────────────────────────────────────────────────
 options:
-  logging: CLOUD_LOGGING_ONLY
+  logging: CLOUD_LOGGING_ONLY   # التسجيل في Cloud Logging فقط (أرخص)
+  machineType: 'E2_HIGHCPU_8'  # 8 vCPU للبناء — أسرع بكثير من الافتراضي
+
+# ─── timeout البناء ───────────────────────────────────────────────
+timeout: '1200s'  # 20 دقيقة — أول build يأخذ وقت لأن npm ci يحمل كل شيء
