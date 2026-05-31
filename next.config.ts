@@ -20,6 +20,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // Standalone output for Docker / Cloud Run deployments.
+  // Produces a self-contained server.js with only the required node_modules.
+  output: "standalone",
+
   // Allow dev HMR from the public IP (required when running dev mode behind Nginx).
   allowedDevOrigins: ["http://35.227.122.228", "35.227.122.228"],
 

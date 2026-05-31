@@ -45,7 +45,8 @@ import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { NewPatientButton } from "@/components/clinical/new-patient-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { MedibotDrawer } from "@/components/medibot/medibot-drawer";
+import { MediBotPanel, MediBotProvider } from "@/components/medibot";
+import { MediBotPatientDetector } from "@/components/medibot/use-patient-route";
 import {
   GlobalSearchProvider,
   useGlobalSearch,
@@ -111,7 +112,9 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, user }: DashboardLayoutProps) {
   return (
     <GlobalSearchProvider>
-      <DashboardShell user={user}>{children}</DashboardShell>
+      <MediBotProvider>
+        <DashboardShell user={user}>{children}</DashboardShell>
+      </MediBotProvider>
     </GlobalSearchProvider>
   );
 }
@@ -222,8 +225,11 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
         </header>
 
         <main className="flex-1 overflow-y-auto">{children}</main>
-        <MedibotDrawer />
+        <MediBotPatientDetector />
       </div>
+
+      {/* ─────────────── MediBot Panel (persistent right column) ─────────────── */}
+      <MediBotPanel />
     </div>
   );
 }

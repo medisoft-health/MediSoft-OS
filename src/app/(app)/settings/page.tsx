@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 import { ModulePlaceholder } from "@/components/module-placeholder";
 
 export default function SettingsPage() {

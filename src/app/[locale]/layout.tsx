@@ -6,6 +6,13 @@ import { Inter, JetBrains_Mono, Pacifico } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { routing, isRtlLocale, type Locale } from "@/i18n/routing";
 
+/**
+ * Force all locale routes to be dynamically rendered.
+ * Prevents static generation attempts during CI builds where DB is unavailable.
+ */
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],

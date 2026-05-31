@@ -31,6 +31,9 @@ import { PatientListFilters } from "./_components/patient-list-filters";
 import { PatientListPagination } from "./_components/patient-list-pagination";
 import { NewPatientButton } from "./_components/new-patient-button";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export const metadata = {
   title: "Patients",
 };

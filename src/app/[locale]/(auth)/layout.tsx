@@ -2,6 +2,13 @@ import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth-helpers";
 
 /**
+ * Force auth routes to be dynamically rendered — they call requireSession()
+ * which needs a live database connection (unavailable during CI builds).
+ */
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+/**
  * Auth route group layout — wraps /login and /signup.
  *
  * - No sidebar; full-bleed clinical gradient background.
