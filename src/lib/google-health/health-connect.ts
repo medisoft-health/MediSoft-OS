@@ -495,9 +495,15 @@ export async function generateHealthSummary(
 
 // ─── OAuth Helper ────────────────────────────────────────────────────────────
 
+// Supports both env naming conventions
+const OAUTH_CLIENT_ID = process.env.GOOGLE_HEALTH_CONNECT_CLIENT_ID
+  || process.env.GOOGLE_OAUTH_CLIENT_ID || "";
+const OAUTH_CLIENT_SECRET = process.env.GOOGLE_HEALTH_CONNECT_CLIENT_SECRET
+  || process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
+
 export function getHealthConnectAuthUrl(redirectUri: string, state: string): string {
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_OAUTH_CLIENT_ID || "",
+    client_id: OAUTH_CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: "code",
     scope: HEALTH_CONNECT_SCOPES.join(" "),
@@ -518,8 +524,8 @@ export async function exchangeHealthConnectCode(
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID || "",
-      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || "",
+      client_id: OAUTH_CLIENT_ID,
+      client_secret: OAUTH_CLIENT_SECRET,
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),
@@ -535,6 +541,76 @@ export async function exchangeHealthConnectCode(
     refreshToken: data.refresh_token,
     expiresIn: data.expires_in,
   };
+}
+
+/**
+ * Refresh an expired access token using the stored refresh token.
+ * Returns a new access token for continued API access.
+ */
+export async function refreshHealthConnectToken(
+  refreshToken: string,
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: OAUTH_CLIENT_ID,
+      client_secret: OAUTH_CLIENT_SECRET,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`OAuth token refresh failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return {
+    accessToken: data.access_token,
+    expiresIn: data.expires_in,
+  };
+}
+
+/**
+ * Revoke a patient's Health Connect access (disconnect device).
+ */
+export async function revokeHealthConnectAccess(accessToken: string): Promise<void> {
+  await fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
+}
+
+/**
+ * Get the list of data sources available for the connected user.
+ * Helps identify which wearable devices are linked.
+ */
+export async function getConnectedDataSources(
+  accessToken: string,
+): Promise<Array<{ dataStreamId: string; name: string; type: string; device?: { manufacturer: string; model: string; type: string } }>> {
+  try {
+    const res = await fetch(`${GOOGLE_FITNESS_API}/dataSources`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) throw new Error("HEALTH_CONNECT_AUTH_EXPIRED");
+      throw new Error(`DataSources error (${res.status}): ${await res.text()}`);
+    }
+
+    const data = await res.json() as { dataSource?: Array<{ dataStreamId: string; dataStreamName?: string; type: string; device?: { manufacturer: string; model: string; type: string } }> };
+
+    return (data.dataSource || []).map(ds => ({
+      dataStreamId: ds.dataStreamId,
+      name: ds.dataStreamName || ds.dataStreamId,
+      type: ds.type,
+      device: ds.device,
+    }));
+  } catch (err) {
+    console.error("[health-connect.getDataSources] Error:", err);
+    return [];
+  }
 }
 
 // ─── Export Scopes ───────────────────────────────────────────────────────────

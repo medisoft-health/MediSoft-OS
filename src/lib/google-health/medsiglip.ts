@@ -20,6 +20,125 @@ import "server-only";
  */
 
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
+import * as fs from "fs";
+import * as crypto from "crypto";
+
+// ─── Vertex AI Toggle ────────────────────────────────────────────────────────
+
+const USE_VERTEX_ENDPOINTS = process.env.USE_VERTEX_ENDPOINTS === "true";
+const VERTEX_MEDSIGLIP_ENDPOINT = process.env.VERTEX_MEDSIGLIP_ENDPOINT || "";
+const GCP_PROJECT = process.env.GCP_PROJECT_ID || "gen-lang-client-0619493108";
+const GCP_LOCATION = process.env.GCP_LOCATION || "me-central1";
+
+// ─── Vertex AI Authentication ────────────────────────────────────────────────
+
+let cachedVertexToken: { token: string; expiry: number } | null = null;
+
+function base64url(data: Buffer): string {
+  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function getVertexAccessToken(): Promise<string> {
+  if (cachedVertexToken && Date.now() < cachedVertexToken.expiry - 60000) {
+    return cachedVertexToken.token;
+  }
+
+  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+    || "/etc/medisoft/credentials/gcp-credentials.json";
+
+  if (!fs.existsSync(credPath)) {
+    throw new Error(`MedSigLIP Vertex: Credentials not found at ${credPath}`);
+  }
+
+  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
+  const now = Math.floor(Date.now() / 1000);
+
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: creds.client_email,
+    scope: "https://www.googleapis.com/auth/cloud-platform",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
+  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
+  const signInput = `${headerB64}.${payloadB64}`;
+
+  const sign = crypto.createSign("RSA-SHA256");
+  sign.update(signInput);
+  const signature = base64url(sign.sign(creds.private_key));
+
+  const jwt = `${signInput}.${signature}`;
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    throw new Error(`MedSigLIP Vertex: Token error: ${await tokenRes.text()}`);
+  }
+
+  const tokenData = await tokenRes.json();
+  cachedVertexToken = {
+    token: tokenData.access_token,
+    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
+  };
+
+  return cachedVertexToken.token;
+}
+
+/**
+ * Call MedSigLIP via Vertex AI endpoint (when deployed).
+ * Falls back to Gemini if endpoint is unavailable.
+ */
+async function callVertexMedSigLIP(
+  imageBase64: string,
+  mimeType: string,
+  contextPrompt: string,
+): Promise<string | null> {
+  if (!VERTEX_MEDSIGLIP_ENDPOINT) return null;
+
+  try {
+    const token = await getVertexAccessToken();
+    const endpointUrl = VERTEX_MEDSIGLIP_ENDPOINT.startsWith("http")
+      ? VERTEX_MEDSIGLIP_ENDPOINT
+      : `https://${GCP_LOCATION}-aiplatform.googleapis.com/v1/${VERTEX_MEDSIGLIP_ENDPOINT}:predict`;
+
+    const response = await fetch(endpointUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        instances: [{
+          image: { bytesBase64Encoded: imageBase64 },
+          mimeType,
+          context: contextPrompt,
+        }],
+        parameters: { temperature: 0.1 },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[MedSigLIP] Vertex endpoint returned ${response.status}, falling back to Gemini`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.predictions?.[0]?.content || data.predictions?.[0] || JSON.stringify(data.predictions?.[0]);
+  } catch (err) {
+    console.warn(`[MedSigLIP] Vertex endpoint error, falling back to Gemini:`, err);
+    return null;
+  }
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -203,10 +322,6 @@ export async function classifyMedicalImage(
   },
 ): Promise<MedSigLIPResult> {
   const startTime = Date.now();
-  const client = getGeminiClient();
-  if (!client) {
-    throw new Error("Gemini API not configured. Set GOOGLE_GEMINI_API_KEY.");
-  }
 
   const contextPrompt = context
     ? `\nClinical context: ${context.clinicalQuestion || ""}
@@ -214,26 +329,45 @@ Patient: ${context.patientAge ? `${context.patientAge}y` : "unknown age"} ${cont
 ${context.suspectedCondition ? `Suspected: ${context.suspectedCondition}` : ""}`
     : "";
 
-  const result = await client.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [{
-      role: "user",
-      parts: [
-        { text: CLASSIFICATION_SYSTEM_PROMPT + contextPrompt + "\n\nClassify this medical image. Return JSON only." },
-        {
-          inlineData: {
-            mimeType,
-            data: imageBase64,
-          },
-        },
-      ],
-    }],
-    config: {
-      temperature: 0.1,
-    },
-  });
+  let aiText = "";
 
-  const aiText = result.text ?? "";
+  // ─── Try Vertex AI endpoint first (if toggle is on) ───────────────────────
+  if (USE_VERTEX_ENDPOINTS) {
+    const vertexResult = await callVertexMedSigLIP(imageBase64, mimeType, CLASSIFICATION_SYSTEM_PROMPT + contextPrompt);
+    if (vertexResult) {
+      aiText = vertexResult;
+    }
+  }
+
+  // ─── Fallback to Gemini 2.5 Pro ───────────────────────────────────────────
+  if (!aiText) {
+    const client = getGeminiClient();
+    if (!client) {
+      throw new Error("Gemini API not configured. Set GOOGLE_GEMINI_API_KEY.");
+    }
+
+    const result = await client.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{
+        role: "user",
+        parts: [
+          { text: CLASSIFICATION_SYSTEM_PROMPT + contextPrompt + "\n\nClassify this medical image. Return JSON only." },
+          {
+            inlineData: {
+              mimeType,
+              data: imageBase64,
+            },
+          },
+        ],
+      }],
+      config: {
+        temperature: 0.1,
+      },
+    });
+
+    aiText = result.text ?? "";
+  }
+
   const processingTime = Date.now() - startTime;
 
   let parsed: any;
@@ -304,7 +438,7 @@ ${context.suspectedCondition ? `Suspected: ${context.suspectedCondition}` : ""}`
     })),
     meta: {
       processingTimeMs: processingTime,
-      modelVersion: "medsiglip-gemini-2.5-pro",
+      modelVersion: USE_VERTEX_ENDPOINTS && VERTEX_MEDSIGLIP_ENDPOINT ? "medsiglip-vertex-ai" : "medsiglip-gemini-2.5-pro",
       imageSize: null,
     },
   };
@@ -430,7 +564,7 @@ function getDefaultResult(processingTime: number): MedSigLIPResult {
     pathologies: [],
     labels: [],
     conditionScores: [],
-    meta: { processingTimeMs: processingTime, modelVersion: "medsiglip-gemini-2.5-pro", imageSize: null },
+    meta: { processingTimeMs: processingTime, modelVersion: USE_VERTEX_ENDPOINTS && VERTEX_MEDSIGLIP_ENDPOINT ? "medsiglip-vertex-ai" : "medsiglip-gemini-2.5-pro", imageSize: null },
   };
 }
 

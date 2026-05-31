@@ -21,6 +21,122 @@ import "server-only";
  */
 
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
+import * as fs from "fs";
+import * as crypto from "crypto";
+
+// ─── Vertex AI Toggle ────────────────────────────────────────────────────────
+
+const USE_VERTEX_ENDPOINTS = process.env.USE_VERTEX_ENDPOINTS === "true";
+const VERTEX_PATH_FOUNDATION_ENDPOINT = process.env.VERTEX_PATH_FOUNDATION_ENDPOINT || "";
+const GCP_LOCATION = process.env.GCP_LOCATION || "me-central1";
+
+let cachedVertexToken: { token: string; expiry: number } | null = null;
+
+function base64url(data: Buffer): string {
+  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function getVertexAccessToken(): Promise<string> {
+  if (cachedVertexToken && Date.now() < cachedVertexToken.expiry - 60000) {
+    return cachedVertexToken.token;
+  }
+
+  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+    || "/etc/medisoft/credentials/gcp-credentials.json";
+
+  if (!fs.existsSync(credPath)) {
+    throw new Error(`Path Foundation Vertex: Credentials not found at ${credPath}`);
+  }
+
+  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
+  const now = Math.floor(Date.now() / 1000);
+
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: creds.client_email,
+    scope: "https://www.googleapis.com/auth/cloud-platform",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
+  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
+  const signInput = `${headerB64}.${payloadB64}`;
+
+  const sign = crypto.createSign("RSA-SHA256");
+  sign.update(signInput);
+  const signature = base64url(sign.sign(creds.private_key));
+
+  const jwt = `${signInput}.${signature}`;
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    throw new Error(`Path Foundation Vertex: Token error: ${await tokenRes.text()}`);
+  }
+
+  const tokenData = await tokenRes.json();
+  cachedVertexToken = {
+    token: tokenData.access_token,
+    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
+  };
+
+  return cachedVertexToken.token;
+}
+
+/**
+ * Call Path Foundation via Vertex AI endpoint (when deployed).
+ * Falls back to Gemini if endpoint is unavailable.
+ */
+async function callVertexPathFoundation(
+  imageBase64: string,
+  mimeType: string,
+  contextPrompt: string,
+): Promise<string | null> {
+  if (!VERTEX_PATH_FOUNDATION_ENDPOINT) return null;
+
+  try {
+    const token = await getVertexAccessToken();
+    const endpointUrl = VERTEX_PATH_FOUNDATION_ENDPOINT.startsWith("http")
+      ? VERTEX_PATH_FOUNDATION_ENDPOINT
+      : `https://${GCP_LOCATION}-aiplatform.googleapis.com/v1/${VERTEX_PATH_FOUNDATION_ENDPOINT}:predict`;
+
+    const response = await fetch(endpointUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        instances: [{
+          image: { bytesBase64Encoded: imageBase64 },
+          mimeType,
+          context: contextPrompt,
+        }],
+        parameters: { temperature: 0.1 },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[PathFoundation] Vertex endpoint returned ${response.status}, falling back to Gemini`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.predictions?.[0]?.content || data.predictions?.[0] || JSON.stringify(data.predictions?.[0]);
+  } catch (err) {
+    console.warn(`[PathFoundation] Vertex endpoint error, falling back to Gemini:`, err);
+    return null;
+  }
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -205,10 +321,6 @@ export async function analyzePathologyImage(
   },
 ): Promise<PathFoundationResult> {
   const startTime = Date.now();
-  const client = getGeminiClient();
-  if (!client) {
-    throw new Error("Gemini API not configured. Set GOOGLE_GEMINI_API_KEY.");
-  }
 
   const contextInfo = context
     ? `\nClinical Context:
@@ -300,20 +412,39 @@ Analyze this histopathology image. Return comprehensive JSON:
 
 Include all sections. For biomarkers, only include if IHC stain is visible or requested.`;
 
-  const result = await client.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [{
-      role: "user",
-      parts: [
-        { text: prompt },
-        { inlineData: { mimeType, data: imageBase64 } },
-        { text: "Analyze this pathology image. Return JSON only." },
-      ],
-    }],
-    config: { temperature: 0.1 },
-  });
+  let aiText = "";
 
-  const aiText = result.text ?? "";
+  // ─── Try Vertex AI endpoint first (if toggle is on) ───────────────────────
+  if (USE_VERTEX_ENDPOINTS) {
+    const vertexResult = await callVertexPathFoundation(imageBase64, mimeType, prompt);
+    if (vertexResult) {
+      aiText = vertexResult;
+    }
+  }
+
+  // ─── Fallback to Gemini 2.5 Pro ───────────────────────────────────────────
+  if (!aiText) {
+    const client = getGeminiClient();
+    if (!client) {
+      throw new Error("Gemini API not configured. Set GOOGLE_GEMINI_API_KEY.");
+    }
+
+    const result = await client.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{
+        role: "user",
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType, data: imageBase64 } },
+          { text: "Analyze this pathology image. Return JSON only." },
+        ],
+      }],
+      config: { temperature: 0.1 },
+    });
+
+    aiText = result.text ?? "";
+  }
+
   const processingTime = Date.now() - startTime;
 
   let parsed: any;
@@ -344,7 +475,7 @@ Include all sections. For biomarkers, only include if IHC stain is visible or re
     synopticReport: parsed.synopticReport || { procedure: "", diagnosis: "", grade: "", margins: "", lymphNodes: "", additionalFindings: "", comment: "" },
     meta: {
       processingTimeMs: processingTime,
-      modelVersion: "path-foundation-gemini-2.5-pro",
+      modelVersion: USE_VERTEX_ENDPOINTS && VERTEX_PATH_FOUNDATION_ENDPOINT ? "path-foundation-vertex-ai" : "path-foundation-gemini-2.5-pro",
       magnification: context?.magnification || "unknown",
       imageQuality: parsed.specimen?.slideQuality || "adequate",
       confidence: parsed.classification?.confidence || 0.5,

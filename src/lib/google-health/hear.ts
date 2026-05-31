@@ -21,6 +21,62 @@ import "server-only";
  */
 
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
+import * as fs from "fs";
+import * as crypto from "crypto";
+
+// ─── Vertex AI Configuration ───────────────────────────────────────────────────────
+
+const USE_VERTEX = process.env.USE_VERTEX_ENDPOINTS === "true";
+const VERTEX_HEAR_ENDPOINT = process.env.VERTEX_HEAR_ENDPOINT || "";
+
+let vertexTokenCache: { token: string; expiry: number } | null = null;
+
+async function getVertexToken(): Promise<string> {
+  if (vertexTokenCache && Date.now() < vertexTokenCache.expiry - 60000) {
+    return vertexTokenCache.token;
+  }
+  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || "/etc/medisoft/credentials/gcp-credentials.json";
+  if (!fs.existsSync(credPath)) throw new Error("HeAR: Vertex credentials not found");
+  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = { iss: creds.client_email, scope: "https://www.googleapis.com/auth/cloud-platform", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 };
+  const b64url = (d: Buffer) => d.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const h = b64url(Buffer.from(JSON.stringify(header)));
+  const p = b64url(Buffer.from(JSON.stringify(payload)));
+  const sign = crypto.createSign("RSA-SHA256");
+  sign.update(`${h}.${p}`);
+  const sig = b64url(sign.sign(creds.private_key));
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${h}.${p}.${sig}` }),
+  });
+  if (!res.ok) throw new Error(`HeAR: Token error: ${await res.text()}`);
+  const data = await res.json();
+  vertexTokenCache = { token: data.access_token, expiry: Date.now() + 3500000 };
+  return data.access_token;
+}
+
+async function callVertexHeAR(audioBase64: string, mimeType: string, prompt: string): Promise<string | null> {
+  if (!USE_VERTEX || !VERTEX_HEAR_ENDPOINT) return null;
+  try {
+    const token = await getVertexToken();
+    const res = await fetch(VERTEX_HEAR_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        instances: [{ audio: { b64_content: audioBase64, mime_type: mimeType }, prompt }],
+        parameters: { temperature: 0.1 },
+      }),
+    });
+    if (!res.ok) { console.warn("[HeAR] Vertex endpoint error, falling back to Gemini"); return null; }
+    const data = await res.json();
+    return data.predictions?.[0]?.content || data.predictions?.[0] || null;
+  } catch (err) {
+    console.warn("[HeAR] Vertex call failed, falling back to Gemini:", err);
+    return null;
+  }
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -256,20 +312,24 @@ Analyze this health audio recording. Return comprehensive JSON:
 
 Include only relevant sections (e.g., skip heartSoundAnalysis for cough recordings).`;
 
-  const result = await client.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [{
-      role: "user",
-      parts: [
-        { text: prompt },
-        { inlineData: { mimeType, data: audioBase64 } },
-        { text: "Analyze this health audio. Return JSON only." },
-      ],
-    }],
-    config: { temperature: 0.1 },
-  });
+  // Try Vertex AI endpoint first, then fall back to Gemini
+  let aiText = await callVertexHeAR(audioBase64, mimeType, prompt + "\n\nAnalyze this health audio. Return JSON only.");
 
-  const aiText = result.text ?? "";
+  if (!aiText) {
+    const result = await client.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{
+        role: "user",
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType, data: audioBase64 } },
+          { text: "Analyze this health audio. Return JSON only." },
+        ],
+      }],
+      config: { temperature: 0.1 },
+    });
+    aiText = result.text ?? "";
+  }
   const processingTime = Date.now() - startTime;
 
   let parsed: any;
@@ -306,7 +366,7 @@ Include only relevant sections (e.g., skip heartSoundAnalysis for cough recordin
     screening: parsed.screening || undefined,
     meta: {
       processingTimeMs: processingTime,
-      modelVersion: "hear-gemini-2.5-pro",
+      modelVersion: USE_VERTEX && VERTEX_HEAR_ENDPOINT ? "hear-vertex-ai" : "hear-gemini-2.5-pro",
       audioLengthMs: estimateAudioLength(audioBase64),
       audioQuality: "adequate",
     },
@@ -473,7 +533,7 @@ function getDefaultResult(processingTime: number): HeARResult {
       recommendedActions: ["Repeat recording with better audio quality", "Clinical examination recommended"],
       followUpTimeframe: "As needed",
     },
-    meta: { processingTimeMs: processingTime, modelVersion: "hear-gemini-2.5-pro", audioLengthMs: 0, audioQuality: "poor" },
+    meta: { processingTimeMs: processingTime, modelVersion: USE_VERTEX && VERTEX_HEAR_ENDPOINT ? "hear-vertex-ai" : "hear-gemini-2.5-pro", audioLengthMs: 0, audioQuality: "poor" },
   };
 }
 

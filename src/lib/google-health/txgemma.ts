@@ -21,6 +21,114 @@ import "server-only";
  */
 
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
+import * as fs from "fs";
+import * as crypto from "crypto";
+
+// ─── Vertex AI Toggle ────────────────────────────────────────────────────────
+
+const USE_VERTEX_ENDPOINTS = process.env.USE_VERTEX_ENDPOINTS === "true";
+const VERTEX_TXGEMMA_ENDPOINT = process.env.VERTEX_TXGEMMA_ENDPOINT || "";
+const GCP_LOCATION = process.env.GCP_LOCATION || "me-central1";
+
+let cachedVertexToken: { token: string; expiry: number } | null = null;
+
+function base64url(data: Buffer): string {
+  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function getVertexAccessToken(): Promise<string> {
+  if (cachedVertexToken && Date.now() < cachedVertexToken.expiry - 60000) {
+    return cachedVertexToken.token;
+  }
+
+  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+    || "/etc/medisoft/credentials/gcp-credentials.json";
+
+  if (!fs.existsSync(credPath)) {
+    throw new Error(`TxGemma Vertex: Credentials not found at ${credPath}`);
+  }
+
+  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
+  const now = Math.floor(Date.now() / 1000);
+
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: creds.client_email,
+    scope: "https://www.googleapis.com/auth/cloud-platform",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
+  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
+  const signInput = `${headerB64}.${payloadB64}`;
+
+  const sign = crypto.createSign("RSA-SHA256");
+  sign.update(signInput);
+  const signature = base64url(sign.sign(creds.private_key));
+
+  const jwt = `${signInput}.${signature}`;
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    throw new Error(`TxGemma Vertex: Token error: ${await tokenRes.text()}`);
+  }
+
+  const tokenData = await tokenRes.json();
+  cachedVertexToken = {
+    token: tokenData.access_token,
+    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
+  };
+
+  return cachedVertexToken.token;
+}
+
+/**
+ * Call TxGemma via Vertex AI endpoint (when deployed).
+ * Falls back to Gemini if endpoint is unavailable.
+ */
+async function callVertexTxGemma(prompt: string): Promise<string | null> {
+  if (!VERTEX_TXGEMMA_ENDPOINT) return null;
+
+  try {
+    const token = await getVertexAccessToken();
+    const endpointUrl = VERTEX_TXGEMMA_ENDPOINT.startsWith("http")
+      ? VERTEX_TXGEMMA_ENDPOINT
+      : `https://${GCP_LOCATION}-aiplatform.googleapis.com/v1/${VERTEX_TXGEMMA_ENDPOINT}:predict`;
+
+    const response = await fetch(endpointUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        instances: [{ prompt }],
+        parameters: { temperature: 0.2, maxOutputTokens: 4096 },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[TxGemma] Vertex endpoint returned ${response.status}, falling back to Gemini`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.predictions?.[0]?.content || data.predictions?.[0] || JSON.stringify(data.predictions?.[0]);
+  } catch (err) {
+    console.warn(`[TxGemma] Vertex endpoint error, falling back to Gemini:`, err);
+    return null;
+  }
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -163,10 +271,6 @@ export async function analyzeTherapeuticRegimen(
   patient: PatientProfile,
 ): Promise<TxGemmaResult> {
   const startTime = Date.now();
-  const client = getGeminiClient();
-  if (!client) {
-    throw new Error("Gemini API not configured. Set GOOGLE_GEMINI_API_KEY.");
-  }
 
   const drugList = drugs.map(d => `- ${d.name}${d.rxcui ? ` (RxCUI: ${d.rxcui})` : ""}${d.mechanismOfAction ? ` [MOA: ${d.mechanismOfAction}]` : ""}${d.therapeuticClass ? ` [Class: ${d.therapeuticClass}]` : ""}`).join("\n");
 
@@ -257,6 +361,11 @@ Analyze this regimen comprehensively. Return JSON:
   ]
 }`;
 
+  const client = getGeminiClient();
+  if (!client) {
+    throw new Error("Gemini API not configured. Set GOOGLE_GEMINI_API_KEY.");
+  }
+
   const result = await client.models.generateContent({
     model: GEMINI_MODEL,
     contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -284,7 +393,7 @@ Analyze this regimen comprehensively. Return JSON:
       overallRiskScore: 0,
       clinicalSummary: "Analysis could not be completed. Please try again.",
       alerts: [{ level: "warning", message: "AI analysis incomplete" }],
-      meta: { processingTimeMs: processingTime, modelVersion: "txgemma-gemini-2.5-pro", evidenceSources: [] },
+      meta: { processingTimeMs: processingTime, modelVersion: USE_VERTEX_ENDPOINTS && VERTEX_TXGEMMA_ENDPOINT ? "txgemma-vertex-ai" : "txgemma-gemini-2.5-pro", evidenceSources: [] },
     };
   }
 
@@ -299,7 +408,7 @@ Analyze this regimen comprehensively. Return JSON:
     alerts: parsed.alerts || [],
     meta: {
       processingTimeMs: processingTime,
-      modelVersion: "txgemma-gemini-2.5-pro",
+      modelVersion: USE_VERTEX_ENDPOINTS && VERTEX_TXGEMMA_ENDPOINT ? "txgemma-vertex-ai" : "txgemma-gemini-2.5-pro",
       evidenceSources: ["OpenFDA", "DrugBank", "Clinical Pharmacology", "UpToDate"],
     },
   };
