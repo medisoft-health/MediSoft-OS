@@ -36,7 +36,7 @@ if (!DATABASE_URL) {
 const conn = postgres(DATABASE_URL, { max: 1, prepare: false });
 const db = drizzle(conn, { schema });
 
-const DEMO_PASSWORD = "Medisoft2022";
+const DEMO_PASSWORD = "Medisoft2022!!";
 
 async function main() {
   console.log("🌱 MediSoft seed — starting…\n");

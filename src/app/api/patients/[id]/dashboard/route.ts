@@ -72,6 +72,10 @@ export async function GET(
         age: ctx.demographics.age,
         sex: ctx.demographics.sex,
       },
+      // MediBot context fields
+      conditions: ctx.demographics.chronicConditions?.map((c) => c.description) ?? [],
+      medications: ctx.activeMedications?.map((m) => `${m.drugName} ${m.dose}`) ?? [],
+      allergies: ctx.demographics.allergies?.map((a) => a.substance) ?? [],
       overallHealthScore: riskResult.overallHealthScore,
       risks: riskResult.risks.map((r) => ({ id: r.id, name: r.name, nameEn: r.nameEn, score: r.score, level: r.level })),
       stats: {

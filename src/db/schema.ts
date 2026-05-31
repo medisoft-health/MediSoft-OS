@@ -763,3 +763,351 @@ export type NewScan = typeof scans.$inferInsert;
 export type Vital = typeof vitals.$inferSelect;
 export type NewVital = typeof vitals.$inferInsert;
 export type AuditLogEntry = typeof auditLog.$inferSelect;
+
+// ─────────────────────────────────────────────────────────────────
+//  APPOINTMENTS (Patient Portal + AI Receptionist)
+// ─────────────────────────────────────────────────────────────────
+export const appointmentStatusEnum = pgEnum("appointment_status", [
+  "scheduled",
+  "confirmed",
+  "checked_in",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "no_show",
+]);
+
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    physicianId: uuid("physician_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    duration: integer("duration").notNull().default(30),
+    appointmentType: varchar("appointment_type", { length: 64 }).notNull().default("consultation"),
+    status: appointmentStatusEnum("status").notNull().default("scheduled"),
+    reason: text("reason"),
+    notes: text("notes"),
+    bookedBy: varchar("booked_by", { length: 64 }).default("manual"),
+    bookedVia: varchar("booked_via", { length: 64 }).default("web"),
+    reminderSent: boolean("reminder_sent").notNull().default(false),
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancellationReason: text("cancellation_reason"),
+    encounterId: uuid("encounter_id").references(() => encounters.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("appointments_patient_idx").on(t.patientId),
+    index("appointments_physician_idx").on(t.physicianId),
+    index("appointments_scheduled_idx").on(t.scheduledAt),
+    index("appointments_status_idx").on(t.status),
+  ]
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT MESSAGES (Patient Portal messaging)
+// ─────────────────────────────────────────────────────────────────
+export const patientMessages = pgTable(
+  "patient_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    physicianId: uuid("physician_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    senderType: varchar("sender_type", { length: 20 }).notNull(),
+    subject: varchar("subject", { length: 256 }),
+    body: text("body").notNull(),
+    isRead: boolean("is_read").notNull().default(false),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    attachments: jsonb("attachments").$type<Array<{ name: string; url: string; type: string }>>(),
+    parentMessageId: uuid("parent_message_id"),
+    channel: varchar("channel", { length: 32 }).default("portal"),
+    externalMessageId: varchar("external_message_id", { length: 128 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("messages_patient_idx").on(t.patientId),
+    index("messages_physician_idx").on(t.physicianId),
+    index("messages_thread_idx").on(t.parentMessageId),
+    index("messages_unread_idx").on(t.physicianId, t.isRead),
+  ]
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  INSURANCE PROVIDERS
+// ─────────────────────────────────────────────────────────────────
+export const insuranceProviders = pgTable(
+  "insurance_providers",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 256 }).notNull(),
+    nameAr: varchar("name_ar", { length: 256 }),
+    code: varchar("code", { length: 64 }).notNull(),
+    type: varchar("type", { length: 64 }).default("insurance"),
+    contactEmail: varchar("contact_email", { length: 320 }),
+    contactPhone: varchar("contact_phone", { length: 20 }),
+    nphiesId: varchar("nphies_id", { length: 64 }),
+    isActive: boolean("is_active").notNull().default(true),
+    claimSubmissionUrl: text("claim_submission_url"),
+    eligibilityCheckUrl: text("eligibility_check_url"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("insurance_code_idx").on(t.code),
+    index("insurance_nphies_idx").on(t.nphiesId),
+  ]
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  BILLING CLAIMS (Medical Billing + NPHIES)
+// ─────────────────────────────────────────────────────────────────
+export const claimStatusEnum = pgEnum("claim_status", [
+  "draft",
+  "submitted",
+  "pending_review",
+  "approved",
+  "partially_approved",
+  "rejected",
+  "appealed",
+  "paid",
+  "cancelled",
+]);
+
+export const billingClaims = pgTable(
+  "billing_claims",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    claimNumber: varchar("claim_number", { length: 64 }).notNull(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    physicianId: uuid("physician_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    encounterId: uuid("encounter_id").references(() => encounters.id, { onDelete: "set null" }),
+    insuranceProviderId: integer("insurance_provider_id").references(() => insuranceProviders.id),
+    icdCodes: jsonb("icd_codes").$type<Array<{ code: string; description: string }>>(),
+    cptCodes: jsonb("cpt_codes").$type<Array<{ code: string; description: string; units: number; fee: number }>>(),
+    totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+    approvedAmount: decimal("approved_amount", { precision: 10, scale: 2 }),
+    patientResponsibility: decimal("patient_responsibility", { precision: 10, scale: 2 }),
+    copay: decimal("copay", { precision: 10, scale: 2 }),
+    deductible: decimal("deductible", { precision: 10, scale: 2 }),
+    status: claimStatusEnum("status").notNull().default("draft"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    rejectionReason: text("rejection_reason"),
+    nphiesClaimId: varchar("nphies_claim_id", { length: 128 }),
+    nphiesResponse: jsonb("nphies_response").$type<Record<string, unknown>>(),
+    nphiesBundleId: varchar("nphies_bundle_id", { length: 128 }),
+    aiGeneratedCodes: boolean("ai_generated_codes").default(false),
+    aiConfidence: decimal("ai_confidence", { precision: 5, scale: 4 }),
+    physicianVerified: boolean("physician_verified").default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("claims_number_idx").on(t.claimNumber),
+    index("claims_patient_idx").on(t.patientId),
+    index("claims_status_idx").on(t.status),
+    index("claims_insurance_idx").on(t.insuranceProviderId),
+    index("claims_nphies_idx").on(t.nphiesClaimId),
+  ]
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  FOLLOW-UP TASKS (AI Nurse)
+// ─────────────────────────────────────────────────────────────────
+export const followUpTaskStatusEnum = pgEnum("follow_up_status", [
+  "pending",
+  "sent",
+  "acknowledged",
+  "completed",
+  "escalated",
+  "cancelled",
+]);
+
+export const followUpTasks = pgTable(
+  "follow_up_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    physicianId: uuid("physician_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    encounterId: uuid("encounter_id").references(() => encounters.id, { onDelete: "set null" }),
+    taskType: varchar("task_type", { length: 64 }).notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    priority: varchar("priority", { length: 20 }).default("normal"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    channel: varchar("channel", { length: 32 }).default("sms"),
+    messageSent: text("message_sent"),
+    patientResponse: text("patient_response"),
+    status: followUpTaskStatusEnum("status").notNull().default("pending"),
+    attempts: integer("attempts").default(0),
+    maxAttempts: integer("max_attempts").default(3),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    aiGenerated: boolean("ai_generated").default(true),
+    aiNotes: text("ai_notes"),
+    escalationReason: text("escalation_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("followup_patient_idx").on(t.patientId),
+    index("followup_physician_idx").on(t.physicianId),
+    index("followup_status_idx").on(t.status),
+    index("followup_scheduled_idx").on(t.scheduledAt),
+    index("followup_type_idx").on(t.taskType),
+  ]
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  TRANSLATION SESSIONS (AI Interpreter)
+// ─────────────────────────────────────────────────────────────────
+export const translationSessions = pgTable(
+  "translation_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .references(() => patients.id, { onDelete: "set null" }),
+    physicianId: uuid("physician_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    encounterId: uuid("encounter_id").references(() => encounters.id, { onDelete: "set null" }),
+    sourceLanguage: varchar("source_language", { length: 10 }).notNull(),
+    targetLanguage: varchar("target_language", { length: 10 }).notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+    transcript: jsonb("transcript").$type<Array<{
+      timestamp: string;
+      speaker: string;
+      original: string;
+      translated: string;
+      language: string;
+    }>>(),
+    wordCount: integer("word_count").default(0),
+    medicalTermsDetected: integer("medical_terms_detected").default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("translation_patient_idx").on(t.patientId),
+    index("translation_physician_idx").on(t.physicianId),
+    index("translation_date_idx").on(t.startedAt),
+  ]
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  COMMUNICATION LOG (AI Receptionist / AI Nurse outbound)
+// ─────────────────────────────────────────────────────────────────
+export const communicationLog = pgTable(
+  "communication_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .references(() => patients.id, { onDelete: "set null" }),
+    direction: varchar("direction", { length: 10 }).notNull(),
+    channel: varchar("channel", { length: 32 }).notNull(),
+    fromNumber: varchar("from_number", { length: 20 }),
+    toNumber: varchar("to_number", { length: 20 }),
+    subject: varchar("subject", { length: 256 }),
+    body: text("body"),
+    externalId: varchar("external_id", { length: 128 }),
+    status: varchar("status", { length: 32 }).default("sent"),
+    statusUpdatedAt: timestamp("status_updated_at", { withTimezone: true }),
+    handledBy: varchar("handled_by", { length: 64 }).default("system"),
+    aiResponse: text("ai_response"),
+    intent: varchar("intent", { length: 64 }),
+    sentiment: varchar("sentiment", { length: 20 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("comms_patient_idx").on(t.patientId),
+    index("comms_channel_idx").on(t.channel),
+    index("comms_direction_idx").on(t.direction),
+    index("comms_date_idx").on(t.createdAt),
+    index("comms_external_idx").on(t.externalId),
+  ]
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  NEW RELATIONS
+// ─────────────────────────────────────────────────────────────────
+export const appointmentsRelations = relations(appointments, ({ one }) => ({
+  patient: one(patients, { fields: [appointments.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [appointments.physicianId], references: [users.id] }),
+  encounter: one(encounters, { fields: [appointments.encounterId], references: [encounters.id] }),
+}));
+
+export const patientMessagesRelations = relations(patientMessages, ({ one }) => ({
+  patient: one(patients, { fields: [patientMessages.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [patientMessages.physicianId], references: [users.id] }),
+}));
+
+export const billingClaimsRelations = relations(billingClaims, ({ one }) => ({
+  patient: one(patients, { fields: [billingClaims.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [billingClaims.physicianId], references: [users.id] }),
+  encounter: one(encounters, { fields: [billingClaims.encounterId], references: [encounters.id] }),
+  insuranceProvider: one(insuranceProviders, { fields: [billingClaims.insuranceProviderId], references: [insuranceProviders.id] }),
+}));
+
+export const followUpTasksRelations = relations(followUpTasks, ({ one }) => ({
+  patient: one(patients, { fields: [followUpTasks.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [followUpTasks.physicianId], references: [users.id] }),
+  encounter: one(encounters, { fields: [followUpTasks.encounterId], references: [encounters.id] }),
+}));
+
+export const translationSessionsRelations = relations(translationSessions, ({ one }) => ({
+  patient: one(patients, { fields: [translationSessions.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [translationSessions.physicianId], references: [users.id] }),
+  encounter: one(encounters, { fields: [translationSessions.encounterId], references: [encounters.id] }),
+}));
+
+export const communicationLogRelations = relations(communicationLog, ({ one }) => ({
+  patient: one(patients, { fields: [communicationLog.patientId], references: [patients.id] }),
+}));
+
+// ─────────────────────────────────────────────────────────────────
+//  NEW TYPE EXPORTS
+// ─────────────────────────────────────────────────────────────────
+export type Appointment = typeof appointments.$inferSelect;
+export type NewAppointment = typeof appointments.$inferInsert;
+export type PatientMessage = typeof patientMessages.$inferSelect;
+export type NewPatientMessage = typeof patientMessages.$inferInsert;
+export type InsuranceProvider = typeof insuranceProviders.$inferSelect;
+export type NewInsuranceProvider = typeof insuranceProviders.$inferInsert;
+export type BillingClaim = typeof billingClaims.$inferSelect;
+export type NewBillingClaim = typeof billingClaims.$inferInsert;
+export type FollowUpTask = typeof followUpTasks.$inferSelect;
+export type NewFollowUpTask = typeof followUpTasks.$inferInsert;
+export type TranslationSession = typeof translationSessions.$inferSelect;
+export type NewTranslationSession = typeof translationSessions.$inferInsert;
+export type CommunicationLogEntry = typeof communicationLog.$inferSelect;
+export type NewCommunicationLogEntry = typeof communicationLog.$inferInsert;

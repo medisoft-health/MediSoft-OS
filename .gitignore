@@ -44,4 +44,13 @@ medisoft-chatbot-*.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-.github/workflows/ci.yml
+
+# Utility scripts (one-time use)
+reset-password.mjs
+reset-pw2.mjs
+setup-dicom.py
+setup-ssl.sh
+test-fhir.py
+seed-data.sql
+nginx-ssl.conf
+AGENTS_UPDATE.md
