@@ -295,7 +295,7 @@ function SidebarContent({
                 {collapsed || !item.moduleKey ? (
                   <Icon className="size-[18px] shrink-0" strokeWidth={2} />
                 ) : (
-                  <ModuleLogo module={item.moduleKey} height={20} className="shrink-0" />
+                  <ModuleLogo module={item.moduleKey} height={20} maxWidth={130} className="shrink-0" />
                 )}
                 {!collapsed && (
                   <>

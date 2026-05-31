@@ -18,17 +18,31 @@ interface ModuleLogoProps {
   module: ModuleKey;
   /** Height in the sidebar (default 20px). Use a larger value for page headers. */
   height?: number;
+  /** Max width constraint (default: none). Useful in the sidebar to prevent overflow. */
+  maxWidth?: number;
   className?: string;
 }
 
 /**
  * Renders the real brand logo for a clinical module.
  *
+ * All four logos share the same native height (120px) so at any given
+ * `height` the first letter of each brand name aligns perfectly.
+ * Use `maxWidth` in tight containers (e.g. sidebar) so wider logos
+ * (MediLab, MediScan with icons) scale down proportionally instead
+ * of overflowing.
+ *
  * Usage:
- *   <ModuleLogo module="mediscript" />               — sidebar (20px)
- *   <ModuleLogo module="mediscript" height={40} />   — page header
+ *   <ModuleLogo module="mediscript" />                          — sidebar (20px)
+ *   <ModuleLogo module="mediscript" height={20} maxWidth={120} /> — sidebar constrained
+ *   <ModuleLogo module="mediscript" height={40} />              — page header
  */
-export function ModuleLogo({ module, height = 20, className }: ModuleLogoProps) {
+export function ModuleLogo({
+  module,
+  height = 20,
+  maxWidth,
+  className,
+}: ModuleLogoProps) {
   const src = MODULE_LOGOS[module];
   const label =
     module === "mediscript"
@@ -45,7 +59,11 @@ export function ModuleLogo({ module, height = 20, className }: ModuleLogoProps) 
       src={src}
       alt={label}
       height={height}
-      style={{ height, width: "auto" }}
+      style={{
+        height,
+        width: "auto",
+        ...(maxWidth ? { maxWidth, objectFit: "contain" as const } : {}),
+      }}
       className={className}
       draggable={false}
     />
