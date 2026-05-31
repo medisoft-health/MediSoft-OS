@@ -5,6 +5,7 @@
  * Used by the sidebar nav and by each module's landing page.
  */
 
+/** Full logos (with icons) for page headers and dashboard cards */
 export const MODULE_LOGOS = {
   mediscript: "/brand/medisoft-mediscript.png",
   pharmax: "/brand/medisoft-pharmax.png",
@@ -12,38 +13,46 @@ export const MODULE_LOGOS = {
   mediscan: "/brand/medisoft-mediscan.png",
 } as const;
 
+/**
+ * Sidebar-specific logos: text-only, same height, no decorative icons.
+ * These are pre-cropped and normalized so the first letter (M/P) is
+ * exactly the same visual height across all four modules.
+ */
+export const SIDEBAR_LOGOS = {
+  mediscript: "/brand/sidebar-mediscript.png",
+  pharmax: "/brand/sidebar-pharmax.png",
+  medilab: "/brand/sidebar-medilab.png",
+  mediscan: "/brand/sidebar-mediscan.png",
+} as const;
+
 export type ModuleKey = keyof typeof MODULE_LOGOS;
 
 interface ModuleLogoProps {
   module: ModuleKey;
-  /** Height in the sidebar (default 20px). Use a larger value for page headers. */
+  /** Rendered height in px. */
   height?: number;
-  /** Max width constraint (default: none). Useful in the sidebar to prevent overflow. */
+  /** Max width constraint (px). Prevents wider logos from overflowing. */
   maxWidth?: number;
+  /** When true, uses the sidebar-specific (text-only, normalized) logo. */
+  sidebarMode?: boolean;
   className?: string;
 }
 
 /**
  * Renders the real brand logo for a clinical module.
  *
- * All four logos share the same native height (120px) so at any given
- * `height` the first letter of each brand name aligns perfectly.
- * Use `maxWidth` in tight containers (e.g. sidebar) so wider logos
- * (MediLab, MediScan with icons) scale down proportionally instead
- * of overflowing.
- *
- * Usage:
- *   <ModuleLogo module="mediscript" />                          — sidebar (20px)
- *   <ModuleLogo module="mediscript" height={20} maxWidth={120} /> — sidebar constrained
- *   <ModuleLogo module="mediscript" height={40} />              — page header
+ * In `sidebarMode`, uses pre-cropped text-only versions where all logos
+ * have identical text height. Without sidebar mode (e.g. page headers),
+ * renders the full logo with decorative icons.
  */
 export function ModuleLogo({
   module,
   height = 20,
   maxWidth,
+  sidebarMode = false,
   className,
 }: ModuleLogoProps) {
-  const src = MODULE_LOGOS[module];
+  const src = sidebarMode ? SIDEBAR_LOGOS[module] : MODULE_LOGOS[module];
   const label =
     module === "mediscript"
       ? "MediScript"
@@ -60,7 +69,7 @@ export function ModuleLogo({
       alt={label}
       height={height}
       style={{
-        height,
+        height: height,
         width: "auto",
         ...(maxWidth ? { maxWidth, objectFit: "contain" as const } : {}),
       }}
