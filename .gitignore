@@ -46,11 +46,11 @@ medisoft-chatbot-*.json
 next-env.d.ts
 
 # Utility scripts (one-time use)
-reset-password.mjs
-reset-pw2.mjs
-setup-dicom.py
-setup-ssl.sh
-test-fhir.py
-seed-data.sql
-nginx-ssl.conf
-AGENTS_UPDATE.md
+scripts/reset-password.mjs
+scripts/reset-pw2.mjs
+scripts/setup-dicom.py
+scripts/setup-ssl.sh
+scripts/test-fhir.py
+scripts/seed-data.sql
+scripts/nginx-ssl.conf
+scripts/AGENTS_UPDATE.md
