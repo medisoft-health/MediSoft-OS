@@ -18,6 +18,17 @@ import {
   PanelLeft,
   Menu,
   Sparkles,
+  CalendarDays,
+  Receipt,
+  ClipboardList,
+  Bot,
+  Stethoscope,
+  HeartPulse,
+  AudioLines,
+  Globe,
+  Cable,
+  UserCircle,
+  Bell,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -50,11 +61,15 @@ type NavItem = {
   moduleKey?: ModuleKey;
   badge?: { text: string; variant: "info" | "warning" | "success" };
   ai?: boolean;
+  section?: string;
 };
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  // ── CLINICAL ──
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, section: "CLINICAL" },
   { href: "/patients", label: "Patients", icon: Users },
+  { href: "/encounters", label: "Encounters", icon: ClipboardList },
+  { href: "/appointments", label: "Appointments", icon: CalendarDays },
   {
     href: "/mediscript",
     label: "MediScript",
@@ -67,7 +82,20 @@ const NAV: NavItem[] = [
   { href: "/medilab", label: "MediLab", icon: FlaskConical, moduleKey: "medilab", ai: true },
   { href: "/mediscan", label: "MediScan", icon: ScanLine, moduleKey: "mediscan", ai: true },
   { href: "/diagnosis", label: "Diagnosis", icon: Brain, ai: true },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/billing", label: "Billing", icon: Receipt },
+  // ── AI AGENTS ──
+  { href: "/co-clinician", label: "Co-Clinician", icon: Stethoscope, section: "AI AGENTS", ai: true, badge: { text: "AI", variant: "info" } },
+  { href: "/ai-nurse", label: "AI Nurse", icon: HeartPulse, ai: true, badge: { text: "AI", variant: "info" } },
+  { href: "/ai-receptionist", label: "AI Receptionist", icon: Bot, ai: true, badge: { text: "AI", variant: "info" } },
+  { href: "/ai-interpreter", label: "AI Interpreter", icon: Globe, ai: true, badge: { text: "AI", variant: "info" } },
+  { href: "/ambient-scribe", label: "Ambient Scribe", icon: AudioLines, ai: true, badge: { text: "AI", variant: "info" } },
+  // ── INTEGRATIONS ──
+  { href: "/google-health", label: "Google Health", icon: HeartPulse, section: "INTEGRATIONS" },
+  { href: "/health-connect", label: "Health Connect", icon: Cable },
+  { href: "/patient-portal", label: "Patient Portal", icon: UserCircle },
+  // ── SYSTEM ──
+  { href: "/analytics", label: "Analytics", icon: BarChart3, section: "SYSTEM" },
+  { href: "/notifications", label: "Notifications", icon: Bell },
 ];
 
 interface DashboardLayoutProps {
@@ -229,81 +257,79 @@ function SidebarContent({
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {!collapsed && (
-          <div className="mb-2 mt-1 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-            Clinical
-          </div>
-        )}
-        {NAV.map((item) => {
+        {NAV.map((item, idx) => {
           const isActive =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
-                  : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
+            <React.Fragment key={item.href}>
+              {/* Section header */}
+              {item.section && !collapsed && (
+                <div className={cn("mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]", idx > 0 && "mt-5")}>
+                  {item.section}
+                </div>
               )}
-              title={collapsed ? item.label : undefined}
-            >
-              {isActive && (
-                <span
-                  aria-hidden
-                  className="absolute -start-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full grad-pink-navy"
-                />
-              )}
-              {/* Show Lucide icon when collapsed; show brand logo when expanded + moduleKey exists */}
-              {collapsed || !item.moduleKey ? (
-                <Icon className="size-[18px] shrink-0" strokeWidth={2} />
-              ) : (
-                <ModuleLogo module={item.moduleKey} height={20} className="shrink-0" />
-              )}
-              {!collapsed && (
-                <>
-                  {/* Hide the text label when showing a module logo — the logo IS the label */}
-                  {!item.moduleKey && (
-                    <span className="flex-1 truncate">{item.label}</span>
-                  )}
-                  {item.moduleKey && <span className="flex-1" />}
-                  {item.ai && (
-                    <Sparkles className="size-3.5 text-[color:var(--color-brand-cyan)]" />
-                  )}
-                  {item.badge && (
-                    <Badge
-                      variant={item.badge.variant}
-                      className="ms-auto px-1.5 py-0 text-[9px]"
-                    >
-                      {item.badge.text}
-                    </Badge>
-                  )}
-                </>
-              )}
-            </Link>
+              <Link
+                href={item.href}
+                className={cn(
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
+                    : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                {isActive && (
+                  <span
+                    aria-hidden
+                    className="absolute -start-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full grad-pink-navy"
+                  />
+                )}
+                {/* Show Lucide icon when collapsed; show brand logo when expanded + moduleKey exists */}
+                {collapsed || !item.moduleKey ? (
+                  <Icon className="size-[18px] shrink-0" strokeWidth={2} />
+                ) : (
+                  <ModuleLogo module={item.moduleKey} height={20} className="shrink-0" />
+                )}
+                {!collapsed && (
+                  <>
+                    {/* Hide the text label when showing a module logo — the logo IS the label */}
+                    {!item.moduleKey && (
+                      <span className="flex-1 truncate">{item.label}</span>
+                    )}
+                    {item.moduleKey && <span className="flex-1" />}
+                    {item.ai && (
+                      <Sparkles className="size-3.5 text-[color:var(--color-brand-cyan)]" />
+                    )}
+                    {item.badge && (
+                      <Badge
+                        variant={item.badge.variant}
+                        className="ms-auto px-1.5 py-0 text-[9px]"
+                      >
+                        {item.badge.text}
+                      </Badge>
+                    )}
+                  </>
+                )}
+              </Link>
+            </React.Fragment>
           );
         })}
 
+        {/* Settings — always at the bottom of nav */}
         {!collapsed && (
-          <>
-            <div className="mb-2 mt-6 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-              System
-            </div>
-            <Link
-              href="/settings"
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                pathname.startsWith("/settings")
-                  ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
-                  : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
-              )}
-            >
-              <Settings className="size-[18px]" strokeWidth={2} />
-              <span>Settings</span>
-            </Link>
-          </>
+          <Link
+            href="/settings"
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors mt-2",
+              pathname.startsWith("/settings")
+                ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
+                : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
+            )}
+          >
+            <Settings className="size-[18px]" strokeWidth={2} />
+            <span>Settings</span>
+          </Link>
         )}
       </nav>
 
