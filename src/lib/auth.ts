@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { env } from "@/env";
@@ -32,6 +33,7 @@ export const auth = betterAuth({
       session: schema.sessions,
       account: schema.accounts,
       verification: schema.verifications,
+      twoFactor: schema.twoFactor,
     },
   }),
 
@@ -66,7 +68,7 @@ export const auth = betterAuth({
   },
 
   session: {
-    expiresIn: 60 * 60 * 12, // 12 hours — clinical shift length
+    expiresIn: 60 * 60 * 4, // 4 hours — medical environment security (HIPAA/PDPL)
     updateAge: 60 * 60, // refresh every 1 hour
     cookieCache: {
       enabled: true,
@@ -117,7 +119,20 @@ export const auth = betterAuth({
     },
   },
 
-  plugins: [nextCookies()], // must remain last in this list
+  plugins: [
+    twoFactor({
+      issuer: "MediSoft C-OS",
+      totpOptions: {
+        digits: 6,
+        period: 30,
+      },
+      backupCodeOptions: {
+        length: 10,
+        characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+      },
+    }),
+    nextCookies(), // must remain last in this list
+  ],
 });
 
 export type Auth = typeof auth;

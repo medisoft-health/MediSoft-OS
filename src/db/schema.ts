@@ -95,6 +95,7 @@ export const users = pgTable(
     specialty: varchar("specialty", { length: 120 }),
     licenseNumber: varchar("license_number", { length: 80 }),
     saudiId: varchar("saudi_id", { length: 20 }), // National ID / Iqama for IAM integration
+    twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
 
     isActive: boolean("is_active").notNull().default(true),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
@@ -159,6 +160,16 @@ export const verifications = pgTable("verifications", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const twoFactor = pgTable("two_factor", {
+  id: text("id").primaryKey(),
+  secret: text("secret").notNull(),
+  backupCodes: text("backup_codes").notNull(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  verified: boolean("verified").notNull().default(true),
 });
 
 // ─────────────────────────────────────────────────────────────────
