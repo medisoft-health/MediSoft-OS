@@ -190,3 +190,134 @@ export async function triggerNewLabResult(
     metadata: { labResultId, panelName },
   });
 }
+
+// ─────────────────────────────────────────────────────────────────
+// ADDITIONAL TRIGGER FUNCTIONS
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Drug interaction alert — triggered by PharmaX when a prescription
+ * introduces clinically significant drug-drug interactions.
+ */
+export async function triggerDrugInteractionAlert(
+  physicianId: string,
+  patientId: number,
+  drugs: string[],
+  interactions: Array<{ pair: string; severity: string; effect: string }>,
+): Promise<void> {
+  const drugList = drugs.join("، ");
+  const interactionSummary = interactions
+    .map((i) => `${i.pair}: ${i.effect}`)
+    .join(" | ");
+
+  await createNotification({
+    physicianId,
+    patientId,
+    type: "drug_interaction",
+    severity: "high",
+    title: `تنبيه تفاعل دوائي`,
+    message: `تفاعل بين الأدوية: ${drugList}. ${interactions.length} تفاعل مكتشف.`,
+    actionUrl: `/patients/${patientId}`,
+    actionLabel: "مراجعة الأدوية",
+    metadata: {
+      drugs,
+      interactions,
+      interactionSummary,
+      locale: "ar",
+    },
+  });
+}
+
+/**
+ * Appointment reminder — triggered by the scheduling system before
+ * an upcoming patient appointment.
+ */
+export async function triggerAppointmentReminder(
+  physicianId: string,
+  patientId: number,
+  appointmentDate: Date,
+  appointmentType: string,
+): Promise<void> {
+  const dateStr = appointmentDate.toISOString().slice(0, 10);
+  const timeStr = appointmentDate.toLocaleTimeString("ar-SA", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  await createNotification({
+    physicianId,
+    patientId,
+    type: "appointment_reminder",
+    severity: "low",
+    title: `تذكير بموعد مريض`,
+    message: `موعد ${appointmentType} بتاريخ ${dateStr} الساعة ${timeStr}`,
+    actionUrl: `/patients/${patientId}`,
+    actionLabel: "عرض الموعد",
+    metadata: {
+      appointmentDate: appointmentDate.toISOString(),
+      appointmentType,
+      locale: "ar",
+    },
+    expiresAt: appointmentDate,
+  });
+}
+
+/**
+ * Insurance expiry warning — triggered when a patient's insurance
+ * coverage is approaching its expiry date.
+ */
+export async function triggerInsuranceExpiry(
+  physicianId: string,
+  patientId: number,
+  providerName: string,
+  expiryDate: Date,
+): Promise<void> {
+  const dateStr = expiryDate.toISOString().slice(0, 10);
+
+  await createNotification({
+    physicianId,
+    patientId,
+    type: "insurance_expiry",
+    severity: "medium",
+    title: `انتهاء تأمين مريض`,
+    message: `تأمين ${providerName} سينتهي بتاريخ ${dateStr}. يرجى إبلاغ المريض.`,
+    actionUrl: `/patients/${patientId}`,
+    actionLabel: "عرض التأمين",
+    metadata: {
+      providerName,
+      expiryDate: expiryDate.toISOString(),
+      locale: "ar",
+    },
+    expiresAt: expiryDate,
+  });
+}
+
+/**
+ * Patient message notification — triggered when a patient sends
+ * a message through the patient portal.
+ */
+export async function triggerPatientMessage(
+  physicianId: string,
+  patientId: number,
+  messagePreview: string,
+): Promise<void> {
+  const preview = messagePreview.length > 80
+    ? messagePreview.slice(0, 80) + "..."
+    : messagePreview;
+
+  await createNotification({
+    physicianId,
+    patientId,
+    type: "patient_message",
+    severity: "low",
+    title: `رسالة جديدة من مريض`,
+    message: `${preview}`,
+    actionUrl: `/patients/${patientId}`,
+    actionLabel: "قراءة الرسالة",
+    metadata: {
+      messagePreview: preview,
+      locale: "ar",
+    },
+  });
+}
