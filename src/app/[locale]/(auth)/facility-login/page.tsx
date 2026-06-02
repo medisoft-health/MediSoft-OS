@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
  * Currently shows a "Coming Soon" state since facility auth is being developed.
  */
 export default function FacilityLoginPage() {
+  const t = useTranslations("Auth");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
@@ -30,7 +32,7 @@ export default function FacilityLoginPage() {
 
     // Facility auth will be implemented in the next phase
     setTimeout(() => {
-      setError("Facility portal is currently in setup phase. Please contact MediSoft support for enterprise access.");
+      setError(t("facilityPortalSetup"));
       setIsLoading(false);
     }, 1500);
   };
@@ -44,7 +46,7 @@ export default function FacilityLoginPage() {
           className="mb-6 inline-flex items-center gap-1.5 text-sm text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Back to portal selection
+          {t("backToPortalSelection")}
         </Link>
 
         {/* Brand header */}
@@ -53,9 +55,9 @@ export default function FacilityLoginPage() {
             <Building2 className="size-8" />
           </div>
           <Logo variant="lockup" className="mb-4" />
-          <h1 className="text-2xl font-black tracking-tight">Facility Portal</h1>
+          <h1 className="text-2xl font-black tracking-tight">{t("facilityPortal")}</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Hospital & clinic management, staff administration, and compliance
+            {t("facilityPortalSubtitle")}
           </p>
         </div>
 
@@ -72,7 +74,7 @@ export default function FacilityLoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="facility-email">Administrator Email</Label>
+            <Label htmlFor="facility-email">{t("adminEmail")}</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -89,13 +91,13 @@ export default function FacilityLoginPage() {
 
           {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="facility-password">Password</Label>
+            <Label htmlFor="facility-password">{t("password")}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
                 id="facility-password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
+                placeholder={t("enterYourPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10"
@@ -113,7 +115,7 @@ export default function FacilityLoginPage() {
 
           {/* Facility ID */}
           <div className="space-y-2">
-            <Label htmlFor="facility-id">Facility License Number</Label>
+            <Label htmlFor="facility-id">{t("facilityLicenseNumber")}</Label>
             <div className="relative">
               <Building2 className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -136,19 +138,19 @@ export default function FacilityLoginPage() {
             {isLoading ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Signing in...
+                {t("signingIn")}
               </>
             ) : (
-              "Sign in to Facility Portal"
+              t("signInToFacilityPortal")
             )}
           </Button>
         </form>
 
         <div className="mt-6 text-center text-xs text-[color:var(--color-muted-foreground)]">
           <p>
-            Need enterprise access?{" "}
+            {t("needEnterpriseAccess")}{" "}
             <span className="font-medium text-pink-600">
-              Contact MediSoft Sales
+              {t("contactSales")}
             </span>
           </p>
         </div>

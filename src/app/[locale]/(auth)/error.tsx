@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +19,8 @@ export default function AuthError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("Auth");
+
   React.useEffect(() => {
     console.error("[auth:error-boundary]", error);
   }, [error]);
@@ -31,11 +34,10 @@ export default function AuthError({
           </div>
           <div className="space-y-1.5">
             <h2 className="text-xl font-bold tracking-tight">
-              Sign-in is temporarily unavailable
+              {t("signInUnavailable")}
             </h2>
             <p className="max-w-sm text-sm text-[color:var(--color-muted-foreground)]">
-              We hit an unexpected error loading this page. Try again, or
-              reload your browser if it persists.
+              {t("errorLoadingPage")}
             </p>
             {error.digest && (
               <p className="text-[11px] font-mono text-[color:var(--color-muted-foreground)]">
@@ -46,11 +48,11 @@ export default function AuthError({
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button variant="brand" size="md" onClick={reset}>
               <RefreshCw className="size-4" />
-              Try again
+              {t("tryAgain")}
             </Button>
             <Link href="/login">
               <Button variant="outline" size="md">
-                Back to sign-in
+                {t("backToSignInBtn")}
               </Button>
             </Link>
           </div>

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { safeZodResolver } from "@/lib/safe-zod-resolver";
 import { toast } from "sonner";
 import { Loader2, AlertCircle, Mail, Lock, User, Stethoscope, FileText } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 export default function SignupPage() {
   const router = useRouter();
+  const t = useTranslations("Auth");
   const [submitting, setSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
 
@@ -54,19 +56,19 @@ export default function SignupPage() {
       } as Parameters<typeof authClient.signUp.email>[0]);
 
       if (error) {
-        setFormError(error.message ?? "Could not create your account");
+        setFormError(error.message ?? t("couldNotCreateAccount"));
         return;
       }
 
       // Better-Auth's autoSignIn is enabled, so the cookie is already set.
-      toast.success("Welcome to MediSoft", {
-        description: "Your account is ready. Taking you to the dashboard…",
+      toast.success(t("welcomeToMediSoft"), {
+        description: t("accountReady"),
       });
       router.replace("/dashboard");
       router.refresh();
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Something went wrong. Please try again.";
+        err instanceof Error ? err.message : t("somethingWentWrong");
       setFormError(message);
     } finally {
       setSubmitting(false);
@@ -80,9 +82,9 @@ export default function SignupPage() {
       <CardContent className="p-8 sm:p-10">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="lockup" className="mb-6" />
-          <h1 className="text-2xl font-black tracking-tight">Create your account</h1>
+          <h1 className="text-2xl font-black tracking-tight">{t("createYourAccount")}</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Start your clinical workspace in less than a minute
+            {t("startWorkspaceSubtitle")}
           </p>
         </div>
 
@@ -98,7 +100,7 @@ export default function SignupPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div>
-            <Label htmlFor="name">Full name</Label>
+            <Label htmlFor="name">{t("fullName")}</Label>
             <div className="relative mt-1.5">
               <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -120,7 +122,7 @@ export default function SignupPage() {
           </div>
 
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("emailAddress")}</Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -143,7 +145,7 @@ export default function SignupPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="specialty">Specialty</Label>
+              <Label htmlFor="specialty">{t("specialty")}</Label>
               <div className="relative mt-1.5">
                 <Stethoscope className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
                 <select
@@ -160,7 +162,7 @@ export default function SignupPage() {
                   {...register("specialty")}
                 >
                   <option value="" disabled>
-                    Select…
+                    {t("selectPlaceholder")}
                   </option>
                   {SPECIALTY_OPTIONS.map((s) => (
                     <option key={s} value={s}>
@@ -178,9 +180,9 @@ export default function SignupPage() {
 
             <div>
               <Label htmlFor="licenseNumber">
-                License number{" "}
+                {t("licenseNumber")}{" "}
                 <span className="font-normal normal-case tracking-normal text-[color:var(--color-muted-foreground)]">
-                  (optional)
+                  {t("optional")}
                 </span>
               </Label>
               <div className="relative mt-1.5">
@@ -199,14 +201,14 @@ export default function SignupPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <div className="relative mt-1.5">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
                 <Input
                   id="password"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="Min 12 characters"
+                  placeholder={t("minCharacters")}
                   className={cn(
                     "pl-9",
                     errors.password && "border-[color:var(--color-destructive)]",
@@ -224,14 +226,14 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <Label htmlFor="confirmPassword">Confirm</Label>
+              <Label htmlFor="confirmPassword">{t("confirm")}</Label>
               <div className="relative mt-1.5">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
                 <Input
                   id="confirmPassword"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="Repeat password"
+                  placeholder={t("repeatPassword")}
                   className={cn(
                     "pl-9",
                     errors.confirmPassword && "border-[color:var(--color-destructive)]",
@@ -250,8 +252,7 @@ export default function SignupPage() {
           </div>
 
           <p className="text-[11px] text-[color:var(--color-muted-foreground)]">
-            By creating an account you agree to MediSoft&apos;s clinical-use
-            terms. Your data is encrypted in transit and at rest.
+            {t("agreeTermsText")}
           </p>
 
           <Button
@@ -264,21 +265,21 @@ export default function SignupPage() {
             {isLoading ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Creating account…
+                {t("creatingAccount")}
               </>
             ) : (
-              "Create account"
+              t("createAccount")
             )}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[color:var(--color-muted-foreground)]">
-          Already have an account?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <Link
             href="/login"
             className="font-semibold text-[color:var(--color-brand-magenta)] hover:underline"
           >
-            Sign in
+            {t("signIn")}
           </Link>
         </p>
       </CardContent>

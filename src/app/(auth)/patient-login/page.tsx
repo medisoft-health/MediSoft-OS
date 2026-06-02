@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
  * Currently shows a "Coming Soon" state since patient auth is being developed.
  */
 export default function PatientLoginPage() {
+  const t = useTranslations("Auth");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
@@ -30,7 +32,7 @@ export default function PatientLoginPage() {
 
     // Patient auth will be implemented in the next phase
     setTimeout(() => {
-      setError("Patient portal access is being configured. Please contact your healthcare provider for access credentials.");
+      setError(t("patientPortalConfiguring"));
       setIsLoading(false);
     }, 1500);
   };
@@ -44,7 +46,7 @@ export default function PatientLoginPage() {
           className="mb-6 inline-flex items-center gap-1.5 text-sm text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Back to portal selection
+          {t("backToPortalSelection")}
         </Link>
 
         {/* Brand header */}
@@ -53,9 +55,9 @@ export default function PatientLoginPage() {
             <User className="size-8" />
           </div>
           <Logo variant="lockup" className="mb-4" />
-          <h1 className="text-2xl font-black tracking-tight">Patient Portal</h1>
+          <h1 className="text-2xl font-black tracking-tight">{t("patientPortal")}</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Access your medical records, appointments, and lab results
+            {t("patientPortalSubtitle")}
           </p>
         </div>
 
@@ -72,7 +74,7 @@ export default function PatientLoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="patient-email">Email or Patient ID</Label>
+            <Label htmlFor="patient-email">{t("emailOrPatientId")}</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -89,13 +91,13 @@ export default function PatientLoginPage() {
 
           {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="patient-password">Password</Label>
+            <Label htmlFor="patient-password">{t("password")}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
                 id="patient-password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
+                placeholder={t("enterYourPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10"
@@ -122,19 +124,19 @@ export default function PatientLoginPage() {
             {isLoading ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Signing in...
+                {t("signingIn")}
               </>
             ) : (
-              "Sign in to Patient Portal"
+              t("signInToPatientPortal")
             )}
           </Button>
         </form>
 
         <div className="mt-6 text-center text-xs text-[color:var(--color-muted-foreground)]">
           <p>
-            Don&apos;t have an account?{" "}
+            {t("noAccountPatient")}{" "}
             <span className="font-medium text-teal-600">
-              Contact your healthcare provider
+              {t("contactProvider")}
             </span>
           </p>
         </div>

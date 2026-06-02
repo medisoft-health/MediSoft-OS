@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { safeZodResolver } from "@/lib/safe-zod-resolver";
 import { toast } from "sonner";
 import { Loader2, AlertCircle, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations("Auth");
   const [submitting, setSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -42,18 +44,18 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setFormError(error.message ?? "Invalid email or password");
+        setFormError(error.message ?? t("invalidEmailOrPassword"));
         return;
       }
 
-      toast.success("Signed in", {
-        description: "Redirecting to your dashboard…",
+      toast.success(t("signedIn"), {
+        description: t("redirectingToDashboard"),
       });
       router.replace("/dashboard");
       router.refresh();
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Something went wrong. Please try again.";
+        err instanceof Error ? err.message : t("somethingWentWrong");
       setFormError(message);
     } finally {
       setSubmitting(false);
@@ -71,15 +73,15 @@ export default function LoginPage() {
           className="mb-6 inline-flex items-center gap-1.5 text-sm text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Back to portal selection
+          {t("backToPortalSelection")}
         </Link>
 
         {/* Brand header */}
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="lockup" className="mb-6" />
-          <h1 className="text-2xl font-black tracking-tight">Physician Portal</h1>
+          <h1 className="text-2xl font-black tracking-tight">{t("physicianPortal")}</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Sign in to continue to your clinical workspace
+            {t("signInSubtitle")}
           </p>
         </div>
 
@@ -95,7 +97,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("emailAddress")}</Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -119,12 +121,12 @@ export default function LoginPage() {
 
           <div>
             <div className="flex items-baseline justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <Link
                 href="/forgot-password"
                 className="text-xs font-medium text-[color:var(--color-brand-magenta)] hover:underline"
               >
-                Forgot?
+                {t("forgot")}
               </Link>
             </div>
             <div className="relative mt-1.5">
@@ -147,7 +149,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)] transition-colors"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                 tabIndex={-1}
               >
                 {showPassword ? (
@@ -177,21 +179,21 @@ export default function LoginPage() {
             {isLoading ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Signing in…
+                {t("signingIn")}
               </>
             ) : (
-              "Sign in"
+              t("signIn")
             )}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[color:var(--color-muted-foreground)]">
-          New to MediSoft?{" "}
+          {t("newToMediSoft")}{" "}
           <Link
             href="/signup"
             className="font-semibold text-[color:var(--color-brand-magenta)] hover:underline"
           >
-            Create an account
+            {t("createAnAccount")}
           </Link>
         </p>
       </CardContent>

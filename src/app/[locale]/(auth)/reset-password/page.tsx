@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -43,6 +44,7 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const t = useTranslations("Auth");
 
   const [submitting, setSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -62,7 +64,7 @@ export default function ResetPasswordPage() {
 
   const onSubmit = async (values: ResetPasswordInput) => {
     if (!token) {
-      setFormError("Invalid or expired reset link. Please request a new one.");
+      setFormError(t("invalidOrExpiredLink"));
       return;
     }
 
@@ -80,15 +82,15 @@ export default function ResetPasswordPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setFormError(data?.message ?? "Failed to reset password. The link may have expired.");
+        setFormError(data?.message ?? t("failedToResetPassword"));
         return;
       }
 
       setResetSuccess(true);
-      toast.success("Password reset successfully!");
+      toast.success(t("passwordResetSuccessToast"));
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Something went wrong. Please try again.";
+        err instanceof Error ? err.message : t("somethingWentWrong");
       setFormError(message);
     } finally {
       setSubmitting(false);
@@ -107,21 +109,21 @@ export default function ResetPasswordPage() {
               <AlertCircle className="size-8 text-amber-600" />
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight">Invalid reset link</h1>
+            <h1 className="text-2xl font-black tracking-tight">{t("invalidResetLink")}</h1>
             <p className="mt-2 text-sm text-[color:var(--color-muted-foreground)] max-w-sm">
-              This password reset link is invalid or has expired. Please request a new one.
+              {t("invalidResetLinkDescription")}
             </p>
 
             <div className="mt-8 w-full space-y-3">
               <Link href="/forgot-password" className="block">
                 <Button variant="brand" size="lg" className="w-full">
-                  Request new reset link
+                  {t("requestNewResetLink")}
                 </Button>
               </Link>
               <Link href="/login" className="block">
                 <Button variant="outline" size="lg" className="w-full">
                   <ArrowLeft className="size-4" />
-                  Back to sign in
+                  {t("backToSignIn")}
                 </Button>
               </Link>
             </div>
@@ -144,15 +146,15 @@ export default function ResetPasswordPage() {
               <ShieldCheck className="size-8 text-green-600" />
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight">Password reset!</h1>
+            <h1 className="text-2xl font-black tracking-tight">{t("passwordResetSuccess")}</h1>
             <p className="mt-2 text-sm text-[color:var(--color-muted-foreground)]">
-              Your password has been successfully reset. You can now sign in with your new password.
+              {t("passwordResetSuccessDescription")}
             </p>
 
             <div className="mt-8 w-full">
               <Link href="/login" className="block">
                 <Button variant="brand" size="lg" className="w-full">
-                  Sign in with new password
+                  {t("signInWithNewPassword")}
                 </Button>
               </Link>
             </div>
@@ -170,9 +172,9 @@ export default function ResetPasswordPage() {
         {/* Brand header */}
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="lockup" className="mb-6" />
-          <h1 className="text-2xl font-black tracking-tight">Set new password</h1>
+          <h1 className="text-2xl font-black tracking-tight">{t("setNewPassword")}</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Your new password must be at least 12 characters
+            {t("setNewPasswordSubtitle")}
           </p>
         </div>
 
@@ -188,7 +190,7 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div>
-            <Label htmlFor="password">New password</Label>
+            <Label htmlFor="password">{t("newPassword")}</Label>
             <div className="relative mt-1.5">
               <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -209,7 +211,7 @@ export default function ResetPasswordPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)] transition-colors"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -223,7 +225,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <div>
-            <Label htmlFor="confirmPassword">Confirm new password</Label>
+            <Label htmlFor="confirmPassword">{t("confirmNewPassword")}</Label>
             <div className="relative mt-1.5">
               <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -244,7 +246,7 @@ export default function ResetPasswordPage() {
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)] transition-colors"
-                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                aria-label={showConfirmPassword ? t("hidePassword") : t("showPassword")}
                 tabIndex={-1}
               >
                 {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -267,10 +269,10 @@ export default function ResetPasswordPage() {
             {submitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Resetting password…
+                {t("resettingPassword")}
               </>
             ) : (
-              "Reset password"
+              t("resetPasswordBtn")
             )}
           </Button>
         </form>
@@ -281,7 +283,7 @@ export default function ResetPasswordPage() {
             className="inline-flex items-center gap-1.5 text-sm font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)] transition-colors"
           >
             <ArrowLeft className="size-3.5" />
-            Back to sign in
+            {t("backToSignIn")}
           </Link>
         </div>
       </CardContent>

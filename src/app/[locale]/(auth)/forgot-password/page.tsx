@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { safeZodResolver } from "@/lib/safe-zod-resolver";
 import { Loader2, AlertCircle, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -20,6 +21,7 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("Auth");
   const [submitting, setSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [emailSent, setEmailSent] = React.useState(false);
@@ -73,15 +75,15 @@ export default function ForgotPasswordPage() {
               <CheckCircle2 className="size-8 text-green-600" />
             </div>
 
-            <h1 className="text-2xl font-black tracking-tight">Check your email</h1>
+            <h1 className="text-2xl font-black tracking-tight">{t("checkYourEmail")}</h1>
             <p className="mt-2 text-sm text-[color:var(--color-muted-foreground)] max-w-sm">
-              We sent a password reset link to{" "}
+              {t("resetLinkSentTo")}{" "}
               <span className="font-semibold text-[color:var(--color-foreground)]">
                 {sentToEmail}
               </span>
             </p>
             <p className="mt-3 text-xs text-[color:var(--color-muted-foreground)]">
-              If you don&apos;t see it, check your spam folder. The link expires in 1 hour.
+              {t("checkSpam")}
             </p>
 
             <div className="mt-8 w-full space-y-3">
@@ -94,12 +96,12 @@ export default function ForgotPasswordPage() {
                   setFormError(null);
                 }}
               >
-                Send again
+                {t("sendAgain")}
               </Button>
               <Link href="/login" className="block">
                 <Button variant="outline" size="lg" className="w-full">
                   <ArrowLeft className="size-4" />
-                  Back to sign in
+                  {t("backToSignIn")}
                 </Button>
               </Link>
             </div>
@@ -116,9 +118,9 @@ export default function ForgotPasswordPage() {
         {/* Brand header */}
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="lockup" className="mb-6" />
-          <h1 className="text-2xl font-black tracking-tight">Forgot password?</h1>
+          <h1 className="text-2xl font-black tracking-tight">{t("forgotPasswordTitle")}</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Enter your email and we&apos;ll send you a reset link
+            {t("forgotPasswordSubtitle")}
           </p>
         </div>
 
@@ -134,7 +136,7 @@ export default function ForgotPasswordPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div>
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">{t("emailAddressLabel")}</Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
@@ -166,10 +168,10 @@ export default function ForgotPasswordPage() {
             {submitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Sending reset link…
+                {t("sendingResetLink")}
               </>
             ) : (
-              "Send reset link"
+              t("sendResetLink")
             )}
           </Button>
         </form>
@@ -180,7 +182,7 @@ export default function ForgotPasswordPage() {
             className="inline-flex items-center gap-1.5 text-sm font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)] transition-colors"
           >
             <ArrowLeft className="size-3.5" />
-            Back to sign in
+            {t("backToSignIn")}
           </Link>
         </div>
       </CardContent>

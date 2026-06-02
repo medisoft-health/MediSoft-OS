@@ -9,6 +9,7 @@ import {
   Activity,
   Sparkles,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,9 @@ import { cn } from "@/lib/utils";
  * 3. Facility Portal → /facility-login
  */
 export function LandingPortal() {
+  const tAuth = useTranslations("Auth");
+  const tLanding = useTranslations("Landing");
+
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-white via-slate-50 to-blue-50/40 p-4 sm:p-6">
       {/* Subtle dot pattern */}
@@ -49,12 +53,12 @@ export function LandingPortal() {
         <div className="mb-10 flex flex-col items-center text-center">
           <Logo variant="lockup" className="mb-6 scale-125" />
           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-800 sm:text-4xl lg:text-5xl">
-            Clinical Operating System
+            {tLanding("clinicalOS")}
           </h1>
           <p className="mt-3 max-w-xl text-base text-slate-500 sm:text-lg">
-            The next generation of intelligent healthcare management.
+            {tLanding("subtitle")}
             <br className="hidden sm:block" />
-            Select your portal to continue.
+            {tLanding("selectPortal")}
           </p>
         </div>
 
@@ -64,27 +68,30 @@ export function LandingPortal() {
           <PortalCard
             href="/login"
             image="/images/physician-portal.png"
-            title="Physician Portal"
-            titleAr="بوابة الأطباء"
-            description="Access your clinical workspace, patient records, and medical intelligence tools."
+            title={tAuth("physicianPortal")}
+            titleAr={tLanding("physicianPortalAr")}
+            description={tLanding("physicianPortalDesc")}
+            enterLabel={tLanding("enter")}
             accentColor="blue"
           />
           {/* Patient Portal */}
           <PortalCard
             href="/patient-login"
             image="/images/patient-portal.png"
-            title="Patient Portal"
-            titleAr="بوابة المرضى"
-            description="View your medical records, appointments, lab results, and communicate with your doctor."
+            title={tAuth("patientPortal")}
+            titleAr={tLanding("patientPortalAr")}
+            description={tLanding("patientPortalDesc")}
+            enterLabel={tLanding("enter")}
             accentColor="teal"
           />
           {/* Facility Portal */}
           <PortalCard
             href="/facility-login"
             image="/images/facility-portal.png"
-            title="Facility Portal"
-            titleAr="بوابة المنشآت الطبية"
-            description="Manage your hospital operations, staff, departments, analytics, and compliance."
+            title={tAuth("facilityPortal")}
+            titleAr={tLanding("facilityPortalAr")}
+            description={tLanding("facilityPortalDesc")}
+            enterLabel={tLanding("enter")}
             accentColor="purple"
           />
         </div>
@@ -93,25 +100,25 @@ export function LandingPortal() {
         <div className="mt-14 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 sm:gap-8">
           <div className="flex items-center gap-1.5">
             <Shield className="size-3.5 text-teal-500" />
-            <span>HIPAA &amp; PDPL Compliant</span>
+            <span>{tLanding("hipaaCompliant")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Globe className="size-3.5 text-blue-500" />
-            <span>HL7 FHIR R4 Compatible</span>
+            <span>{tLanding("fhirCompatible")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Activity className="size-3.5 text-pink-500" />
-            <span>Medical Intelligence Powered</span>
+            <span>{tLanding("aiPowered")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Sparkles className="size-3.5 text-amber-500" />
-            <span>Saudi Arabia Certified</span>
+            <span>{tLanding("saudiCertified")}</span>
           </div>
         </div>
 
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-slate-400">
-          <p>&copy; {new Date().getFullYear()} MediSoft Health. All rights reserved.</p>
+          <p>{tLanding("copyright", { year: new Date().getFullYear() })}</p>
         </div>
       </div>
     </div>
@@ -144,6 +151,7 @@ interface PortalCardProps {
   title: string;
   titleAr: string;
   description: string;
+  enterLabel: string;
   accentColor: keyof typeof accentMap;
 }
 
@@ -153,6 +161,7 @@ function PortalCard({
   title,
   titleAr,
   description,
+  enterLabel,
   accentColor,
 }: PortalCardProps) {
   const colors = accentMap[accentColor];
@@ -193,7 +202,7 @@ function PortalCard({
           colors.btn,
         )}
       >
-        <span>Enter</span>
+        <span>{enterLabel}</span>
         <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
       </div>
     </Link>
