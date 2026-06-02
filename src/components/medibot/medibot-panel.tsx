@@ -21,6 +21,8 @@ import {
   Info,
   ClipboardList,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import { cn, getInitials } from "@/lib/utils";
 import { useMediBot, type ChatMessage } from "./medibot-provider";
 
@@ -28,6 +30,8 @@ import { useMediBot, type ChatMessage } from "./medibot-provider";
 // MediBot Panel — Persistent right-side column (matches agreed UI)
 // ─────────────────────────────────────────────────────────────────
 export function MediBotPanel() {
+  const t = useTranslations("MediBot");
+  const locale = useLocale();
   const {
     isOpen,
     mode,
@@ -81,7 +85,7 @@ export function MediBotPanel() {
         style={{
           background: "linear-gradient(135deg, #1A3B7A, #2563EB)",
         }}
-        aria-label="Open MediBot"
+        aria-label={t("openMediBot")}
       >
         <MessageSquare className="size-7 text-white" />
       </button>
@@ -109,7 +113,7 @@ export function MediBotPanel() {
             <button
               onClick={clearMessages}
               className="flex size-8 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-red-500"
-              title="Clear chat"
+              title={t("clearChat")}
             >
               <Trash2 className="size-4" />
             </button>
@@ -117,7 +121,7 @@ export function MediBotPanel() {
           <button
             onClick={toggle}
             className="flex size-8 items-center justify-center rounded-lg bg-[#F1F5F9] transition-colors hover:bg-[#E2E8F0] dark:bg-slate-800 dark:hover:bg-slate-700"
-            title="Collapse MediBot"
+            title={t("collapseMediBot")}
           >
             <ChevronRight className="size-4 text-[#64748B]" />
           </button>
@@ -137,7 +141,7 @@ export function MediBotPanel() {
             )}
           >
             <User className="size-4" />
-            Patient Case
+            {t("patientCase")}
           </button>
           <button
             onClick={() => setMode("general")}
@@ -149,7 +153,7 @@ export function MediBotPanel() {
             )}
           >
             <Search className="size-4" />
-            General Search
+            {t("generalSearch")}
           </button>
         </div>
       </div>
@@ -184,7 +188,7 @@ export function MediBotPanel() {
           </div>
           <div className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-[#0D9488]" style={{ background: "rgba(13, 148, 136, 0.1)" }}>
             <Info className="size-3" />
-            Full patient context loaded — no re-explanation needed
+            {t("patientContextLoaded")}
           </div>
         </div>
       )}
@@ -194,7 +198,7 @@ export function MediBotPanel() {
         <div className="border-b border-[#E2E8F0] bg-amber-50/60 px-5 py-3 dark:border-slate-700 dark:bg-amber-950/20">
           <p className="text-[12px] text-amber-700 dark:text-amber-400">
             <Stethoscope className="mb-0.5 mr-1 inline size-3.5" />
-            Open a patient record to enable patient-specific clinical assistance.
+            {t("openPatientRecord")}
           </p>
         </div>
       )}
@@ -222,7 +226,7 @@ export function MediBotPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask MediBot..."
+            placeholder={t("askMediBot")}
             rows={1}
             className="max-h-[100px] min-h-[20px] flex-1 resize-none bg-transparent text-[13px] leading-relaxed text-[#334155] outline-none placeholder:text-[#94A3B8] dark:text-slate-200 dark:placeholder:text-slate-500"
           />
@@ -240,8 +244,8 @@ export function MediBotPanel() {
         </div>
         <p className="mt-2 text-center text-[11px] text-[#94A3B8]">
           {mode === "patient"
-            ? "MediBot uses patient context \u2022 Citations from PubMed & guidelines"
-            : "General medical search \u2022 40M+ studies & guidelines"}
+            ? t("patientModeFooter")
+            : t("generalModeFooter")}
         </p>
       </div>
 
@@ -272,18 +276,20 @@ function WelcomeState({
   mode: "patient" | "general";
   onQuickAction: (text: string) => void;
 }) {
+  const t = useTranslations("MediBot");
+
   const patientQuickActions = [
-    { icon: Stethoscope, text: "Summarize this patient\u2019s current status" },
-    { icon: Pill, text: "Check for drug interactions" },
-    { icon: FlaskConical, text: "Interpret latest lab results" },
-    { icon: BookOpen, text: "Suggest treatment based on guidelines" },
+    { icon: Stethoscope, text: t("quickSummarizePatient"), key: "quickSummarizePatient" },
+    { icon: Pill, text: t("quickCheckDrugInteractions"), key: "quickCheckDrugInteractions" },
+    { icon: FlaskConical, text: t("quickInterpretLabs"), key: "quickInterpretLabs" },
+    { icon: BookOpen, text: t("quickSuggestTreatment"), key: "quickSuggestTreatment" },
   ];
 
   const generalQuickActions = [
-    { icon: ClipboardList, text: "Latest guidelines for hypertension management" },
-    { icon: Pill, text: "Drug interactions: SGLT2i + ACE inhibitors" },
-    { icon: BookOpen, text: "New research on GLP-1 receptor agonists" },
-    { icon: Stethoscope, text: "Differential diagnosis for chest pain" },
+    { icon: ClipboardList, text: t("quickHypertensionGuidelines"), key: "quickHypertensionGuidelines" },
+    { icon: Pill, text: t("quickDrugInteractionsSGLT2"), key: "quickDrugInteractionsSGLT2" },
+    { icon: BookOpen, text: t("quickGLP1Research"), key: "quickGLP1Research" },
+    { icon: Stethoscope, text: t("quickChestPainDiagnosis"), key: "quickChestPainDiagnosis" },
   ];
 
   const actions = mode === "patient" ? patientQuickActions : generalQuickActions;
@@ -303,17 +309,17 @@ function WelcomeState({
         )}
       </div>
       <h3 className="text-base font-semibold text-[#1E293B] dark:text-slate-200">
-        {mode === "patient" ? "Patient Case Assistant" : "General Medical Search"}
+        {mode === "patient" ? t("patientCaseAssistant") : t("generalMedicalSearch")}
       </h3>
       <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748B]">
         {mode === "patient"
-          ? "Ask questions about this patient and get Medical Intelligence clinical insights with evidence."
-          : "Ask any medical question and get evidence-based answers with citations from 40M+ studies and guidelines."}
+          ? t("patientCaseDescription")
+          : t("generalSearchDescription")}
       </p>
       <div className="mt-5 flex w-full flex-col gap-2">
         {actions.map((action) => (
           <button
-            key={action.text}
+            key={action.key}
             onClick={() => onQuickAction(action.text)}
             className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-left text-[13px] text-[#475569] transition-all hover:border-[#0D9488] hover:bg-[#F0FDFA] hover:text-[#0D9488] dark:border-slate-600 dark:bg-slate-800 dark:hover:border-teal-500 dark:hover:bg-teal-950/20 dark:hover:text-teal-400"
           >
@@ -336,6 +342,7 @@ function MessageBubble({
   message: ChatMessage;
   onFollowUp: (text: string) => void;
 }) {
+  const t = useTranslations("MediBot");
   const isUser = message.role === "user";
   const [copied, setCopied] = React.useState(false);
 
@@ -415,7 +422,7 @@ function MessageBubble({
           {!isUser && message.references && message.references.length > 0 && (
             <div className="mt-3 border-t border-[#E2E8F0] pt-3 dark:border-slate-600">
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                References
+                {t("references")}
               </p>
               {message.references.map((ref) => (
                 <p
@@ -438,15 +445,15 @@ function MessageBubble({
               className="inline-flex items-center gap-1 rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1 text-[11px] text-[#64748B] transition-colors hover:border-[#0D9488] hover:text-[#0D9488] dark:border-slate-600 dark:bg-slate-800"
             >
               <Copy className="size-3" />
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t("copied") : t("copyLabel")}
             </button>
             <button className="inline-flex items-center gap-1 rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1 text-[11px] text-[#64748B] transition-colors hover:border-[#0D9488] hover:text-[#0D9488] dark:border-slate-600 dark:bg-slate-800">
               <FileText className="size-3" />
-              Append to Note
+              {t("appendToNote")}
             </button>
             <button className="inline-flex items-center gap-1 rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1 text-[11px] text-[#64748B] transition-colors hover:border-[#0D9488] hover:text-[#0D9488] dark:border-slate-600 dark:bg-slate-800">
               <Pill className="size-3" />
-              Send to PharmaX
+              {t("sendToPharmaX")}
             </button>
           </div>
         )}
