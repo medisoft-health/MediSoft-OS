@@ -1392,7 +1392,16 @@
     "connectionLost": "Connection Lost",
     "reconnecting": "Reconnecting…",
     "tryAgainLater": "Please try again later",
-    "contactSupport": "Contact Support"
+    "contactSupport": "Contact Support",
+    "somethingWentWrong": "Something went wrong",
+    "unexpectedIssue": "We hit an unexpected issue while loading this page. Try again, or head back to the dashboard.",
+    "reference": "Reference",
+    "tryAgain": "Try again",
+    "goToDashboard": "Go to dashboard",
+    "goBack": "Go back",
+    "pageNotFoundTitle": "Page not found",
+    "pageNotFoundDescription": "The URL you followed doesn't exist. It may have moved or been removed.",
+    "takeMeHome": "Take me home"
   },
   "Validation": {
     "required": "This field is required",

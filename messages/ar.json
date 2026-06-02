@@ -1392,7 +1392,16 @@
     "connectionLost": "انقطع الاتصال",
     "reconnecting": "جارٍ إعادة الاتصال…",
     "tryAgainLater": "حاول مرة أخرى لاحقاً",
-    "contactSupport": "تواصل مع الدعم"
+    "contactSupport": "تواصل مع الدعم",
+    "somethingWentWrong": "حدث خطأ ما",
+    "unexpectedIssue": "واجهنا مشكلة غير متوقعة أثناء تحميل هذه الصفحة. حاول مرة أخرى أو عد إلى لوحة التحكم.",
+    "reference": "المرجع",
+    "tryAgain": "حاول مرة أخرى",
+    "goToDashboard": "الذهاب إلى لوحة التحكم",
+    "goBack": "العودة",
+    "pageNotFoundTitle": "الصفحة غير موجودة",
+    "pageNotFoundDescription": "الرابط الذي اتبعته غير موجود. ربما تم نقله أو حذفه.",
+    "takeMeHome": "العودة إلى الرئيسية"
   },
   "Validation": {
     "required": "هذا الحقل مطلوب",

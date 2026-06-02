@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -17,8 +18,9 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("Errors");
+
   React.useEffect(() => {
-    // Surface for the SRE / observability pipeline.
     console.error("[app:error-boundary]", error);
   }, [error]);
 
@@ -31,27 +33,26 @@ export default function AppError({
           </div>
           <div className="space-y-1.5">
             <h2 className="text-2xl font-black tracking-tight">
-              Something went wrong
+              {t("somethingWentWrong")}
             </h2>
             <p className="max-w-md text-sm text-[color:var(--color-muted-foreground)]">
-              We hit an unexpected issue while loading this page. Try again, or
-              head back to the dashboard.
+              {t("unexpectedIssue")}
             </p>
             {error.digest && (
               <p className="text-[11px] font-mono text-[color:var(--color-muted-foreground)]">
-                Reference: {error.digest}
+                {t("reference")}: {error.digest}
               </p>
             )}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button variant="brand" size="md" onClick={reset}>
               <RefreshCw className="size-4" />
-              Try again
+              {t("tryAgain")}
             </Button>
             <Link href="/">
               <Button variant="outline" size="md">
                 <Home className="size-4" />
-                Go to dashboard
+                {t("goToDashboard")}
               </Button>
             </Link>
           </div>
