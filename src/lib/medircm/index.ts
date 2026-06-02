@@ -435,7 +435,7 @@ export async function generateAppeal(
   additionalEvidence?: string
 ): Promise<{ letter: string; supportingDocuments: string[]; successProbability: number }> {
   const client = getGeminiClient();
-  let letter = "";
+  const letter = "";
 
   if (client) {
     try {

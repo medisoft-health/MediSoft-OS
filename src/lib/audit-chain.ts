@@ -107,7 +107,7 @@ export async function verifyAuditChain(
   let offset = 0;
   let rowsChecked = 0;
 
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     const batch = await db
       .select()

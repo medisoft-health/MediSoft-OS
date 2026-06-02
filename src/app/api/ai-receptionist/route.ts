@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const period = searchParams.get("period") || "today";
 
-    let fromDate = new Date();
+    const fromDate = new Date();
     if (period === "today") fromDate.setHours(0, 0, 0, 0);
     else if (period === "week") fromDate.setDate(fromDate.getDate() - 7);
     else if (period === "month") fromDate.setMonth(fromDate.getMonth() - 1);

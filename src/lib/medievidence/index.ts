@@ -400,9 +400,9 @@ export async function queryGuidelines(query: GuidelineQuery): Promise<EvidenceSu
 export async function getDrugEvidence(drugName: string): Promise<DrugEvidenceReport> {
   const client = getGeminiClient();
   
-  let indications: { condition: string; evidenceLevel: string; recommendation: string }[] = [];
-  let contraindications: string[] = [];
-  let alternatives: { drug: string; comparison: string; preference: string }[] = [];
+  const indications: { condition: string; evidenceLevel: string; recommendation: string }[] = [];
+  const contraindications: string[] = [];
+  const alternatives: { drug: string; comparison: string; preference: string }[] = [];
   
   if (client) {
     const prompt = `Provide evidence-based information for the drug "${drugName}":

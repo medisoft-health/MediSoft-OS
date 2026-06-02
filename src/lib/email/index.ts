@@ -38,21 +38,21 @@ const ConsoleDriver: EmailDriver = {
   name: "console",
   isLive: false,
   async send(msg) {
-    // eslint-disable-next-line no-console
+     
     console.log(
       "\n┌─ [email/console] ─────────────────────────────────────────",
     );
-    // eslint-disable-next-line no-console
+     
     console.log(`│  TO:      ${msg.to}`);
-    // eslint-disable-next-line no-console
+     
     console.log(`│  SUBJECT: ${msg.subject}`);
-    // eslint-disable-next-line no-console
+     
     console.log("│  TEXT:");
     for (const line of msg.text.split("\n")) {
-      // eslint-disable-next-line no-console
+       
       console.log(`│    ${line}`);
     }
-    // eslint-disable-next-line no-console
+     
     console.log(
       "└───────────────────────────────────────────────────────────\n",
     );
@@ -95,7 +95,7 @@ export function getEmailDriver(): EmailDriver {
   const resendKey = (env as unknown as { RESEND_API_KEY?: string })
     .RESEND_API_KEY;
   if (resendKey) {
-    // eslint-disable-next-line no-console
+     
     console.warn(
       "[email] RESEND_API_KEY set but Resend driver not yet wired. " +
         "Install `resend` and uncomment the driver in src/lib/email/index.ts.",

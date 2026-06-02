@@ -499,7 +499,7 @@ function TypingIndicator() {
 // Format bot message (bold, newlines, inline citations)
 // ─────────────────────────────────────────────────────────────────
 function formatBotMessage(content: string): string {
-  let formatted = content
+  const formatted = content
     // Bold text
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     // Inline citations [1], [2], etc. — teal numbered circles

@@ -146,7 +146,7 @@ export function PrescriptionBuilder({ initialPatient }: Props) {
   }, [
     drugs.map((d) => `${d.drugName}|${d.rxcui}`).join(";"),
     patient?.id,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);  
 
   function addDrugFromRxNorm(c: {
     rxcui: string;
