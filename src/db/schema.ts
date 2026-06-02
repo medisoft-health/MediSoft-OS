@@ -18,6 +18,7 @@ import {
   boolean,
   date,
   decimal,
+  numeric,
   index,
   integer,
   jsonb,
@@ -1122,3 +1123,36 @@ export type TranslationSession = typeof translationSessions.$inferSelect;
 export type NewTranslationSession = typeof translationSessions.$inferInsert;
 export type CommunicationLogEntry = typeof communicationLog.$inferSelect;
 export type NewCommunicationLogEntry = typeof communicationLog.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT EVENTS (Timeline)
+// ─────────────────────────────────────────────────────────────────
+export const patientEventCategoryEnum = pgEnum("patient_event_category", [
+  "clinical", "medication", "lab", "imaging", "vitals",
+  "nutrition", "exercise", "wellness", "social", "education", "system"
+]);
+
+export const patientEvents = pgTable("patient_events", {
+  id: serial("id").primaryKey(),
+  patientId: integer("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  recordedById: uuid("recorded_by_id").references(() => users.id),
+  category: patientEventCategoryEnum("category").notNull(),
+  eventType: varchar("event_type", { length: 80 }).notNull(),
+  source: varchar("source", { length: 60 }).notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  titleEn: varchar("title_en", { length: 256 }),
+  description: text("description"),
+  data: jsonb("data"),
+  numericValue: numeric("numeric_value", { precision: 12, scale: 4 }),
+  numericUnit: varchar("numeric_unit", { length: 32 }),
+  encounterId: uuid("encounter_id").references(() => encounters.id),
+  prescriptionId: uuid("prescription_id").references(() => prescriptions.id),
+  labResultId: uuid("lab_result_id").references(() => labResults.id),
+  scanId: uuid("scan_id").references(() => scans.id),
+  eventDate: timestamp("event_date", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export type PatientEvent = typeof patientEvents.$inferSelect;
+export type NewPatientEvent = typeof patientEvents.$inferInsert;
