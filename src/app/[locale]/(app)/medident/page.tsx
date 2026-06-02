@@ -44,6 +44,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   Table,
   TableBody,
@@ -965,6 +966,7 @@ function AIResultRenderer({ data, module }: { data: unknown; module: ActiveModul
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function MediDentPage() {
+  const t = useTranslations("MediDent");
   const [activeModule, setActiveModule] = React.useState<ActiveModule>(null);
   const [loading, setLoading] = React.useState(false);
   const [result, setResult] = React.useState<unknown>(null);
@@ -1035,10 +1037,10 @@ export default function MediDentPage() {
 
   // ── Loading Messages ──
   const loadingMessages = [
-    "MediDent AI is analyzing...",
-    "Processing clinical data...",
-    "Consulting evidence database...",
-    "Generating clinical report...",
+    t("loadingAnalyzing"),
+    t("loadingProcessing"),
+    t("loadingConsulting"),
+    t("loadingGenerating"),
   ];
 
   // ── API Call Helper ──
@@ -1059,7 +1061,7 @@ export default function MediDentPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "API call failed");
       setResult(json.data);
-      toast.success("Analysis complete!");
+      toast.success(t("analysisComplete"));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(msg);
@@ -1078,7 +1080,7 @@ export default function MediDentPage() {
   const clearChart = () => {
     setChartHistory((prev) => [...prev, { ...toothConditions }]);
     setToothConditions({});
-    toast.success("Chart cleared");
+    toast.success(t("chartCleared"));
   };
 
   const undoChart = () => {
@@ -1086,7 +1088,7 @@ export default function MediDentPage() {
       const prev = chartHistory[chartHistory.length - 1];
       setToothConditions(prev);
       setChartHistory((h) => h.slice(0, -1));
-      toast.success("Undo successful");
+      toast.success(t("undoSuccessful"));
     }
   };
 
@@ -1109,10 +1111,10 @@ export default function MediDentPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <span className="text-xl">🦷</span>
-                  Interactive Dental Chart (FDI Notation)
+                  {t("interactiveDentalChart")}
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Select a condition below, then click teeth to apply. Use AI to analyze the full chart.
+                  {t("chartDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1133,7 +1135,7 @@ export default function MediDentPage() {
 
                 {/* Upper Arch */}
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground text-center">Upper Arch (Maxilla)</p>
+                  <p className="text-xs font-medium text-muted-foreground text-center">{t("upperArch")}</p>
                   <div className="flex justify-center gap-0.5">
                     {UPPER_TEETH.map((tooth) => (
                       <button
@@ -1172,7 +1174,7 @@ export default function MediDentPage() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs font-medium text-muted-foreground text-center">Lower Arch (Mandible)</p>
+                   <p className="text-xs font-medium text-muted-foreground text-center">{t("lowerArch")}</p>
                 </div>
 
                 {/* Chart Summary & Actions */}
@@ -1205,7 +1207,7 @@ export default function MediDentPage() {
                       .filter(([, c]) => c !== "healthy")
                       .map(([id, condition]) => ({ number: parseInt(id), condition, surfaces: [] }));
                     if (teeth.length === 0) {
-                      toast.error("Please mark at least one tooth condition first");
+                      toast.error(t("markToothFirst"));
                       return;
                     }
                     callAPI("analyze-chart", { patientId: "current", teeth });
@@ -1214,7 +1216,7 @@ export default function MediDentPage() {
                   className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                  Analyze Chart with AI
+                  {t("analyzeChartWithAI")}
                 </Button>
               </CardContent>
             </Card>
@@ -2011,16 +2013,16 @@ export default function MediDentPage() {
           <div className="flex items-center gap-3">
             <Image src="/medident-logo.png" alt="MediDent" width={180} height={28} className="h-7 w-auto" priority />
             <p className="text-sm text-muted-foreground hidden sm:block">
-              World&apos;s First Clinical-Grade AI Dental Platform — 15 Integrated Modules
+              {t("pageSubtitle")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle2 className="h-3 w-3 mr-1" /> All Systems Active
+            <CheckCircle2 className="h-3 w-3 mr-1" /> {t("allSystemsActive")}
           </Badge>
           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            Medical Intelligence Engine
+            {t("medicalIntelligenceEngine")}
           </Badge>
         </div>
       </div>
@@ -2073,16 +2075,16 @@ export default function MediDentPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <Sparkles className="h-4 w-4 text-blue-500" />
-                    Clinical AI Report
+                    {t("clinicalAIReport")}
                   </CardTitle>
                   {result ? (
                     <Button variant="ghost" size="sm" onClick={() => {
                       const text = JSON.stringify(result, null, 2);
                       navigator.clipboard.writeText(text);
-                      toast.success("Report copied to clipboard");
+                      toast.success(t("reportCopied"));
                     }}>
                       <Download className="h-3.5 w-3.5 mr-1" />
-                      <span className="text-xs">Copy</span>
+                      <span className="text-xs">{t("copy")}</span>
                     </Button>
                   ) : null}
                 </div>
@@ -2108,8 +2110,8 @@ export default function MediDentPage() {
                 ) : (
                   <div className="text-center py-16 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm font-medium">Clinical report will appear here</p>
-                    <p className="text-xs mt-1">Fill in the form and click analyze to get Medical Intelligence insights</p>
+                    <p className="text-sm font-medium">{t("reportPlaceholder")}</p>
+                    <p className="text-xs mt-1">{t("reportPlaceholderHint")}</p>
                   </div>
                 )}
               </CardContent>
@@ -2124,13 +2126,13 @@ export default function MediDentPage() {
           <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-100">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-blue-700">15</p>
-              <p className="text-xs text-blue-600">Clinical Modules</p>
+              <p className="text-xs text-blue-600">{t("clinicalModules")}</p>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-100">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-purple-700">15</p>
-              <p className="text-xs text-purple-600">API Actions</p>
+              <p className="text-xs text-purple-600">{t("apiActions")}</p>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
@@ -2142,7 +2144,7 @@ export default function MediDentPage() {
           <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-amber-700">AR/EN</p>
-              <p className="text-xs text-amber-600">Bilingual</p>
+              <p className="text-xs text-amber-600">{t("bilingual")}</p>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-rose-50 to-pink-50 border-rose-100">

@@ -54,6 +54,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { PersonalCoachButton } from "@/components/medisport/personal-coach";
 import { DailyCheckIn, StreakDisplay, JourneyTimeline, WeeklyChallenges, AchievementsDisplay, WeeklyPlan, SmartNotifications, BeforeAfterTracker, MoodEnergyChart } from "@/components/medisport/engagement";
 import { FoodLoggerButton } from "@/components/medisport/food-logger";
@@ -1085,6 +1086,7 @@ function HealthyDashboard({ profile }: { profile: AthleteProfile }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function MediSportPage() {
+  const t = useTranslations("MediSport");
   const [profile, setProfile] = React.useState<AthleteProfile | null>(null);
   const [onboarded, setOnboarded] = React.useState(false);
 
@@ -1104,7 +1106,7 @@ export default function MediSportPage() {
     setProfile(p);
     setOnboarded(true);
     localStorage.setItem("medisport-profile", JSON.stringify(p));
-    toast.success("مرحباً بك في MediSport! 🎉");
+    toast.success(t("welcomeMessage"));
   };
 
   const handleReset = () => {
@@ -1127,7 +1129,7 @@ export default function MediSportPage() {
           <Image src="/brand/medisport-logo.png" alt="MediSport" width={150} height={35} className="h-8 w-auto" priority />
         </div>
         <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs text-muted-foreground">
-          تغيير الملف الشخصي
+          {t("changeProfile")}
         </Button>
       </div>
 

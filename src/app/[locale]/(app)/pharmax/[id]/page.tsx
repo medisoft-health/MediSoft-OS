@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -75,7 +76,10 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
   if (!row) notFound();
   const { prescription: rx, patient, physician } = row;
 
-  const session = await requireSession();
+  const [session, t] = await Promise.all([
+    requireSession(),
+    getTranslations("PharmaXDetail"),
+  ]);
   if (session.ok) {
     void logAudit({
       actorId: session.user.id,
@@ -105,7 +109,7 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Back to {patient.firstName} {patient.lastName}
+          {t("backTo", { firstName: patient.firstName, lastName: patient.lastName })}
         </Link>
       </div>
 
@@ -115,7 +119,7 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-                Prescription
+                {t("prescription")}
               </div>
               <h1 className="mt-1 flex items-center gap-2 text-2xl font-black tracking-tight">
                 <Pill className="size-5 text-[color:var(--color-brand-magenta)]" />
@@ -150,7 +154,7 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
                   </span>
                 </Link>
                 <span>·</span>
-                <span>By {physician?.name ?? "Unknown physician"}</span>
+                <span>By {physician?.name ?? t("unknownPhysician")}</span>
                 <span>·</span>
                 <span>{formatClinicalDate(rx.createdAt)}</span>
               </div>
@@ -179,7 +183,7 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
       {rx.instructions && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Instructions</CardTitle>
+            <CardTitle className="text-base">{t("instructions")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -194,21 +198,19 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="size-4 text-[color:var(--color-brand-magenta)]" />
-            Safety analysis snapshot
+            {t("safetyAnalysis")}
           </CardTitle>
           <CardDescription>
-            What the PharmaX three-layer check surfaced when this prescription
-            was saved.
+            {t("safetyDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {interactions.length === 0 ? (
             <Alert variant="success">
               <CheckCircle2 />
-              <AlertTitle>No interactions flagged</AlertTitle>
+              <AlertTitle>{t("noInteractionsTitle")}</AlertTitle>
               <AlertDescription>
-                At the time of saving, the FDA-label evidence and AI analysis
-                surfaced no co-prescribing concerns.
+                {t("noInteractionsDescription")}
               </AlertDescription>
             </Alert>
           ) : (
@@ -250,20 +252,20 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
       {(rx.quantity != null || rx.refills != null) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Dispensing</CardTitle>
+            <CardTitle className="text-base">{t("dispensing")}</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
             {rx.quantity != null && (
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-                  Quantity
-                </div>
+                 <div className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
+                   {t("quantity")}
+                 </div>
                 <div className="mt-1 font-semibold tabular-nums">{rx.quantity}</div>
               </div>
             )}
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-                Refills
+                {t("refills")}
               </div>
               <div className="mt-1 font-semibold tabular-nums">{rx.refills ?? 0}</div>
             </div>
@@ -282,9 +284,7 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
       {/* Disclaimer */}
       <div className="rounded-xl border border-dashed border-[color:var(--color-border)] p-3 text-[11px] text-[color:var(--color-muted-foreground)]">
         <AlertTriangle className="mr-1 inline size-3" />
-        PharmaX is a clinical decision-support tool. It does not replace
-        physician judgement. Always verify drug, dose, and route against
-        primary references before dispensing.
+        {t("disclaimer")}
       </div>
     </div>
   );

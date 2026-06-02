@@ -7,6 +7,7 @@ import {
   ScanLine,
   User as UserIcon,
 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -65,7 +66,10 @@ export default async function ScanDetailPage({ params }: PageProps) {
   if (!row) notFound();
   const { scan, patient, physician } = row;
 
-  const session = await requireSession();
+  const [session, t] = await Promise.all([
+    requireSession(),
+    getTranslations("MediScanDetail"),
+  ]);
   if (session.ok) {
     void logAudit({
       actorId: session.user.id,
@@ -113,7 +117,7 @@ export default async function ScanDetailPage({ params }: PageProps) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Back to {patient.firstName} {patient.lastName}
+          {t("backTo", { firstName: patient.firstName, lastName: patient.lastName })}
         </Link>
       </div>
 
@@ -123,7 +127,7 @@ export default async function ScanDetailPage({ params }: PageProps) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-                Scan
+                {t("scan")}
               </div>
               <h1 className="mt-1 flex items-center gap-2 text-2xl font-black tracking-tight">
                 <ScanLine className="size-5 text-[color:var(--color-brand-magenta)]" />
@@ -187,7 +191,7 @@ export default async function ScanDetailPage({ params }: PageProps) {
       {/* Disclaimer */}
       <Alert variant="warning">
         <AlertTriangle />
-        <AlertTitle>Required disclaimer</AlertTitle>
+        <AlertTitle>{t("requiredDisclaimer")}</AlertTitle>
         <AlertDescription className="text-xs leading-relaxed">
           {scan.disclaimer}
         </AlertDescription>
@@ -196,10 +200,9 @@ export default async function ScanDetailPage({ params }: PageProps) {
       {/* Image viewer (read-only) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Image</CardTitle>
+          <CardTitle className="text-base">{t("image")}</CardTitle>
           <CardDescription>
-            Annotations saved with this scan are shown overlaid. Pan, zoom, and
-            inspect — drawing is disabled in detail view.
+            {t("imageDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -219,9 +222,9 @@ export default async function ScanDetailPage({ params }: PageProps) {
       {realFindings.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Findings</CardTitle>
+            <CardTitle className="text-base">{t("findings")}</CardTitle>
             <CardDescription>
-              Structured observations stored with this scan.
+              {t("findingsDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -258,10 +261,9 @@ export default async function ScanDetailPage({ params }: PageProps) {
       {realFindings.length === 0 && (
         <Alert variant="info">
           <CheckCircle2 />
-          <AlertTitle>No structured findings recorded</AlertTitle>
+          <AlertTitle>{t("noFindingsTitle")}</AlertTitle>
           <AlertDescription>
-            The AI report above contains the narrative interpretation. Add
-            structured findings on next read via /mediscan/new.
+            {t("noFindingsDescription")}
           </AlertDescription>
         </Alert>
       )}
@@ -272,7 +274,7 @@ export default async function ScanDetailPage({ params }: PageProps) {
           {scan.aiDifferentialDiagnosis && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Differential diagnosis</CardTitle>
+                <CardTitle className="text-base">{t("differentialDiagnosis")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -284,7 +286,7 @@ export default async function ScanDetailPage({ params }: PageProps) {
           {scan.aiRecommendations && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Recommendations</CardTitle>
+                <CardTitle className="text-base">{t("recommendations")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">

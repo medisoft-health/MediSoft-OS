@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   User as UserIcon,
 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -67,7 +68,10 @@ export default async function LabDetailPage({ params }: PageProps) {
   if (!row) notFound();
   const { lab, patient, physician } = row;
 
-  const session = await requireSession();
+  const [session, t] = await Promise.all([
+    requireSession(),
+    getTranslations("MediLabDetail"),
+  ]);
   if (session.ok) {
     void logAudit({
       actorId: session.user.id,
@@ -110,7 +114,7 @@ export default async function LabDetailPage({ params }: PageProps) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Back to {patient.firstName} {patient.lastName}
+          {t("backTo", { firstName: patient.firstName, lastName: patient.lastName })}
         </Link>
       </div>
 
@@ -120,7 +124,7 @@ export default async function LabDetailPage({ params }: PageProps) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-                Lab result
+                {t("labResult")}
               </div>
               <h1 className="mt-1 flex items-center gap-2 text-2xl font-black tracking-tight">
                 <Beaker className="size-5 text-[color:var(--color-brand-magenta)]" />
@@ -162,17 +166,17 @@ export default async function LabDetailPage({ params }: PageProps) {
               {criticalCount > 0 ? (
                 <Badge variant="critical" className="gap-1 text-[10px]">
                   <AlertTriangle className="size-3" />
-                  {criticalCount} critical
+                  {t("critical", { count: criticalCount })}
                 </Badge>
               ) : abnormalCount > 0 ? (
                 <Badge variant="warning" className="gap-1 text-[10px]">
                   <AlertTriangle className="size-3" />
-                  {abnormalCount} abnormal
+                  {t("abnormal", { count: abnormalCount })}
                 </Badge>
               ) : (
                 <Badge variant="success" className="gap-1 text-[10px]">
                   <CheckCircle2 className="size-3" />
-                  All within range
+                  {t("allWithinRange")}
                 </Badge>
               )}
               {lab.panelLoincCode && (
@@ -189,10 +193,9 @@ export default async function LabDetailPage({ params }: PageProps) {
       {criticalCount > 0 && (
         <Alert variant="destructive">
           <AlertTriangle />
-          <AlertTitle>{criticalCount} critical result{criticalCount === 1 ? "" : "s"}</AlertTitle>
+          <AlertTitle>{t("criticalResultsTitle", { count: criticalCount })}</AlertTitle>
           <AlertDescription>
-            Review the highlighted rows below. Critical values warrant clinical
-            attention before the patient leaves the encounter.
+            {t("criticalResultsDescription")}
           </AlertDescription>
         </Alert>
       )}
@@ -226,10 +229,9 @@ export default async function LabDetailPage({ params }: PageProps) {
       {/* Results visualization */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Results</CardTitle>
+          <CardTitle className="text-base">{t("results")}</CardTitle>
           <CardDescription>
-            {results.length} test{results.length === 1 ? "" : "s"}. The bar shows
-            where each value sits relative to its reference range.
+            {t("resultsDescription", { count: results.length })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -317,10 +319,7 @@ export default async function LabDetailPage({ params }: PageProps) {
       {/* Disclaimer */}
       <div className="rounded-xl border border-dashed border-[color:var(--color-border)] p-3 text-[11px] text-[color:var(--color-muted-foreground)]">
         <AlertTriangle className="mr-1 inline size-3" />
-        Reference ranges shown are screening defaults from MediLab&apos;s
-        curated library. The reporting laboratory&apos;s printed values always
-        take precedence. AI narrative is for clinical decision-support only;
-        verify before sharing with patients.
+        {t("disclaimer")}
       </div>
     </div>
   );
