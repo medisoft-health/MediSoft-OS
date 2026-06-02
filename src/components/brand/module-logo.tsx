@@ -13,6 +13,7 @@ export const MODULE_LOGOS = {
   mediscan: "/brand/medisoft-mediscan.png",
   medisport: "/brand/medisport-logo.png",
   medident: "/brand/medident-logo.png",
+  medi360: "/brand/medisoft-medi360.png",
 } as const;
 
 /**
@@ -27,6 +28,7 @@ export const SIDEBAR_LOGOS = {
   mediscan: "/brand/sidebar-mediscan.png",
   medisport: "/brand/sidebar-medisport.png",
   medident: "/brand/sidebar-medident.png",
+  medi360: "/brand/sidebar-medi360.png",
 } as const;
 
 export type ModuleKey = keyof typeof MODULE_LOGOS;
@@ -68,7 +70,9 @@ export function ModuleLogo({
             ? "MediSport"
             : module === "medident"
               ? "MediDent"
-              : "MediScan";
+              : module === "medi360"
+                ? "Medi360"
+                : "MediScan";
 
   return (
     // eslint-disable-next-line @next/next/no-img-element

@@ -31,6 +31,7 @@ import {
   UserCircle,
   Bell,
   Activity,
+  CircleDot,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ const NAV: NavItemDef[] = [
   // ── CLINICAL ──
   { href: "/", tKey: "dashboard", icon: LayoutDashboard, sectionTKey: "sectionClinical" },
   { href: "/patients", tKey: "patients", icon: Users },
+  { href: "/medi360", tKey: "medi360", icon: CircleDot, moduleKey: "medi360", ai: true, badge: { text: "UPP", variant: "success" } },
   { href: "/encounters", tKey: "encounters", icon: ClipboardList },
   { href: "/appointments", tKey: "appointments", icon: CalendarDays },
   {

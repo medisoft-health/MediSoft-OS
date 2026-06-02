@@ -20,7 +20,10 @@ import {
   ChevronRight,
   RefreshCw,
   Loader2,
+  Brain,
 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 // ─── Types ───────────────────────────────────────────────────────
 type Appointment = {
@@ -57,7 +60,7 @@ type Message = {
 // ─── Component ──────────────────────────────────────────────────
 export default function PatientPortalPage() {
   const t = useTranslations("PatientPortal");
-  const [activeTab, setActiveTab] = useState<"appointments" | "results" | "medications" | "messages">("appointments");
+  const [activeTab, setActiveTab] = useState<"appointments" | "results" | "medications" | "messages" | "medi360">("appointments");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,6 +182,7 @@ export default function PatientPortalPage() {
           { key: "results", icon: FileText, label: t("myLabResults") },
           { key: "medications", icon: Pill, label: t("medications") },
           { key: "messages", icon: MessageCircle, label: t("messages") },
+          { key: "medi360", icon: Brain, label: "Medi360" },
         ].map(({ key, icon: Icon, label }) => (
           <button
             key={key}
@@ -334,6 +338,79 @@ export default function PatientPortalPage() {
                   View in PharmaX <ChevronRight className="w-4 h-4" />
                 </a>
               </div>
+            </div>
+          )}
+
+          {/* Medi360 Tab */}
+          {activeTab === "medi360" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Image src="/images/medi360-icon.png" alt="Medi360" width={32} height={32} className="rounded" />
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Medi360 — السجل الطبي الشامل</h2>
+                  <p className="text-sm text-gray-400">ملفك الصحي الكامل في مكان واحد</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <Activity className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">الحالة الصحية</p>
+                      <p className="text-xs text-gray-400">Health Score</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300">اطلع على درجة صحتك العامة وتوصيات الطبيب المعالج</p>
+                </div>
+
+                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">التقارير المبسطة</p>
+                      <p className="text-xs text-gray-400">Simplified Reports</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300">تقارير طبية مبسطة يسهل فهمها بدون مصطلحات معقدة</p>
+                </div>
+
+                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">التسجيل الذاتي</p>
+                      <p className="text-xs text-gray-400">Self-Reporting</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300">سجّل أعراضك ومزاجك وتغذيتك وتمارينك الرياضية</p>
+                </div>
+
+                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">التنبيهات</p>
+                      <p className="text-xs text-gray-400">Smart Alerts</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300">تنبيهات ذكية عن مواعيد الأدوية والفحوصات القادمة</p>
+                </div>
+              </div>
+
+              <Link href="/ar/medi360" className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                <Brain className="w-4 h-4" />
+                فتح Medi360 الكامل
+                <ChevronRight className="w-4 h-4" />
+              </Link>
             </div>
           )}
         </>

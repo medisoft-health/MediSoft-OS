@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 import Link from "next/link";
-import { UserPlus, Users } from "lucide-react";
+import { UserPlus, Users, Brain } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -157,7 +157,16 @@ async function PatientGridCard({ p }: { p: PatientListRow }) {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[color:var(--color-border)] pt-3 text-[11px]">
+          <div className="mt-3 flex justify-end border-t border-[color:var(--color-border)] pt-2">
+            <Link
+              href={`/patients/${p.id}?tab=patient360`}
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-[color:var(--color-primary)] hover:underline"
+            >
+              <Brain className="size-3" />
+              Medi360
+            </Link>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[color:var(--color-border)] pt-3 text-[11px]">
             <div>
               <div className="text-[color:var(--color-muted-foreground)]">{t("phone")}</div>
               <div className="truncate font-medium">{p.phone ?? "—"}</div>
@@ -191,6 +200,7 @@ async function ListView({ rows }: { rows: PatientListRow[] }) {
           <TableHead>{t("phone")}</TableHead>
           <TableHead>{t("insurance")}</TableHead>
           <TableHead>{t("updated")}</TableHead>
+          <TableHead className="text-center">Medi360</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -237,6 +247,15 @@ async function ListView({ rows }: { rows: PatientListRow[] }) {
               </TableCell>
               <TableCell className="text-xs text-[color:var(--color-muted-foreground)]">
                 {formatClinicalDate(p.updatedAt)}
+              </TableCell>
+              <TableCell>
+                <Link
+                  href={`/patients/${p.id}?tab=patient360`}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-[color:var(--color-primary)] hover:bg-[color:var(--color-primary)]/10 transition-colors"
+                >
+                  <Brain className="size-3" />
+                  360°
+                </Link>
               </TableCell>
             </TableRow>
           );

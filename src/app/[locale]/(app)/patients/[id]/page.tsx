@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Brain, FileText, HeartPulse, History, Mic, Stethoscope, UserCircle } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import Image from "next/image";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -24,6 +25,7 @@ import { TabDocuments } from "./_components/tab-documents";
 import { TabTimeline } from "./_components/tab-timeline";
 import { HealthDashboard } from "./_components/health-dashboard";
 import { PatientTimeline } from "./_components/patient-timeline";
+import { Patient360Wrapper } from "./_components/patient-360-wrapper";
 import { RiskAssessmentPanel } from "@/app/[locale]/(app)/medilab/[id]/_components/risk-assessment-panel";
 import { Patient360Record, PatientSelfReport } from "@/components/patient-context";
 
@@ -49,6 +51,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title: `${p.firstName} ${p.lastName} · ${formatPatientId(p.id)}`,
   };
+}
+
+function calculateAge(dob: string): number {
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
 }
 
 export default async function PatientDetailPage({ params, searchParams }: PageProps) {
@@ -98,6 +109,22 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
     listPatientTimeline(patient.id, 50),
   ]);
 
+  // Build SelectedPatient for the Patient360 context wrapper
+  const selectedPatient = {
+    id: patient.id,
+    firstName: patient.firstName,
+    lastName: patient.lastName,
+    firstNameAr: patient.firstNameAr ?? null,
+    lastNameAr: patient.lastNameAr ?? null,
+    age: calculateAge(patient.dateOfBirth),
+    sex: patient.sex,
+    mrn: patient.mrn ?? null,
+    bloodType: patient.bloodType ?? null,
+    allergies: (patient.allergies as Array<{ substance: string; reaction?: string; severity?: string }>) ?? [],
+    chronicConditions: (patient.chronicConditions as Array<{ description: string; icdCode?: string }>) ?? [],
+    insuranceProvider: patient.insuranceProvider ?? null,
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-6 pb-12 lg:px-8">
       <PatientHeader patient={patient} />
@@ -127,8 +154,8 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
             {t("timeline")}
           </TabsTrigger>
           <TabsTrigger value="patient360">
-            <Brain className="size-3.5" />
-            السجل 360°
+            <Image src="/images/medi360-icon.png" alt="Medi360" width={16} height={16} className="rounded-sm" />
+            Medi360
           </TabsTrigger>
           <TabsTrigger value="self-report">
             <UserCircle className="size-3.5" />
@@ -165,11 +192,15 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
         </TabsContent>
 
         <TabsContent value="patient360">
-          <Patient360Record />
+          <Patient360Wrapper patient={selectedPatient}>
+            <Patient360Record />
+          </Patient360Wrapper>
         </TabsContent>
 
         <TabsContent value="self-report">
-          <PatientSelfReport />
+          <Patient360Wrapper patient={selectedPatient}>
+            <PatientSelfReport />
+          </Patient360Wrapper>
         </TabsContent>
       </Tabs>
     </div>
