@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Pill,
+  Printer,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
@@ -174,6 +175,13 @@ export default async function PrescriptionDetailPage({ params }: PageProps) {
                   RxCUI {rx.rxcui}
                 </Badge>
               )}
+              <Link
+                href={`/pharmax/${rx.id}/print`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--color-border)] px-3 py-1.5 text-[11px] font-medium text-[color:var(--color-muted-foreground)] transition-colors hover:bg-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]"
+              >
+                <Printer className="size-3.5" />
+                {t("printPrescription")}
+              </Link>
             </div>
           </div>
         </CardHeader>
