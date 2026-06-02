@@ -62,7 +62,7 @@ export default function SignupPage() {
       toast.success("Welcome to MediSoft", {
         description: "Your account is ready. Taking you to the dashboard…",
       });
-      router.replace("/");
+      router.replace("/dashboard");
       router.refresh();
     } catch (err) {
       const message =

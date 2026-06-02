@@ -149,7 +149,7 @@ export function LabEntryForm({ initialPatient }: Props) {
 
     // Show progress phases on timers
     extractTimerRef.current = setTimeout(
-      () => setExtractPhase("Analyzing with AI..."),
+      () => setExtractPhase("Analyzing......"),
       2000,
     );
     const timer2 = setTimeout(
@@ -164,7 +164,7 @@ export function LabEntryForm({ initialPatient }: Props) {
     try {
       const result = await extractLabFromFile(file);
       if (result.kind === "not_configured") {
-        toast.error("AI extraction unavailable", {
+        toast.error("Extraction unavailable", {
           description: result.message,
         });
         return;

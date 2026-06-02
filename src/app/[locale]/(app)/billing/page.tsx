@@ -112,7 +112,7 @@ export default function BillingPage() {
             <CreditCard className="h-7 w-7 text-emerald-600" />
             Medical Billing & Claims
           </h1>
-          <p className="text-sm text-gray-500 mt-1">AI-powered CPT/ICD coding, insurance claims & NPHIES integration</p>
+          <p className="text-sm text-gray-500 mt-1">Medical Intelligence CPT/ICD coding, insurance claims & NPHIES integration</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchClaims} className="p-2 rounded-lg border hover:bg-gray-50">
@@ -189,9 +189,9 @@ export default function BillingPage() {
               <div className="rounded-xl border bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <Zap className="h-5 w-5 text-amber-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">AI Auto-Coding Engine</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Intelligent Auto-Coding Engine</h3>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">Automatically extracts CPT and ICD-10 codes from clinical documentation using Gemini AI.</p>
+                <p className="text-sm text-gray-600 mb-4">Automatically extracts CPT and ICD-10 codes from clinical documentation using Medical Intelligence.</p>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center">
                     <p className="text-2xl font-bold text-amber-900">96%</p>
@@ -290,9 +290,9 @@ export default function BillingPage() {
             <div className="space-y-6">
               <div className="rounded-xl border bg-white p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-amber-500" /> AI Auto-Coding Engine
+                  <Zap className="h-5 w-5 text-amber-500" /> Intelligent Auto-Coding Engine
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">Paste a clinical note and the AI will automatically extract CPT & ICD-10 codes using Gemini</p>
+                <p className="text-sm text-gray-500 mb-4">Paste a clinical note and the AI will automatically extract CPT & ICD-10 codes using Medical Intelligence</p>
                 <textarea
                   value={codingInput}
                   onChange={(e) => setCodingInput(e.target.value)}
@@ -302,7 +302,7 @@ export default function BillingPage() {
                 <button onClick={handleAutoCode} disabled={codingLoading || !codingInput.trim()}
                   className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium">
                   {codingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                  {codingLoading ? "Analyzing with AI..." : "Auto-Code with Gemini AI"}
+                  {codingLoading ? "Analyzing......" : "Auto-Code with Medical Intelligence"}
                 </button>
               </div>
 
@@ -341,7 +341,7 @@ export default function BillingPage() {
                   </div>
                   {codingResult.reasoning && (
                     <div className="p-3 rounded-lg bg-gray-50 border mb-4">
-                      <p className="text-xs text-gray-700"><strong>AI Reasoning:</strong> {codingResult.reasoning}</p>
+                      <p className="text-xs text-gray-700"><strong>Clinical Reasoning:</strong> {codingResult.reasoning}</p>
                     </div>
                   )}
                   <div className="flex items-center justify-between">

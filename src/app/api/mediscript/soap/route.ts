@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Gemini is not configured. Set GOOGLE_GEMINI_API_KEY in .env.local to enable SOAP generation.",
+          "Medical Intelligence Engine is not configured. Contact your administrator to enable clinical documentation.",
         reason: "not_configured",
       },
       { status: 503 },
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     {
       soapNote: icdNote,
       meta: {
-        model: GEMINI_MODEL,
+        model: "Medical Intelligence Engine",
         geminiConfigured: true,
         whoIcdConfigured: isWhoIcdConfigured(),
         diagnosisCount: aiSoap.assessment.diagnoses.length,

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { safeZodResolver } from "@/lib/safe-zod-resolver";
 import { toast } from "sonner";
-import { Loader2, AlertCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Loader2, AlertCircle, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -49,7 +49,7 @@ export default function LoginPage() {
       toast.success("Signed in", {
         description: "Redirecting to your dashboard…",
       });
-      router.replace("/");
+      router.replace("/dashboard");
       router.refresh();
     } catch (err) {
       const message =
@@ -65,10 +65,19 @@ export default function LoginPage() {
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-8 sm:p-10">
+        {/* Back link */}
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]"
+        >
+          <ArrowLeft className="size-3.5" />
+          Back to portal selection
+        </Link>
+
         {/* Brand header */}
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="lockup" className="mb-6" />
-          <h1 className="text-2xl font-black tracking-tight">Welcome back</h1>
+          <h1 className="text-2xl font-black tracking-tight">Physician Portal</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
             Sign in to continue to your clinical workspace
           </p>

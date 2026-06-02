@@ -172,7 +172,7 @@ export function SessionWizard({ initialPatient }: Props) {
         soap: s.soapNote,
         meta: s.meta,
       });
-      toast.success("AI draft ready", {
+      toast.success("Clinical draft ready", {
         description: `Drafted ${s.meta.diagnosisCount} diagnoses · ${s.meta.icdVerifiedCount} ICD-verified`,
       });
     },
@@ -443,7 +443,7 @@ function StepRecord({
         <Alert variant="info">
           <AlertTitle>Where does this audio go?</AlertTitle>
           <AlertDescription>
-            The audio file is sent to OpenAI Whisper for transcription on the
+            The audio file is sent to Medical Intelligence for transcription on the
             next click, then discarded — nothing is persisted to MediSoft
             storage. Only the resulting transcript is saved with the
             encounter.
@@ -517,7 +517,7 @@ function StepReview({
     banner = (
       <Alert variant="success">
         <Sparkles />
-        <AlertTitle>AI draft ready</AlertTitle>
+        <AlertTitle>Clinical draft ready</AlertTitle>
         <AlertDescription>
           Drafted from a {pipeline.transcript.length.toLocaleString()}-character
           transcript ·{" "}
@@ -535,7 +535,7 @@ function StepReview({
     if (pipeline.reason === "transcribe_unavailable") {
       banner = (
         <Alert variant="info">
-          <AlertTitle>Whisper not configured</AlertTitle>
+          <AlertTitle>Speech recognition not configured</AlertTitle>
           <AlertDescription>
             {pipeline.message ?? "Transcription is unavailable."} Enter the
             SOAP note manually, or set{" "}
@@ -549,7 +549,7 @@ function StepReview({
     } else if (pipeline.reason === "soap_unavailable") {
       banner = (
         <Alert variant="info">
-          <AlertTitle>Gemini not configured</AlertTitle>
+          <AlertTitle>Medical engine not configured</AlertTitle>
           <AlertDescription>
             Transcription completed but SOAP generation is unavailable. The
             transcript is pre-loaded below — fill in the structured note
@@ -565,7 +565,7 @@ function StepReview({
       banner = (
         <Alert variant="destructive">
           <XCircle />
-          <AlertTitle>AI pipeline failed</AlertTitle>
+          <AlertTitle>Analysis pipeline failed</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center gap-3">
             <span>{pipeline.message ?? "Unexpected error."}</span>
             <Button variant="outline" size="sm" onClick={onRetryAI}>
@@ -628,8 +628,8 @@ function AIPipelineProgress({
           </h3>
           <p className="max-w-sm text-sm text-[color:var(--color-muted-foreground)]">
             {phase === "transcribing"
-              ? "OpenAI Whisper is converting your recording into text."
-              : "Gemini 2.5 is structuring the transcript into a SOAP note and verifying ICD-11 codes with the WHO API."}
+              ? "Medical Intelligence is converting your recording into text."
+              : "Medical Intelligence is structuring the transcript into a SOAP note and verifying ICD-11 codes with the WHO API."}
           </p>
         </div>
 
@@ -643,7 +643,7 @@ function PhaseTimeline({ phase }: { phase: "transcribing" | "generating" }) {
   const items = [
     {
       key: "transcribing" as const,
-      label: "Transcribe (Whisper)",
+      label: "Transcribe (Clinical Speech)",
       done: phase === "generating",
       active: phase === "transcribing",
     },

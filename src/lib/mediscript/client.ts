@@ -22,7 +22,7 @@ export async function transcribeAudio(
   mimeType: string,
 ): Promise<TranscribeResult> {
   const form = new FormData();
-  // Whisper accepts a wide range; we pass through whatever MediaRecorder gave us.
+  // Speech recognition accepts a wide range; we pass through whatever MediaRecorder gave us.
   const filename =
     mimeType.includes("ogg")
       ? "audio.ogg"
@@ -60,7 +60,7 @@ export async function transcribeAudio(
       kind: "not_configured",
       message:
         payload.error ??
-        "OpenAI not configured. Set OPENAI_API_KEY to enable transcription.",
+        "Speech recognition service not configured. Contact your administrator to enable Medical Intelligence transcription.",
     };
   }
   if (!res.ok || !payload.transcript) {
@@ -126,7 +126,7 @@ export async function generateSoapFromTranscript(
       kind: "not_configured",
       message:
         payload.error ??
-        "Gemini not configured. Set GOOGLE_GEMINI_API_KEY to enable SOAP generation.",
+        "Clinical documentation engine not configured. Contact your administrator to enable Medical Intelligence SOAP generation.",
     };
   }
   if (!res.ok || !payload.soapNote || !payload.meta) {

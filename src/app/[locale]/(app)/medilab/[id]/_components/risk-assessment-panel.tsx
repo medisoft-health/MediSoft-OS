@@ -86,7 +86,7 @@ export function RiskAssessmentPanel({ patientId }: Props) {
     const result = await fetchRiskAssessment(patientId, true);
     if (result?.aiInsight) {
       setData(result);
-      toast.success("AI insight generated");
+      toast.success("Clinical insight generated");
     }
     setAiLoading(false);
   }

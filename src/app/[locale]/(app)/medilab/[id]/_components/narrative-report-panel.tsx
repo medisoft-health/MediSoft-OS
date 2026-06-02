@@ -83,7 +83,7 @@ export function NarrativeReportPanel({ labResultId }: Props) {
 
     // Phased loading messages
     setPhase(isRetry ? "Retrying with optimized prompt..." : "Preparing analysis...");
-    phaseTimers.current.push(setTimeout(() => setPhase("Analyzing results with Gemini 2.5 Pro..."), 2000));
+    phaseTimers.current.push(setTimeout(() => setPhase("Analyzing results with Medical Intelligence Engine..."), 2000));
     phaseTimers.current.push(setTimeout(() => setPhase("Processing abnormal findings..."), 8000));
     phaseTimers.current.push(setTimeout(() => setPhase("Generating clinical correlations..."), 20000));
     phaseTimers.current.push(setTimeout(() => setPhase("Building patient report..."), 40000));
@@ -96,7 +96,7 @@ export function NarrativeReportPanel({ labResultId }: Props) {
 
     if (result.kind === "ok") {
       setData(result.data);
-      toast.success("AI report generated");
+      toast.success("Clinical report generated");
     } else if (result.kind === "not_configured") {
       setError("Set GOOGLE_GEMINI_API_KEY to enable AI reports.");
     } else {
@@ -192,7 +192,7 @@ export function NarrativeReportPanel({ labResultId }: Props) {
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="size-6 animate-spin text-[color:var(--color-brand-magenta)]" />
             <p className="text-sm text-[color:var(--color-muted-foreground)] transition-opacity">
-              {phase || "Analyzing results with Gemini 2.5 Pro..."}
+              {phase || "Analyzing results with Medical Intelligence Engine..."}
             </p>
           </div>
         )}

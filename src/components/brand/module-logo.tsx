@@ -11,6 +11,8 @@ export const MODULE_LOGOS = {
   pharmax: "/brand/medisoft-pharmax.png",
   medilab: "/brand/medisoft-medilab.png",
   mediscan: "/brand/medisoft-mediscan.png",
+  medisport: "/brand/medisport-logo.png",
+  medident: "/brand/medident-logo.png",
 } as const;
 
 /**
@@ -23,6 +25,8 @@ export const SIDEBAR_LOGOS = {
   pharmax: "/brand/sidebar-pharmax.png",
   medilab: "/brand/sidebar-medilab.png",
   mediscan: "/brand/sidebar-mediscan.png",
+  medisport: "/brand/sidebar-medisport.png",
+  medident: "/brand/sidebar-medident.png",
 } as const;
 
 export type ModuleKey = keyof typeof MODULE_LOGOS;
@@ -60,7 +64,11 @@ export function ModuleLogo({
         ? "PharmaX"
         : module === "medilab"
           ? "MediLab"
-          : "MediScan";
+          : module === "medisport"
+            ? "MediSport"
+            : module === "medident"
+              ? "MediDent"
+              : "MediScan";
 
   return (
     // eslint-disable-next-line @next/next/no-img-element

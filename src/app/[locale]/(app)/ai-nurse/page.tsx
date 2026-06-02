@@ -107,7 +107,7 @@ export default function AINursePage() {
     { id: "dashboard" as const, label: "Dashboard", icon: Activity },
     { id: "follow-ups" as const, label: "Follow-ups", icon: ClipboardList },
     { id: "medications" as const, label: "Med Alerts", icon: Pill },
-    { id: "triage" as const, label: "AI Triage", icon: Stethoscope },
+    { id: "triage" as const, label: "Smart Triage", icon: Stethoscope },
   ];
 
   return (
@@ -455,7 +455,7 @@ function TriageSection({
           </div>
           {triageResult.reasoning && (
             <div className="p-3 rounded-lg bg-white border">
-              <p className="text-sm text-gray-700"><strong>AI Assessment:</strong> {triageResult.reasoning}</p>
+              <p className="text-sm text-gray-700"><strong>Clinical Assessment:</strong> {triageResult.reasoning}</p>
             </div>
           )}
           {triageResult.recommendations && (

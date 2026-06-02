@@ -56,7 +56,7 @@ export function TabOverview({ patient, latestVitals, recentPrescriptions }: Prop
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_1fr]">
       <div className="space-y-6">
-        {/* AI Medical Narrative — placeholder until Gemini is wired */}
+        {/* AI Medical Narrative — placeholder until Medical Intelligence is wired */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -65,7 +65,7 @@ export function TabOverview({ patient, latestVitals, recentPrescriptions }: Prop
                   <Sparkles className="size-4" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">AI medical narrative</CardTitle>
+                  <CardTitle className="text-base">Clinical medical narrative</CardTitle>
                   <CardDescription className="text-[11px]">
                     Auto-generated clinical summary
                   </CardDescription>
@@ -79,7 +79,7 @@ export function TabOverview({ patient, latestVitals, recentPrescriptions }: Prop
           <CardContent>
             <Alert>
               <Sparkles />
-              <AlertTitle>Gemini integration not yet configured</AlertTitle>
+              <AlertTitle>Medical Intelligence not yet configured</AlertTitle>
               <AlertDescription>
                 Once your{" "}
                 <code className="rounded bg-[color:var(--color-muted)] px-1 py-0.5 text-[11px]">

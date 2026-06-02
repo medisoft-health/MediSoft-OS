@@ -91,7 +91,7 @@ export function SafetyPanel({ loading, result, error }: Props) {
               </Alert>
             ) : result.meta.geminiUsed ? null : (
               <p className="text-[11px] text-[color:var(--color-muted-foreground)]">
-                AI clinical narrative is not enabled. Set
+                Medical Intelligence clinical narrative is not enabled. Contact your administrator to enable
                 <code className="mx-1 rounded bg-[color:var(--color-muted)] px-1 py-0.5">
                   GOOGLE_GEMINI_API_KEY
                 </code>
@@ -219,10 +219,10 @@ export function SafetyPanel({ loading, result, error }: Props) {
                   {result.meta.openFdaUsed ? "active" : "no label data fetched"}
                 </li>
                 <li>
-                  • Gemini 2.5 Pro —{" "}
+                  • Medical Intelligence Engine —{" "}
                   {result.meta.geminiUsed
                     ? "active"
-                    : "not configured (set GOOGLE_GEMINI_API_KEY)"}
+                    : "not configured"}
                 </li>
                 <li>
                   • SFDA Saudi Drug Registry —{" "}

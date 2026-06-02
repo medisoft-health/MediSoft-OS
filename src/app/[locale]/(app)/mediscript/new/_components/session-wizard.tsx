@@ -32,6 +32,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { PatientPicker, type PickedPatient } from "@/components/clinical/patient-picker";
 import { AudioRecorder } from "@/components/mediscript/audio-recorder";
+import { PatientBriefing } from "@/components/mediscript/patient-briefing";
+import { TranscriptReview } from "@/components/mediscript/transcript-review";
 import { SoapForm } from "./soap-form";
 import { createEncounter } from "@/lib/actions/encounters";
 import type {
@@ -88,6 +90,7 @@ interface SoapMeta {
 type PipelineState =
   | { kind: "idle" }
   | { kind: "transcribing" }
+  | { kind: "correcting"; rawTranscript: string }
   | { kind: "generating"; transcript: string }
   | {
       kind: "done";
@@ -118,7 +121,46 @@ export function SessionWizard({ initialPatient }: Props) {
     Record<string, string[]> | undefined
   >(undefined);
 
-  // ── AI pipeline (transcribe → SOAP) ─────────────────────────────
+  // ── SOAP generation from transcript ────────────────────────────────
+  const generateSoap = React.useCallback(
+    async (transcript: string, hint: string) => {
+      setPipeline({ kind: "generating", transcript });
+
+      const s: SoapResult = await generateSoapFromTranscript(transcript, hint);
+      if (s.kind === "not_configured") {
+        setPipeline({
+          kind: "manual",
+          reason: "soap_unavailable",
+          transcript,
+          message: s.message,
+        });
+        return;
+      }
+      if (s.kind === "error") {
+        toast.error("Clinical SOAP generation failed", { description: s.message });
+        setPipeline({
+          kind: "manual",
+          reason: "error",
+          transcript,
+          message: s.message,
+        });
+        return;
+      }
+
+      setPipeline({
+        kind: "done",
+        transcript,
+        soap: s.soapNote,
+        meta: s.meta,
+      });
+      toast.success("Clinical draft ready", {
+        description: `Drafted ${s.meta.diagnosisCount} diagnoses · ${s.meta.icdVerifiedCount} ICD-verified`,
+      });
+    },
+    [],
+  );
+
+  // ── AI pipeline (transcribe → correct → SOAP) ─────────────────────
   const runAIPipeline = React.useCallback(
     async (a: CapturedAudio, hint: string) => {
       setPipeline({ kind: "transcribing" });
@@ -143,41 +185,27 @@ export function SessionWizard({ initialPatient }: Props) {
         return;
       }
 
-      setPipeline({ kind: "generating", transcript: t.transcript });
-
-      const s: SoapResult = await generateSoapFromTranscript(t.transcript, hint);
-      if (s.kind === "not_configured") {
-        setPipeline({
-          kind: "manual",
-          reason: "soap_unavailable",
-          transcript: t.transcript,
-          message: s.message,
-        });
-        return;
-      }
-      if (s.kind === "error") {
-        toast.error("AI SOAP generation failed", { description: s.message });
-        setPipeline({
-          kind: "manual",
-          reason: "error",
-          transcript: t.transcript,
-          message: s.message,
-        });
-        return;
-      }
-
-      setPipeline({
-        kind: "done",
-        transcript: t.transcript,
-        soap: s.soapNote,
-        meta: s.meta,
-      });
-      toast.success("AI draft ready", {
-        description: `Drafted ${s.meta.diagnosisCount} diagnoses · ${s.meta.icdVerifiedCount} ICD-verified`,
-      });
+      // Show transcript correction step
+      setPipeline({ kind: "correcting", rawTranscript: t.transcript });
     },
     [],
   );
+
+  // ── Handle transcript correction acceptance ────────────────────────
+  const handleCorrectionAccept = React.useCallback(
+    (correctedTranscript: string) => {
+      if (!patient) return;
+      generateSoap(correctedTranscript, `${patient.label} · ${patient.sublabel}`);
+    },
+    [patient, generateSoap],
+  );
+
+  const handleCorrectionSkip = React.useCallback(() => {
+    if (!patient) return;
+    if (pipeline.kind === "correcting") {
+      generateSoap(pipeline.rawTranscript, `${patient.label} · ${patient.sublabel}`);
+    }
+  }, [patient, pipeline, generateSoap]);
 
   // ── Step 2 → 3 transition ───────────────────────────────────────
   const continueFromRecord = React.useCallback(
@@ -260,6 +288,8 @@ export function SessionWizard({ initialPatient }: Props) {
         <StepReview
           patient={patient}
           pipeline={pipeline}
+          onCorrectionAccept={handleCorrectionAccept}
+          onCorrectionSkip={handleCorrectionSkip}
           onRetryAI={() => audio && runAIPipeline(audio, `${patient.label} · ${patient.sublabel}`)}
           onBack={() => setStep(2)}
           onSave={handleSave}
@@ -421,8 +451,8 @@ function StepRecord({
           <div>
             <CardTitle className="text-base">Record the consultation</CardTitle>
             <CardDescription>
-              Speak naturally. The AI will transcribe and draft the SOAP note
-              in the next step.
+              Speak naturally. Medical Intelligence will transcribe and draft the
+              SOAP note in the next step.
             </CardDescription>
           </div>
           <Badge variant="outline" className="text-[10px]">
@@ -431,6 +461,9 @@ function StepRecord({
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* Patient Clinical Summary — shows allergies, conditions, meds */}
+        <PatientBriefing patientId={patient.id} />
+
         <AudioRecorder
           onCapture={(blob, durationMs, mimeType) => {
             setAudio({ blob, durationMs, mimeType });
@@ -443,10 +476,10 @@ function StepRecord({
         <Alert variant="info">
           <AlertTitle>Where does this audio go?</AlertTitle>
           <AlertDescription>
-            Your recording is transcribed using a 3-tier AI system:
-            Gemini multimodal (best for Arabic dialects) → Google Medical
-            Speech-to-Text → Whisper fallback. The audio stays in your
-            browser — only the transcript is saved.
+            Your recording is transcribed using a 3-tier Medical Intelligence
+            system: Clinical Speech Recognition (optimized for Arabic dialects)
+            → Medical Terminology Engine → Advanced Speech Processing. The audio
+            stays in your browser — only the transcript is saved.
           </AlertDescription>
         </Alert>
 
@@ -485,6 +518,8 @@ function StepRecord({
 function StepReview({
   patient,
   pipeline,
+  onCorrectionAccept,
+  onCorrectionSkip,
   onRetryAI,
   onBack,
   onSave,
@@ -494,6 +529,8 @@ function StepReview({
 }: {
   patient: PickedPatient;
   pipeline: PipelineState;
+  onCorrectionAccept: (correctedTranscript: string) => void;
+  onCorrectionSkip: () => void;
   onRetryAI: () => void;
   onBack: () => void;
   onSave: (input: EncounterCreateInput) => Promise<void> | void;
@@ -504,6 +541,29 @@ function StepReview({
   // Pipeline still running — render progress.
   if (pipeline.kind === "transcribing" || pipeline.kind === "generating") {
     return <AIPipelineProgress phase={pipeline.kind} />;
+  }
+
+  // Transcript correction step — show corrections before SOAP generation
+  if (pipeline.kind === "correcting") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Transcript Review</CardTitle>
+          <CardDescription>
+            Medical Intelligence has reviewed the transcript for accuracy.
+            Review the suggested corrections before generating the SOAP note.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TranscriptReview
+            rawTranscript={pipeline.rawTranscript}
+            patientId={patient.id}
+            onAccept={onCorrectionAccept}
+            onSkip={onCorrectionSkip}
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   // Resolve the props for the SoapForm.
@@ -517,7 +577,7 @@ function StepReview({
     banner = (
       <Alert variant="success">
         <Sparkles />
-        <AlertTitle>AI draft ready</AlertTitle>
+        <AlertTitle>Clinical draft ready</AlertTitle>
         <AlertDescription>
           Drafted from a {pipeline.transcript.length.toLocaleString()}-character
           transcript ·{" "}
@@ -525,7 +585,7 @@ function StepReview({
           {pipeline.meta.diagnosisCount === 1 ? "is" : "es"} ·{" "}
           {pipeline.meta.whoIcdConfigured
             ? `${pipeline.meta.icdVerifiedCount} ICD-11 verified by WHO`
-            : "ICD-11 verification not configured"}
+            : "ICD-11 codes generated by Medical Intelligence"}
           . Review each field before signing.
         </AlertDescription>
       </Alert>
@@ -538,26 +598,20 @@ function StepReview({
           <AlertTitle>Transcription not configured</AlertTitle>
           <AlertDescription>
             {pipeline.message ?? "No transcription service is configured."} Enter the
-            SOAP note manually, or set{" "}
-            <code className="rounded bg-[color:var(--color-muted)] px-1 py-0.5 text-[11px]">
-              OPENAI_API_KEY
-            </code>{" "}
-            and re-record to use the AI.
+            SOAP note manually, or contact your system administrator to enable
+            the Medical Intelligence speech recognition service.
           </AlertDescription>
         </Alert>
       );
     } else if (pipeline.reason === "soap_unavailable") {
       banner = (
         <Alert variant="info">
-          <AlertTitle>Gemini not configured</AlertTitle>
+          <AlertTitle>Medical Intelligence Engine not configured</AlertTitle>
           <AlertDescription>
             Transcription completed but SOAP generation is unavailable. The
             transcript is pre-loaded below — fill in the structured note
-            manually, or set{" "}
-            <code className="rounded bg-[color:var(--color-muted)] px-1 py-0.5 text-[11px]">
-              GOOGLE_GEMINI_API_KEY
-            </code>{" "}
-            to enable.
+            manually, or contact your system administrator to enable the
+            Clinical Documentation Engine.
           </AlertDescription>
         </Alert>
       );
@@ -565,7 +619,7 @@ function StepReview({
       banner = (
         <Alert variant="destructive">
           <XCircle />
-          <AlertTitle>AI pipeline failed</AlertTitle>
+          <AlertTitle>Analysis pipeline failed</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center gap-3">
             <span>{pipeline.message ?? "Unexpected error."}</span>
             <Button variant="outline" size="sm" onClick={onRetryAI}>
@@ -628,8 +682,8 @@ function AIPipelineProgress({
           </h3>
           <p className="max-w-sm text-sm text-[color:var(--color-muted-foreground)]">
             {phase === "transcribing"
-              ? "AI is transcribing your recording (Gemini → Medical Speech → Whisper)."
-              : "Gemini 2.5 Pro is generating a structured SOAP note from the transcript."}
+              ? "Transcribing your recording (Medical Intelligence → Clinical Speech Recognition)."
+              : "Medical Intelligence Engine is generating a structured SOAP note from the transcript."}
           </p>
         </div>
 
@@ -643,7 +697,7 @@ function PhaseTimeline({ phase }: { phase: "transcribing" | "generating" }) {
   const items = [
     {
       key: "transcribing" as const,
-      label: "Transcribe (Speech-to-Text)",
+      label: "Transcribe (Clinical Speech Recognition)",
       done: phase === "generating",
       active: phase === "transcribing",
     },

@@ -228,7 +228,7 @@ export function MedibotDrawer({ patientId }: Props) {
           <button onClick={newChat} className="text-[10px] text-gray-400 hover:text-gray-600">
             + New chat
           </button>
-          <span className="text-[9px] text-gray-300">Powered by Gemini 2.5 Pro</span>
+          <span className="text-[9px] text-gray-300">Powered by Medical Intelligence Engine</span>
         </div>
       </div>
     </div>

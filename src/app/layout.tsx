@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 // كل الصفحات تُعرض وقت التشغيل (SSR) وليس وقت البناء (SSG)
@@ -22,13 +22,13 @@ export const metadata: Metadata = {
     template: "%s · MediSoft",
   },
   description:
-    "AI-native clinical operating system for connected healthcare. MediScript, PharmaX, MediLab and MediScan in one unified workspace.",
+    "Intelligence-native clinical operating system for connected healthcare. MediScript, PharmaX, MediLab and MediScan in one unified workspace.",
   applicationName: "MediSoft C-OS",
   keywords: [
     "MediSoft",
     "healthcare",
     "EMR",
-    "clinical AI",
+    "clinical intelligence",
     "telemedicine",
     "Saudi Arabia",
     "NPHIES",
@@ -36,9 +36,28 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Hamada Ghaith" }],
   creator: "MediSoft",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "MediSoft",
+    startupImage: "/icons/icon-512.png",
+  },
   icons: {
     icon: "/favicon.ico",
+    apple: "/icons/apple-touch-icon.png",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#1a3b7a",
 };
 
 export default function RootLayout({

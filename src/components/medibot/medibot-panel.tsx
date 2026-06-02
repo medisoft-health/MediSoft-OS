@@ -194,7 +194,7 @@ export function MediBotPanel() {
         <div className="border-b border-[#E2E8F0] bg-amber-50/60 px-5 py-3 dark:border-slate-700 dark:bg-amber-950/20">
           <p className="text-[12px] text-amber-700 dark:text-amber-400">
             <Stethoscope className="mb-0.5 mr-1 inline size-3.5" />
-            Open a patient record to enable patient-specific AI assistance.
+            Open a patient record to enable patient-specific clinical assistance.
           </p>
         </div>
       )}
@@ -307,7 +307,7 @@ function WelcomeState({
       </h3>
       <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748B]">
         {mode === "patient"
-          ? "Ask questions about this patient and get AI-powered clinical insights with evidence."
+          ? "Ask questions about this patient and get Medical Intelligence clinical insights with evidence."
           : "Ask any medical question and get evidence-based answers with citations from 40M+ studies and guidelines."}
       </p>
       <div className="mt-5 flex w-full flex-col gap-2">

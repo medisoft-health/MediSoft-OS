@@ -191,7 +191,7 @@ export function IntelligencePanel({ labResultId }: Props) {
         </div>
         <CardDescription>
           Cross-module analysis: labs + encounters + medications + imaging +
-          vitals + patient history — powered by Gemini 2.5 Pro.
+          vitals + patient history — powered by Medical Intelligence Engine.
         </CardDescription>
       </CardHeader>
 
@@ -199,7 +199,7 @@ export function IntelligencePanel({ labResultId }: Props) {
         {notConfigured && (
           <Alert variant="info">
             <Sparkles />
-            <AlertTitle>AI not configured</AlertTitle>
+            <AlertTitle>Analysis not configured</AlertTitle>
             <AlertDescription>
               Set <code className="rounded bg-[color:var(--color-muted)] px-1 py-0.5">GOOGLE_GEMINI_API_KEY</code> to enable Clinical Intelligence.
             </AlertDescription>

@@ -29,6 +29,7 @@ import {
   Cable,
   UserCircle,
   Bell,
+  Activity,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ const NAV: NavItem[] = [
     icon: Mic,
     moduleKey: "mediscript",
     ai: true,
-    badge: { text: "AI", variant: "info" },
+    badge: { text: "MI", variant: "info" },
   },
   { href: "/pharmax", label: "PharmaX", icon: Pill, moduleKey: "pharmax", ai: true },
   { href: "/medilab", label: "MediLab", icon: FlaskConical, moduleKey: "medilab", ai: true },
@@ -85,13 +86,16 @@ const NAV: NavItem[] = [
   { href: "/diagnosis", label: "Diagnosis", icon: Brain, ai: true },
   { href: "/billing", label: "Billing", icon: Receipt },
   // ── AI AGENTS ──
-  { href: "/co-clinician", label: "Co-Clinician", icon: Stethoscope, section: "AI AGENTS", ai: true, badge: { text: "AI", variant: "info" } },
-  { href: "/ai-nurse", label: "AI Nurse", icon: HeartPulse, ai: true, badge: { text: "AI", variant: "info" } },
-  { href: "/ai-receptionist", label: "AI Receptionist", icon: Bot, ai: true, badge: { text: "AI", variant: "info" } },
-  { href: "/ai-interpreter", label: "AI Interpreter", icon: Globe, ai: true, badge: { text: "AI", variant: "info" } },
-  { href: "/ambient-scribe", label: "Ambient Scribe", icon: AudioLines, ai: true, badge: { text: "AI", variant: "info" } },
+  { href: "/co-clinician", label: "Co-Clinician", icon: Stethoscope, section: "CLINICAL AGENTS", ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ai-nurse", label: "Smart Nurse", icon: HeartPulse, ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ai-receptionist", label: "Smart Receptionist", icon: Bot, ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ai-interpreter", label: "Medical Interpreter", icon: Globe, ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ambient-scribe", label: "Ambient Scribe", icon: AudioLines, ai: true, badge: { text: "MI", variant: "info" } },
+  // ── SPORTS MEDICINE ──
+  { href: "/medisport", label: "MediSport", icon: Activity, moduleKey: "medisport", section: "SPORTS MEDICINE", ai: true, badge: { text: "NEW", variant: "success" } },
+  // ── DENTAL ──
+  { href: "/medident", label: "MediDent", icon: Sparkles, moduleKey: "medident", section: "DENTAL", ai: true, badge: { text: "NEW", variant: "success" } },
   // ── INTEGRATIONS ──
-  { href: "/google-health", label: "Google Health", icon: HeartPulse, section: "INTEGRATIONS" },
   { href: "/health-connect", label: "Health Connect", icon: Cable },
   { href: "/patient-portal", label: "Patient Portal", icon: UserCircle },
   // ── SYSTEM ──

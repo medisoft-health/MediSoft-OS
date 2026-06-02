@@ -461,7 +461,7 @@ export function InfographicReport({ patientReport, doctorReport }: Props) {
  {/* 3. Quick Summary Bar + Traffic Light Result Cards */}
  <TrafficLightCards results={sortedResults} normalCount={normalCount} warningCount={warningCount} criticalCount={criticalCount} total={total} />
 
- {/* 5. AI Insights Cards */}
+ {/* 5. Clinical Insights Cards */}
  {insights.length > 0 && <InsightsSection insights={insights} />}
 
  {/* 6. Action Plan */}
@@ -696,7 +696,7 @@ function RangeGauge({ value, refLow, refHigh, status }: { value: number; refLow?
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SECTION 5: AI Insights
+// SECTION 5: Clinical Insights
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 interface Insight { icon: string; title: string; body: string; type: "tip" | "warning" | "medication" | "goal"; }
 

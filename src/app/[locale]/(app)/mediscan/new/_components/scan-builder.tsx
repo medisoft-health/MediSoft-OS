@@ -419,7 +419,7 @@ export function ScanBuilder({ initialPatient }: Props) {
             {analysisNotConfigured && (
               <Alert variant="info">
                 <Sparkles />
-                <AlertTitle>Gemini not configured</AlertTitle>
+                <AlertTitle>Medical engine not configured</AlertTitle>
                 <AlertDescription>
                   Set{" "}
                   <code className="rounded bg-[color:var(--color-muted)] px-1 py-0.5">
@@ -448,7 +448,7 @@ export function ScanBuilder({ initialPatient }: Props) {
 
             {analyzing && (
               <div className="flex items-center gap-2 text-sm text-[color:var(--color-muted-foreground)]">
-                <Loader2 className="size-4 animate-spin" /> Asking Gemini…
+                <Loader2 className="size-4 animate-spin" /> Analyzing…
               </div>
             )}
 

@@ -87,7 +87,7 @@ export default async function PharmaxPage() {
             </h1>
             <p className="mt-1 max-w-xl text-sm text-[color:var(--color-muted-foreground)]">
               Three-layer drug safety. RxNorm-normalized identification,
-              FDA-label warnings, and a Gemini-written clinical summary —
+              FDA-label warnings, and a intelligence-generated clinical summary —
               before you sign the prescription.
             </p>
           </div>

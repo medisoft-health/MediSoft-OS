@@ -261,7 +261,7 @@ export default function AmbientScribePage() {
             <div className="rounded-xl border bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Brain className="h-5 w-5 text-violet-600" />
-                <h3 className="font-medium text-gray-900">AI Insights</h3>
+                <h3 className="font-medium text-gray-900">Clinical Insights</h3>
               </div>
               <div className="space-y-2">
                 <div className="rounded-lg bg-violet-50 p-3">
@@ -358,7 +358,7 @@ function GeneratedNotes() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">AI-Generated Clinical Notes</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Intelligent Clinical Notes</h2>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50">
             <Download className="h-3 w-3" /> Export

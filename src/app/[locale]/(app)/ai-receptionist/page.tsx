@@ -87,7 +87,7 @@ export default function AIReceptionistPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Bot className="h-7 w-7 text-indigo-600" />
-            AI Receptionist
+            Smart Receptionist
           </h1>
           <p className="text-sm text-gray-500 mt-1">24/7 intelligent call handling, appointment scheduling & patient communication</p>
         </div>
@@ -147,7 +147,7 @@ export default function AIReceptionistPage() {
               {/* Performance Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="rounded-xl border bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Performance</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">System Performance</h3>
                   <div className="space-y-4">
                     {[
                       { label: "Resolution Rate", value: stats?.resolutionRate || 0, color: "green" },
@@ -251,7 +251,7 @@ export default function AIReceptionistPage() {
                   </div>
                 ))}
                 {(!stats?.recentInteractions || stats.recentInteractions.length === 0) && (
-                  <p className="text-center text-gray-500 py-12">No call logs yet. Interactions will appear here when patients contact the AI Receptionist.</p>
+                  <p className="text-center text-gray-500 py-12">No call logs yet. Interactions will appear here when patients contact the Smart Receptionist.</p>
                 )}
               </div>
             </div>
@@ -265,16 +265,16 @@ export default function AIReceptionistPage() {
                   <h3 className="text-lg font-semibold text-indigo-900 flex items-center gap-2">
                     <Bot className="h-5 w-5" /> Live AI Chat — Test Mode
                   </h3>
-                  <p className="text-xs text-indigo-600">Test how the AI Receptionist responds to patient messages</p>
+                  <p className="text-xs text-indigo-600">Test how the Smart Receptionist responds to patient messages</p>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-indigo-500">
-                  <Zap className="w-3 h-3" /> Powered by Gemini AI
+                  <Zap className="w-3 h-3" /> Powered by Medical Intelligence
                 </div>
               </div>
               <div className="h-[400px] overflow-y-auto p-4 space-y-3 bg-gray-50">
                 <div className="flex justify-start">
                   <div className="max-w-[80%] rounded-2xl bg-white border px-4 py-2.5 shadow-sm">
-                    <p className="text-xs font-medium text-indigo-600 mb-1">AI Receptionist</p>
+                    <p className="text-xs font-medium text-indigo-600 mb-1">Smart Receptionist</p>
                     <p className="text-sm text-gray-700">
                       مرحباً! أنا المساعد الذكي لعيادة MediSoft. كيف يمكنني مساعدتك اليوم؟
                       <br /><br />
@@ -289,7 +289,7 @@ export default function AIReceptionistPage() {
                       msg.role === "system" ? "bg-green-50 border border-green-200 text-green-700" :
                       "bg-white border shadow-sm text-gray-700"
                     }`}>
-                      {msg.role === "receptionist" && <p className="text-xs font-medium text-indigo-600 mb-1">AI Receptionist</p>}
+                      {msg.role === "receptionist" && <p className="text-xs font-medium text-indigo-600 mb-1">Smart Receptionist</p>}
                       <p className="text-sm">{msg.content}</p>
                       {msg.intent && <p className="text-xs mt-1 opacity-60">Detected intent: {msg.intent}</p>}
                     </div>
@@ -329,7 +329,7 @@ export default function AIReceptionistPage() {
                   {[
                     { name: "Twilio Phone", desc: "Inbound/outbound call handling", env: "TWILIO_ACCOUNT_SID" },
                     { name: "WhatsApp Business API", desc: "WhatsApp messaging via Twilio", env: "TWILIO_WHATSAPP_NUMBER" },
-                    { name: "Gemini AI (NLU)", desc: "Natural language understanding for intent detection", env: "GEMINI_API_KEY", active: true },
+                    { name: "Medical Intelligence (NLU)", desc: "Natural language understanding for intent detection", env: "GEMINI_API_KEY", active: true },
                     { name: "Google Cloud SQL", desc: "Communication log storage", env: "DATABASE_URL", active: true },
                   ].map(({ name, desc, env, active }) => (
                     <div key={name} className="flex items-center justify-between p-4 rounded-lg border">

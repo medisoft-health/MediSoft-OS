@@ -59,7 +59,7 @@ export default async function MediscanPage() {
               <span className="grad-text">MediScan</span>
             </h1>
             <p className="mt-1 max-w-xl text-sm text-[color:var(--color-muted-foreground)]">
-              AI-assisted reading of radiology and medical images. Doctor-
+              Intelligent reading of radiology and medical images. Doctor-
               friendly report, patient-friendly summary, both reviewed by you.
             </p>
           </div>

@@ -43,6 +43,7 @@ export async function GET(
       const testHistory = new Map<string, Array<{ date: string; value: number }>>();
       for (const panel of ctx.labHistory.slice(0, 6)) {
         for (const r of panel.results) {
+          if (!r.testName) continue;
           const key = r.testName.toLowerCase();
           const val = typeof r.value === "number" ? r.value : parseFloat(String(r.value));
           if (isNaN(val)) continue;

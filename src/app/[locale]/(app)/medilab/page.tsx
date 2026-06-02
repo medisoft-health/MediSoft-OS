@@ -58,7 +58,7 @@ export default async function MedilabPage() {
               <ModuleLogo module="medilab" height={40} />
             </h1>
             <p className="mt-1 max-w-xl text-sm text-[color:var(--color-muted-foreground)]">
-              Curated reference ranges, automatic flagging, and a Gemini-written
+              Curated reference ranges, automatic flagging, and a intelligence-generated
               narrative aimed at the audience you choose — physician or patient.
             </p>
           </div>

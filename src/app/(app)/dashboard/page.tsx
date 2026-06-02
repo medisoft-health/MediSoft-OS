@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   getDashboardStats,
@@ -159,7 +160,7 @@ export default async function DashboardHome() {
           <div>
             <h2 className="text-xl font-bold tracking-tight">Clinical modules</h2>
             <p className="text-sm text-[color:var(--color-muted-foreground)]">
-              One brand, four AI-powered systems
+              One brand, four Medical Intelligence systems
             </p>
           </div>
         </div>
@@ -193,7 +194,7 @@ export default async function DashboardHome() {
             href="/mediscan"
             title="MediScan"
             subtitle="Vision Intelligence"
-            description="AI-assisted X-ray, CT, MRI and ultrasound analysis with radiologist disclaimer."
+            description="Intelligent X-ray, CT, MRI and ultrasound analysis with radiologist disclaimer."
             gradient="from-purple-500/20 to-pink-500/20"
             pending={0}
           />
@@ -286,7 +287,7 @@ function ModuleCard({
               </CardDescription>
             </div>
             <Badge variant="info" className="text-[10px]">
-              AI
+              MI
             </Badge>
           </div>
         </CardHeader>
@@ -421,4 +422,21 @@ function formatRelativeTime(d: Date | string): string {
   const diffDay = Math.round(diffHr / 24);
   if (diffDay < 7) return `${diffDay}d ago`;
   return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+/**
+ * Loading skeleton used by Next when this page suspends. We export
+ * a dedicated `loading.tsx`-style fallback through the file convention.
+ */
+export function DashboardLoading() {
+  return (
+    <div className="mx-auto max-w-7xl space-y-8 p-6 lg:p-8">
+      <Skeleton className="h-10 w-72" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
 }

@@ -47,7 +47,7 @@ export default function LoginPage() {
       toast.success("Signed in", {
         description: "Redirecting to your dashboard…",
       });
-      router.replace("/");
+      router.replace("/dashboard");
       router.refresh();
     } catch (err) {
       const message =

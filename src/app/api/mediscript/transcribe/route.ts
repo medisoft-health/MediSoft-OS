@@ -175,7 +175,7 @@ export async function POST(request: Request) {
     {
       error:
         "All transcription services failed. Check that at least one of " +
-        "GOOGLE_GEMINI_API_KEY, GOOGLE_APPLICATION_CREDENTIALS, or OPENAI_API_KEY is configured.",
+        "the Medical Intelligence speech recognition service is enabled. Contact your administrator.",
       reason: "all_tiers_failed",
     },
     { status: 502 },

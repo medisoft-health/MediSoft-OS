@@ -114,9 +114,9 @@ export function ComparisonPanel({ labResultId, patientId }: Props) {
     const result = await fetchComparison(labResultId, selectedLabId, true);
     if (result.kind === "ok" && result.data.aiCommentary) {
       setData((prev) => prev ? { ...prev, aiCommentary: result.data.aiCommentary } : prev);
-      toast.success("AI commentary generated");
+      toast.success("Clinical commentary generated");
     } else {
-      toast.error("AI commentary failed");
+      toast.error("Clinical commentary failed");
     }
     setAiLoading(false);
   }

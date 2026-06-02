@@ -287,7 +287,7 @@ export function NarrativePanel({
  </CardHeader>
  <CardContent className="space-y-3">
  {notConfigured && (
- <Alert variant="info"><Sparkles /><AlertTitle>Gemini not configured</AlertTitle>
+ <Alert variant="info"><Sparkles /><AlertTitle>Medical engine not configured</AlertTitle>
  <AlertDescription>Set <code className="rounded bg-[color:var(--color-muted)] px-1 py-0.5">GOOGLE_GEMINI_API_KEY</code> in <code>.env.local</code> to enable AI narratives.</AlertDescription>
  </Alert>
  )}

@@ -141,7 +141,7 @@ export default function CoClinician() {
               <MessageCircle className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">AI Co-Clinician</h1>
+              <h1 className="text-lg font-bold">Clinical Co-Pilot</h1>
               <p className="text-xs text-[color:var(--color-muted-foreground)]">
                 Pre-visit Patient Interview • Inspired by Google AMIE
               </p>
@@ -175,7 +175,7 @@ export default function CoClinician() {
               </div>
               <h2 className="mb-2 text-xl font-bold">Start Pre-Visit Interview</h2>
               <p className="mb-6 text-sm text-[color:var(--color-muted-foreground)]">
-                The AI Co-Clinician will conduct a structured medical history interview
+                The Clinical Co-Pilot will conduct a structured medical history interview
                 with the patient before their appointment, generating a comprehensive
                 summary for the physician.
               </p>

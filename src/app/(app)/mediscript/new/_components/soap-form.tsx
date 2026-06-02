@@ -211,7 +211,7 @@ export function SoapForm({
                 rows={3}
                 {...register("rawTranscript")}
                 disabled={submitting}
-                placeholder="Will be populated by Whisper in PR-4c. You can also paste a transcript manually."
+                placeholder="Paste or dictate your clinical transcript here."
               />
             </div>
             <div>

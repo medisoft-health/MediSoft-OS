@@ -42,7 +42,7 @@ interface Props {
  * Provides identity at a glance + the three primary actions:
  *   1. Record vitals (this PR)
  *   2. Start session   (deferred — MediScript module)
- *   3. AI Summary      (deferred — Gemini integration)
+ *   3. AI Summary      (deferred — Medical Intelligence integration)
  */
 export function PatientHeader({ patient }: Props) {
   const fullName = `${patient.firstName} ${patient.lastName}`;
@@ -142,7 +142,7 @@ export function PatientHeader({ patient }: Props) {
                 <Mic className="size-4" /> Start session
               </Button>
             </Link>
-            <Button variant="brand" size="sm" disabled title="Available with the Gemini AI integration">
+            <Button variant="brand" size="sm" disabled title="Available with Medical Intelligence integration">
               <Sparkles className="size-4" /> AI Summary
             </Button>
             <Button variant="ghost" size="icon" title="Schedule" disabled>

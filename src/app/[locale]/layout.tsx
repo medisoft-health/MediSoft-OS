@@ -1,3 +1,4 @@
+import { PWARegister } from "@/components/pwa/pwa-register";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
@@ -62,6 +63,7 @@ export default async function LocaleLayout({
       <body className="min-h-full">
         <NextIntlClientProvider locale={typedLocale} messages={messages}>
           {children}
+          <PWARegister />
         </NextIntlClientProvider>
         <Toaster />
       </body>
