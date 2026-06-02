@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Users,
@@ -55,52 +56,53 @@ import {
 import { LocaleSwitcher } from "@/components/clinical/locale-switcher";
 import { ModuleLogo, type ModuleKey } from "@/components/brand/module-logo";
 
-type NavItem = {
+type NavItemDef = {
   href: string;
-  label: string;
+  /** Translation key under the "Nav" namespace */
+  tKey: string;
   icon: typeof LayoutDashboard;
-  /** When set, shows the real brand logo instead of the Lucide icon (expanded sidebar only). */
   moduleKey?: ModuleKey;
   badge?: { text: string; variant: "info" | "warning" | "success" };
   ai?: boolean;
-  section?: string;
+  /** Translation key for section header (under "Nav" namespace) */
+  sectionTKey?: string;
 };
 
-const NAV: NavItem[] = [
+const NAV: NavItemDef[] = [
   // ── CLINICAL ──
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, section: "CLINICAL" },
-  { href: "/patients", label: "Patients", icon: Users },
-  { href: "/encounters", label: "Encounters", icon: ClipboardList },
-  { href: "/appointments", label: "Appointments", icon: CalendarDays },
+  { href: "/", tKey: "dashboard", icon: LayoutDashboard, sectionTKey: "sectionClinical" },
+  { href: "/patients", tKey: "patients", icon: Users },
+  { href: "/encounters", tKey: "encounters", icon: ClipboardList },
+  { href: "/appointments", tKey: "appointments", icon: CalendarDays },
   {
     href: "/mediscript",
-    label: "MediScript",
+    tKey: "mediscript",
     icon: Mic,
     moduleKey: "mediscript",
     ai: true,
     badge: { text: "MI", variant: "info" },
   },
-  { href: "/pharmax", label: "PharmaX", icon: Pill, moduleKey: "pharmax", ai: true },
-  { href: "/medilab", label: "MediLab", icon: FlaskConical, moduleKey: "medilab", ai: true },
-  { href: "/mediscan", label: "MediScan", icon: ScanLine, moduleKey: "mediscan", ai: true },
-  { href: "/diagnosis", label: "Diagnosis", icon: Brain, ai: true },
-  { href: "/billing", label: "Billing", icon: Receipt },
+  { href: "/pharmax", tKey: "pharmax", icon: Pill, moduleKey: "pharmax", ai: true },
+  { href: "/medilab", tKey: "medilab", icon: FlaskConical, moduleKey: "medilab", ai: true },
+  { href: "/mediscan", tKey: "mediscan", icon: ScanLine, moduleKey: "mediscan", ai: true },
+  { href: "/diagnosis", tKey: "diagnosis", icon: Brain, ai: true },
+  { href: "/billing", tKey: "billing", icon: Receipt },
   // ── AI AGENTS ──
-  { href: "/co-clinician", label: "Co-Clinician", icon: Stethoscope, section: "CLINICAL AGENTS", ai: true, badge: { text: "MI", variant: "info" } },
-  { href: "/ai-nurse", label: "Smart Nurse", icon: HeartPulse, ai: true, badge: { text: "MI", variant: "info" } },
-  { href: "/ai-receptionist", label: "Smart Receptionist", icon: Bot, ai: true, badge: { text: "MI", variant: "info" } },
-  { href: "/ai-interpreter", label: "Medical Interpreter", icon: Globe, ai: true, badge: { text: "MI", variant: "info" } },
-  { href: "/ambient-scribe", label: "Ambient Scribe", icon: AudioLines, ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/co-clinician", tKey: "coClinician", icon: Stethoscope, sectionTKey: "sectionAgents", ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ai-nurse", tKey: "aiNurse", icon: HeartPulse, ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ai-receptionist", tKey: "aiReceptionist", icon: Bot, ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ai-interpreter", tKey: "aiInterpreter", icon: Globe, ai: true, badge: { text: "MI", variant: "info" } },
+  { href: "/ambient-scribe", tKey: "ambientScribe", icon: AudioLines, ai: true, badge: { text: "MI", variant: "info" } },
   // ── SPORTS MEDICINE ──
-  { href: "/medisport", label: "MediSport", icon: Activity, moduleKey: "medisport", section: "SPORTS MEDICINE", ai: true, badge: { text: "NEW", variant: "success" } },
+  { href: "/medisport", tKey: "medisport", icon: Activity, moduleKey: "medisport", sectionTKey: "sectionSportsMed", ai: true, badge: { text: "NEW", variant: "success" } },
   // ── DENTAL ──
-  { href: "/medident", label: "MediDent", icon: Sparkles, moduleKey: "medident", section: "DENTAL", ai: true, badge: { text: "NEW", variant: "success" } },
+  { href: "/medident", tKey: "medident", icon: Sparkles, moduleKey: "medident", sectionTKey: "sectionDental", ai: true, badge: { text: "NEW", variant: "success" } },
   // ── INTEGRATIONS ──
-  { href: "/health-connect", label: "Health Connect", icon: Cable },
-  { href: "/patient-portal", label: "Patient Portal", icon: UserCircle },
+  { href: "/health-connect", tKey: "healthConnect", icon: Cable },
+  { href: "/patient-portal", tKey: "patientPortal", icon: UserCircle },
   // ── SYSTEM ──
-  { href: "/analytics", label: "Analytics", icon: BarChart3, section: "SYSTEM" },
-  { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/analytics", tKey: "analytics", icon: BarChart3, sectionTKey: "sectionSystem" },
+  { href: "/notifications", tKey: "notifications", icon: Bell },
 ];
 
 interface DashboardLayoutProps {
@@ -125,6 +127,7 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
 function DashboardShell({ children, user }: DashboardLayoutProps) {
   const pathname = usePathname();
+  const t = useTranslations("Nav");
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
@@ -149,11 +152,11 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
       const message =
         err instanceof Error
           ? err.message
-          : "Could not sign out. Please try again.";
+          : t("signOutError");
       toast.error(message);
       setSigningOut(false);
     }
-  }, [signingOut]);
+  }, [signingOut, t]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[color:var(--color-background)]">
@@ -163,7 +166,7 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
           "hidden h-full lg:flex flex-col border-e border-[color:var(--color-sidebar-border)] bg-[color:var(--color-sidebar)] transition-[width] duration-200",
           collapsed ? "w-[72px]" : "w-[260px]",
         )}
-        aria-label="Primary navigation"
+        aria-label={t("mainNavigation")}
       >
         <SidebarContent
           collapsed={collapsed}
@@ -171,6 +174,7 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
           user={user}
           signingOut={signingOut}
           onSignOut={handleSignOut}
+          t={t}
         />
       </aside>
 
@@ -181,8 +185,8 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
           className="w-[280px] gap-0 border-e border-[color:var(--color-sidebar-border)] bg-[color:var(--color-sidebar)] p-0"
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Main navigation</SheetTitle>
-            <SheetDescription>MediSoft clinical modules</SheetDescription>
+            <SheetTitle>{t("mainNavigation")}</SheetTitle>
+            <SheetDescription>{t("clinicalModulesDesc")}</SheetDescription>
           </SheetHeader>
           <SidebarContent
             collapsed={false}
@@ -190,6 +194,7 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
             user={user}
             signingOut={signingOut}
             onSignOut={handleSignOut}
+            t={t}
           />
         </SheetContent>
       </Sheet>
@@ -202,7 +207,7 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(true)}
-            aria-label="Open navigation"
+            aria-label={t("openNavigation")}
             className="lg:hidden"
           >
             <Menu className="size-5" />
@@ -213,7 +218,7 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
             variant="ghost"
             size="icon"
             onClick={() => setCollapsed((c) => !c)}
-            aria-label="Toggle sidebar"
+            aria-label={t("toggleSidebar")}
             className="hidden lg:inline-flex"
           >
             <PanelLeft className="size-4" />
@@ -247,12 +252,14 @@ function SidebarContent({
   user,
   signingOut,
   onSignOut,
+  t,
 }: {
   collapsed: boolean;
   pathname: string;
   user?: DashboardLayoutProps["user"];
   signingOut: boolean;
   onSignOut: () => void;
+  t: ReturnType<typeof useTranslations<"Nav">>;
 }) {
   return (
     <>
@@ -271,12 +278,13 @@ function SidebarContent({
           const isActive =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
+          const label = t(item.tKey as Parameters<typeof t>[0]);
           return (
             <React.Fragment key={item.href}>
               {/* Section header */}
-              {item.section && !collapsed && (
+              {item.sectionTKey && !collapsed && (
                 <div className={cn("mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]", idx > 0 && "mt-5")}>
-                  {item.section}
+                  {t(item.sectionTKey as Parameters<typeof t>[0])}
                 </div>
               )}
               <Link
@@ -287,7 +295,7 @@ function SidebarContent({
                     ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
                     : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
                 )}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? label : undefined}
               >
                 {isActive && (
                   <span
@@ -305,7 +313,7 @@ function SidebarContent({
                   <>
                     {/* Hide the text label when showing a module logo — the logo IS the label */}
                     {!item.moduleKey && (
-                      <span className="flex-1 truncate">{item.label}</span>
+                      <span className="flex-1 truncate">{label}</span>
                     )}
                     {item.moduleKey && <span className="flex-1" />}
                     {item.ai && (
@@ -338,7 +346,7 @@ function SidebarContent({
             )}
           >
             <Settings className="size-[18px]" strokeWidth={2} />
-            <span>Settings</span>
+            <span>{t("settings")}</span>
           </Link>
         )}
       </nav>
@@ -346,12 +354,12 @@ function SidebarContent({
       {/* Upgrade card */}
       {!collapsed && (
         <div className="m-3 rounded-2xl grad-brand p-4 text-white">
-          <div className="text-xs opacity-90">Inspiring Minds</div>
+          <div className="text-xs opacity-90">{t("upgradeTagline")}</div>
           <div className="font-[family-name:var(--font-script)] text-xl">
-            Upgrade Pro
+            {t("upgradePro")}
           </div>
           <button className="mt-3 w-full rounded-lg bg-white/20 py-1.5 text-xs font-semibold backdrop-blur transition-colors hover:bg-white/30">
-            Learn more
+            {t("learnMore")}
           </button>
         </div>
       )}
@@ -370,7 +378,7 @@ function SidebarContent({
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-semibold">
-                {user?.name ?? "Sign in"}
+                {user?.name ?? t("signIn")}
               </div>
               <div className="truncate text-[11px] text-[color:var(--color-muted-foreground)]">
                 {user?.specialty ?? user?.role ?? ""}
@@ -382,8 +390,8 @@ function SidebarContent({
               variant="ghost"
               size="icon"
               className="size-8"
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label={t("signOutLabel")}
+              title={t("signOutLabel")}
               onClick={onSignOut}
               disabled={signingOut}
             >
@@ -401,6 +409,7 @@ function SidebarContent({
 // ─────────────────────────────────────────────────────────────────
 function SearchTrigger() {
   const { openSearch } = useGlobalSearch();
+  const t = useTranslations("Nav");
   const [isMac, setIsMac] = React.useState(false);
 
   React.useEffect(() => {
@@ -419,10 +428,10 @@ function SearchTrigger() {
         "hover:border-[color:var(--color-brand-pink)] hover:text-[color:var(--color-foreground)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-ring)] focus-visible:ring-offset-1",
       )}
-      aria-label="Open global search"
+      aria-label={t("searchPlaceholder")}
     >
       <Search className="size-4 shrink-0" />
-      <span className="hidden truncate sm:inline">Search patients…</span>
+      <span className="hidden truncate sm:inline">{t("searchPatientsShort")}</span>
       <span className="ms-auto hidden items-center gap-1 sm:flex">
         <kbd className="rounded border border-[color:var(--color-border)] bg-[color:var(--color-muted)]/40 px-1.5 py-0.5 text-[10px] font-mono">
           {isMac ? "⌘" : "Ctrl"}
