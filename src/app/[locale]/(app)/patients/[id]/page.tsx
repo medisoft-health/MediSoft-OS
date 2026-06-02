@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { FileText, HeartPulse, History, Mic, Stethoscope } from "lucide-react";
+import { Brain, FileText, HeartPulse, History, Mic, Stethoscope, UserCircle } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +25,7 @@ import { TabTimeline } from "./_components/tab-timeline";
 import { HealthDashboard } from "./_components/health-dashboard";
 import { PatientTimeline } from "./_components/patient-timeline";
 import { RiskAssessmentPanel } from "@/app/[locale]/(app)/medilab/[id]/_components/risk-assessment-panel";
+import { Patient360Record, PatientSelfReport } from "@/components/patient-context";
 
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const VALID_TABS = ["overview", "encounters", "vitals", "documents", "timeline"] as const;
+const VALID_TABS = ["overview", "encounters", "vitals", "documents", "timeline", "patient360", "self-report"] as const;
 type TabId = (typeof VALID_TABS)[number];
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -125,6 +126,14 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
             <History className="size-3.5" />
             {t("timeline")}
           </TabsTrigger>
+          <TabsTrigger value="patient360">
+            <Brain className="size-3.5" />
+            السجل 360°
+          </TabsTrigger>
+          <TabsTrigger value="self-report">
+            <UserCircle className="size-3.5" />
+            تسجيل ذاتي
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -153,6 +162,14 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
 
         <TabsContent value="timeline">
           <PatientTimeline patientId={patient.id} />
+        </TabsContent>
+
+        <TabsContent value="patient360">
+          <Patient360Record />
+        </TabsContent>
+
+        <TabsContent value="self-report">
+          <PatientSelfReport />
         </TabsContent>
       </Tabs>
     </div>
