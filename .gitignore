@@ -54,3 +54,8 @@ scripts/test-fhir.py
 scripts/seed-data.sql
 scripts/nginx-ssl.conf
 scripts/AGENTS_UPDATE.md
+
+# Capacitor generated native projects
+android/
+ios/
+resources/
