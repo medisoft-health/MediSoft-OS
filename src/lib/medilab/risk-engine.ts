@@ -61,6 +61,7 @@ function findLab(ctx: PatientFullContext, ...patterns: string[]): { value: numbe
   // Search in most recent labs first
   for (const panel of ctx.labHistory) {
     for (const r of panel.results) {
+      if (!r.testName) continue;
       const name = r.testName.toLowerCase();
       if (patterns.some((p) => name.includes(p.toLowerCase()))) {
         const n = toNum(r.value);
@@ -74,7 +75,7 @@ function findLab(ctx: PatientFullContext, ...patterns: string[]): { value: numbe
 /** Check if patient has a condition matching a pattern (case-insensitive). */
 function hasCondition(ctx: PatientFullContext, ...patterns: string[]): boolean {
   const all = [
-    ...ctx.demographics.chronicConditions.map((c) => c.description.toLowerCase()),
+    ...(ctx.demographics.chronicConditions ?? []).map((c) => (c.description ?? "").toLowerCase()),
     (ctx.demographics.medicalHistory ?? "").toLowerCase(),
     (ctx.demographics.familyHistory ?? "").toLowerCase(),
   ].join(" ");
@@ -84,7 +85,7 @@ function hasCondition(ctx: PatientFullContext, ...patterns: string[]): boolean {
 /** Check if patient is on a medication matching a pattern (case-insensitive). */
 function onMed(ctx: PatientFullContext, ...patterns: string[]): boolean {
   return ctx.activeMedications.some((m) => {
-    const name = m.drugName.toLowerCase();
+    const name = (m.drugName ?? "").toLowerCase();
     return patterns.some((p) => name.includes(p.toLowerCase()));
   });
 }

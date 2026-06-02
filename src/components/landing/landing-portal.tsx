@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
-  Stethoscope,
-  User,
-  Building2,
   ArrowRight,
   Shield,
   Globe,
@@ -15,7 +13,7 @@ import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 /**
- * MediSoft Landing Page — Portal Selection
+ * MediSoft Landing Page — Portal Selection (Light Theme)
  *
  * Three entry points:
  * 1. Physician Portal → /login
@@ -24,36 +22,36 @@ import { cn } from "@/lib/utils";
  */
 export function LandingPortal() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 sm:p-6">
-      {/* Background effects */}
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-white via-slate-50 to-blue-50/40 p-4 sm:p-6">
+      {/* Subtle dot pattern */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 20% 20%, rgba(26,59,122,0.35), transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(233,30,140,0.15), transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(13,148,136,0.1), transparent 60%)",
-        }}
-      />
-      {/* Subtle grid */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.08]"
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
+            "radial-gradient(circle at 1px 1px, #64748b 1px, transparent 0)",
+          backgroundSize: "40px 40px",
         }}
       />
 
-      {/* Content */}
+      {/* Soft gradient orbs */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-blue-200/30 blur-[120px]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-40 right-1/4 h-[500px] w-[500px] rounded-full bg-teal-200/20 blur-[120px]"
+      />
+
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center">
-        {/* Logo & Header */}
-        <div className="mb-12 flex flex-col items-center text-center">
+        {/* Header */}
+        <div className="mb-10 flex flex-col items-center text-center">
           <Logo variant="lockup" className="mb-6 scale-125" />
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">
+          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-800 sm:text-4xl lg:text-5xl">
             Clinical Operating System
           </h1>
-          <p className="mt-3 max-w-xl text-base text-slate-400 sm:text-lg">
+          <p className="mt-3 max-w-xl text-base text-slate-500 sm:text-lg">
             The next generation of intelligent healthcare management.
             <br className="hidden sm:block" />
             Select your portal to continue.
@@ -61,52 +59,41 @@ export function LandingPortal() {
         </div>
 
         {/* Portal Cards */}
-        <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-3 sm:gap-6">
+        <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-7">
           {/* Physician Portal */}
           <PortalCard
             href="/login"
-            icon={Stethoscope}
+            image="/images/physician-portal.png"
             title="Physician Portal"
             titleAr="بوابة الأطباء"
             description="Access your clinical workspace, patient records, and medical intelligence tools."
-            gradient="from-blue-600/20 to-blue-900/20"
-            borderColor="border-blue-500/30"
-            iconColor="text-blue-400"
-            hoverGlow="hover:shadow-blue-500/20"
+            accentColor="blue"
           />
-
           {/* Patient Portal */}
           <PortalCard
             href="/patient-login"
-            icon={User}
+            image="/images/patient-portal.png"
             title="Patient Portal"
             titleAr="بوابة المرضى"
             description="View your medical records, appointments, lab results, and communicate with your doctor."
-            gradient="from-teal-600/20 to-teal-900/20"
-            borderColor="border-teal-500/30"
-            iconColor="text-teal-400"
-            hoverGlow="hover:shadow-teal-500/20"
+            accentColor="teal"
           />
-
           {/* Facility Portal */}
           <PortalCard
             href="/facility-login"
-            icon={Building2}
+            image="/images/facility-portal.png"
             title="Facility Portal"
             titleAr="بوابة المنشآت الطبية"
             description="Manage your hospital operations, staff, departments, analytics, and compliance."
-            gradient="from-pink-600/20 to-pink-900/20"
-            borderColor="border-pink-500/30"
-            iconColor="text-pink-400"
-            hoverGlow="hover:shadow-pink-500/20"
+            accentColor="purple"
           />
         </div>
 
         {/* Trust Indicators */}
-        <div className="mt-14 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 sm:gap-8">
+        <div className="mt-14 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 sm:gap-8">
           <div className="flex items-center gap-1.5">
             <Shield className="size-3.5 text-teal-500" />
-            <span>HIPAA & PDPL Compliant</span>
+            <span>HIPAA &amp; PDPL Compliant</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Globe className="size-3.5 text-blue-500" />
@@ -123,7 +110,7 @@ export function LandingPortal() {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center text-xs text-slate-600">
+        <div className="mt-8 text-center text-xs text-slate-400">
           <p>&copy; {new Date().getFullYear()} MediSoft Health. All rights reserved.</p>
         </div>
       </div>
@@ -133,62 +120,79 @@ export function LandingPortal() {
 
 /* ─────────────────────────────────────────────────────────────── */
 
+const accentMap = {
+  blue: {
+    card: "border-blue-200 hover:border-blue-300 hover:shadow-blue-100/60",
+    title: "text-blue-700",
+    btn: "bg-blue-600 text-white hover:bg-blue-700",
+  },
+  teal: {
+    card: "border-teal-200 hover:border-teal-300 hover:shadow-teal-100/60",
+    title: "text-teal-700",
+    btn: "bg-teal-600 text-white hover:bg-teal-700",
+  },
+  purple: {
+    card: "border-purple-200 hover:border-purple-300 hover:shadow-purple-100/60",
+    title: "text-purple-700",
+    btn: "bg-purple-600 text-white hover:bg-purple-700",
+  },
+} as const;
+
 interface PortalCardProps {
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  image: string;
   title: string;
   titleAr: string;
   description: string;
-  gradient: string;
-  borderColor: string;
-  iconColor: string;
-  hoverGlow: string;
+  accentColor: keyof typeof accentMap;
 }
 
 function PortalCard({
   href,
-  icon: Icon,
+  image,
   title,
   titleAr,
   description,
-  gradient,
-  borderColor,
-  iconColor,
-  hoverGlow,
+  accentColor,
 }: PortalCardProps) {
+  const colors = accentMap[accentColor];
+
   return (
     <Link
       href={href}
       className={cn(
-        "group relative flex flex-col items-center rounded-2xl border p-8 text-center transition-all duration-300",
-        "bg-gradient-to-b backdrop-blur-sm",
-        gradient,
-        borderColor,
-        hoverGlow,
-        "hover:scale-[1.03] hover:border-opacity-60 hover:shadow-2xl",
+        "group relative flex flex-col items-center overflow-hidden rounded-2xl border bg-white p-6 text-center shadow-sm transition-all duration-300",
+        colors.card,
+        "hover:scale-[1.02] hover:shadow-xl",
       )}
     >
-      {/* Icon */}
-      <div
-        className={cn(
-          "mb-5 grid size-16 place-items-center rounded-2xl bg-slate-800/60 ring-1 ring-white/10 transition-transform group-hover:scale-110",
-          iconColor,
-        )}
-      >
-        <Icon className="size-8" />
+      {/* Image */}
+      <div className="relative mb-4 h-40 w-40 overflow-hidden rounded-full">
+        <Image
+          src={image}
+          alt={title}
+          fill
+          className="object-cover transition-transform duration-300 group-hover:scale-110"
+          sizes="160px"
+        />
       </div>
 
       {/* Title */}
-      <h2 className="text-lg font-bold text-white">{title}</h2>
+      <h2 className={cn("text-lg font-bold", colors.title)}>{title}</h2>
       <p className="mt-0.5 text-sm font-medium text-slate-400">{titleAr}</p>
 
       {/* Description */}
-      <p className="mt-3 text-sm leading-relaxed text-slate-400">
+      <p className="mt-3 text-sm leading-relaxed text-slate-500">
         {description}
       </p>
 
-      {/* Arrow */}
-      <div className="mt-5 flex items-center gap-1 text-sm font-semibold text-slate-300 transition-colors group-hover:text-white">
+      {/* Button */}
+      <div
+        className={cn(
+          "mt-5 flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-200",
+          colors.btn,
+        )}
+      >
         <span>Enter</span>
         <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
       </div>
