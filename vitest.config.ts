@@ -23,7 +23,10 @@ export default defineConfig({
     globals: false,
     // Skip @t3-oss/env validation in tests — modules that import env.ts
     // (e.g. lib/email, lib/rate-limit) would otherwise fail to load.
-    env: { SKIP_ENV_VALIDATION: "1" },
+    env: {
+      SKIP_ENV_VALIDATION: "1",
+      BASE_URL: process.env.BASE_URL || "https://app.medisofthealth.com",
+    },
     include: [
       "src/**/__tests__/**/*.test.ts",
       "src/**/__tests__/**/*.test.tsx",
