@@ -4,43 +4,35 @@
  */
 
 const CACHE_NAME = "medisoft-v1";
-const STATIC_ASSETS = [
-  "/",
-  "/login",
-  "/patient-login",
-  "/facility-login",
-  "/brand/medisoft-full.png",
-  "/brand/medisoft-full@2x.png",
-  "/brand/medisoft-mark.png",
-  "/brand/medisoft-mark@2x.png",
-  "/manifest.json",
-];
+const OFFLINE_URL = "/offline.html";
 
-// Install event — cache static assets
+// Cache core static assets on install
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll([
+        "/",
+        OFFLINE_URL,
+        "/images/medi360-icon.png",
+        "/images/medi360-logo.png",
+        "/manifest.json",
+      ])
+    )
   );
   self.skipWaiting();
 });
 
-// Activate event — clean up old caches
+// Clean old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
   );
   self.clients.claim();
 });
 
-// Fetch event — network-first strategy for API, cache-first for static
+// Network-first with offline fallback
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -51,8 +43,8 @@ self.addEventListener("fetch", (event) => {
   // Skip API routes — always go to network
   if (url.pathname.startsWith("/api/")) return;
 
-  // For HTML pages — network first, fallback to cache
-  if (request.headers.get("accept")?.includes("text/html")) {
+  // For navigation requests — network first, fallback to offline page
+  if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -60,7 +52,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request).then((r) => r || caches.match("/")))
+        .catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
