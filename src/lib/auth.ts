@@ -68,8 +68,8 @@ export const auth = betterAuth({
   },
 
   session: {
-    expiresIn: 60 * 60 * 4, // 4 hours — medical environment security (HIPAA/PDPL)
-    updateAge: 60 * 60, // refresh every 1 hour
+    expiresIn: 30 * 60, // 30 minutes of inactivity — medical environment security (HIPAA/PDPL)
+    updateAge: 5 * 60, // refresh every 5 minutes of activity
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60, // 5 minutes
