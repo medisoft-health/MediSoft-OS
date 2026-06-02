@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Mic, Plus, Sparkles } from "lucide-react";
 import { desc, eq, isNull, sql, and } from "drizzle-orm";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -75,6 +76,9 @@ const statusVariant: Record<
 };
 
 export default async function MediScriptPage() {
+  const t = await getTranslations("MediScript");
+  const tNav = await getTranslations("Nav");
+
   const [recent, [{ count: total }]] = await Promise.all([
     listRecentSessions(8),
     db
@@ -92,26 +96,25 @@ export default async function MediScriptPage() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Dashboard
+          {tNav("dashboard")}
         </Link>
 
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-              Cognitive Clinical Observer
+              {t("tagline")}
             </div>
             <h1 className="mt-1 text-3xl font-black tracking-tight">
               <ModuleLogo module="mediscript" height={40} />
             </h1>
             <p className="mt-1 max-w-xl text-sm text-[color:var(--color-muted-foreground)]">
-              Record a consultation. Get a structured SOAP note, ICD-11 codes,
-              and an audit-ready encounter — all reviewed and signed by you.
+              {t("description")}
             </p>
           </div>
           <Link href="/mediscript/new">
             <Button variant="brand" size="md">
               <Plus className="size-4" />
-              New session
+              {t("newSession")}
             </Button>
           </Link>
         </div>
@@ -128,18 +131,16 @@ export default async function MediScriptPage() {
               </div>
               <div>
                 <h2 className="text-lg font-bold tracking-tight">
-                  Start an encounter recording
+                  {t("startEncounterRecording")}
                 </h2>
                 <p className="mt-1 max-w-lg text-sm text-[color:var(--color-muted-foreground)]">
-                  Pick the patient, hit record, speak naturally. Pause and resume
-                  whenever you like. The AI will draft a SOAP note for your
-                  review.
+                  {t("startEncounterRecordingDescription")}
                 </p>
               </div>
             </div>
             <Link href="/mediscript/new">
               <Button variant="brand" size="lg">
-                Begin <Sparkles className="size-4" />
+                {t("begin")} <Sparkles className="size-4" />
               </Button>
             </Link>
           </div>
@@ -151,11 +152,11 @@ export default async function MediScriptPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base">Recent encounters</CardTitle>
+              <CardTitle className="text-base">{t("recentEncounters")}</CardTitle>
               <CardDescription>
                 {total === 0
-                  ? "Nothing recorded yet — your sessions will appear here."
-                  : `${total.toLocaleString()} encounter${total === 1 ? "" : "s"} in the system`}
+                  ? t("emptyDescription")
+                  : t("encountersInSystem", { count: total })}
               </CardDescription>
             </div>
           </div>
@@ -166,14 +167,13 @@ export default async function MediScriptPage() {
               <div className="grid size-14 place-items-center rounded-2xl bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]">
                 <Mic className="size-6" />
               </div>
-              <p className="text-sm font-semibold">No encounters yet</p>
+              <p className="text-sm font-semibold">{t("noEncountersYet")}</p>
               <p className="max-w-md text-xs text-[color:var(--color-muted-foreground)]">
-                Run your first MediScript session to build a structured patient
-                record from voice.
+                {t("emptyHint")}
               </p>
               <Link href="/mediscript/new">
                 <Button variant="brand" size="sm">
-                  Start the first session
+                  {t("startFirstSession")}
                 </Button>
               </Link>
             </div>
@@ -181,10 +181,10 @@ export default async function MediScriptPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("tableDate")}</TableHead>
+                  <TableHead>{t("tablePatient")}</TableHead>
+                  <TableHead>{t("tableType")}</TableHead>
+                  <TableHead>{t("tableStatus")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -228,25 +228,20 @@ export default async function MediScriptPage() {
       {/* What this module does */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">What MediScript captures</CardTitle>
+          <CardTitle className="text-base">{t("whatMediScriptCaptures")}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Bullet title="Browser-native recording">
-            <code className="font-mono text-[10px]">MediaRecorder</code> + Web
-            Audio. No app to install. Live waveform, pause and resume.
+          <Bullet title={t("browserNativeRecording")}>
+            {t("browserNativeRecordingDesc")}
           </Bullet>
-          <Bullet title="Structured SOAP output">
-            Subjective, Objective, Assessment, Plan — typed JSON, FHIR-aligned,
-            stored as <code className="font-mono text-[10px]">jsonb</code> for
-            future querying.
+          <Bullet title={t("structuredSoapOutput")}>
+            {t("structuredSoapOutputDesc")}
           </Bullet>
-          <Bullet title="ICD-11 mapping">
-            Diagnoses are surfaced with WHO ICD-11 codes when available.
-            Physician verifies before signing.
+          <Bullet title={t("icd11Mapping")}>
+            {t("icd11MappingDesc")}
           </Bullet>
-          <Bullet title="Doctor in the loop">
-            Every word the AI writes goes through your review. Nothing is
-            auto-signed.
+          <Bullet title={t("doctorInTheLoop")}>
+            {t("doctorInTheLoopDesc")}
           </Bullet>
         </CardContent>
       </Card>

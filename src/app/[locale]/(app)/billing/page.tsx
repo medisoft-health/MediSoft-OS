@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   CreditCard,
   FileText,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 
 export default function BillingPage() {
+  const t = useTranslations("Billing");
   const [activeTab, setActiveTab] = useState<"overview" | "claims" | "coding" | "insurance">("overview");
   const [claims, setClaims] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -97,10 +99,10 @@ export default function BillingPage() {
   };
 
   const tabs = [
-    { id: "overview" as const, label: "Overview", icon: BarChart3 },
-    { id: "claims" as const, label: "Claims", icon: Shield },
-    { id: "coding" as const, label: "AI Coding", icon: Zap },
-    { id: "insurance" as const, label: "Insurance", icon: Building2 },
+    { id: "overview" as const, label: t("overview"), icon: BarChart3 },
+    { id: "claims" as const, label: t("claims"), icon: Shield },
+    { id: "coding" as const, label: t("aiCoding"), icon: Zap },
+    { id: "insurance" as const, label: t("insurance"), icon: Building2 },
   ];
 
   return (
@@ -110,16 +112,16 @@ export default function BillingPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <CreditCard className="h-7 w-7 text-emerald-600" />
-            Medical Billing & Claims
+            {t("title")}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Medical Intelligence CPT/ICD coding, insurance claims & NPHIES integration</p>
+          <p className="text-sm text-gray-500 mt-1">{t("headerSubtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchClaims} className="p-2 rounded-lg border hover:bg-gray-50">
             <RefreshCw className="h-4 w-4 text-gray-500" />
           </button>
           <button onClick={() => setActiveTab("coding")} className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700">
-            <Plus className="h-4 w-4" /> New Claim
+            <Plus className="h-4 w-4" /> {t("newClaim")}
           </button>
         </div>
       </div>
@@ -137,7 +139,7 @@ export default function BillingPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-          <span className="ml-3 text-gray-500">Loading billing data...</span>
+          <span className="ml-3 text-gray-500">{t("loadingBillingData")}</span>
         </div>
       ) : (
         <>
@@ -146,10 +148,10 @@ export default function BillingPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Total Claims", value: stats?.totalClaims || claims.length, icon: FileText, color: "blue", sub: `${claims.filter(c => c.status === "submitted").length} pending` },
-                  { label: "Approved", value: stats?.approved || claims.filter(c => c.status === "approved").length, icon: CheckCircle2, color: "green", sub: "This month" },
-                  { label: "Revenue (SAR)", value: stats?.totalRevenue || claims.reduce((s: number, c: any) => s + parseFloat(c.totalAmount || 0), 0).toFixed(0), icon: DollarSign, color: "emerald", sub: "+12% vs last month" },
-                  { label: "Approval Rate", value: claims.length > 0 ? Math.round((claims.filter(c => c.status === "approved").length / claims.length) * 100) + "%" : "N/A", icon: TrendingUp, color: "purple", sub: "Above industry avg" },
+                  { label: t("totalClaims"), value: stats?.totalClaims || claims.length, icon: FileText, color: "blue", sub: `${claims.filter(c => c.status === "submitted").length} ${t("pendingLabel")}` },
+                  { label: t("approved"), value: stats?.approved || claims.filter(c => c.status === "approved").length, icon: CheckCircle2, color: "green", sub: t("thisMonth") },
+                  { label: t("revenueSar"), value: stats?.totalRevenue || claims.reduce((s: number, c: any) => s + parseFloat(c.totalAmount || 0), 0).toFixed(0), icon: DollarSign, color: "emerald", sub: t("revenueGrowth") },
+                  { label: t("approvalRate"), value: claims.length > 0 ? Math.round((claims.filter(c => c.status === "approved").length / claims.length) * 100) + "%" : "N/A", icon: TrendingUp, color: "purple", sub: t("aboveIndustryAvg") },
                 ].map(({ label, value, icon: Icon, color, sub }) => (
                   <div key={label} className="rounded-xl border bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between">
@@ -174,9 +176,9 @@ export default function BillingPage() {
                       <Shield className="h-8 w-8 text-emerald-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">NPHIES Integration</h3>
-                      <p className="text-sm text-gray-600">National Platform for Health Insurance Exchange Services</p>
-                      <p className="text-xs text-emerald-600 mt-1">Connected — Real-time claims processing active</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{t("nphies")}</h3>
+                      <p className="text-sm text-gray-600">{t("nphiesDesc")}</p>
+                      <p className="text-xs text-emerald-600 mt-1">{t("nphiesConnected")}</p>
                     </div>
                   </div>
                   <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700">
@@ -189,21 +191,21 @@ export default function BillingPage() {
               <div className="rounded-xl border bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <Zap className="h-5 w-5 text-amber-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">Intelligent Auto-Coding Engine</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t("autoCodingEngine")}</h3>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">Automatically extracts CPT and ICD-10 codes from clinical documentation using Medical Intelligence.</p>
+                <p className="text-sm text-gray-600 mb-4">{t("autoCodingDesc")}</p>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center">
                     <p className="text-2xl font-bold text-amber-900">96%</p>
-                    <p className="text-xs text-amber-600">Coding Accuracy</p>
+                    <p className="text-xs text-amber-600">{t("codingAccuracy")}</p>
                   </div>
                   <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-center">
                     <p className="text-2xl font-bold text-blue-900">2.3s</p>
-                    <p className="text-xs text-blue-600">Avg. Processing Time</p>
+                    <p className="text-xs text-blue-600">{t("avgProcessingTime")}</p>
                   </div>
                   <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center">
                     <p className="text-2xl font-bold text-green-900">SAR 12K</p>
-                    <p className="text-xs text-green-600">Revenue Recovered/Month</p>
+                    <p className="text-xs text-green-600">{t("revenueRecovered")}</p>
                   </div>
                 </div>
               </div>
@@ -215,20 +217,20 @@ export default function BillingPage() {
             <div className="space-y-4">
               <div className="rounded-xl border bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Insurance Claims (from Database)</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t("insuranceClaims")}</h3>
                   <div className="flex items-center gap-2">
                     <button className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50">
-                      <Download className="h-4 w-4" /> Export
+                      <Download className="h-4 w-4" /> {t("export")}
                     </button>
                   </div>
                 </div>
                 {claims.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">No claims yet</p>
-                    <p className="text-sm mt-1">Use the AI Coding tab to generate and submit your first claim</p>
+                    <p className="font-medium">{t("noClaimsYet")}</p>
+                    <p className="text-sm mt-1">{t("noClaimsHint")}</p>
                     <button onClick={() => setActiveTab("coding")} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700">
-                      Create First Claim
+                      {t("createFirstClaim")}
                     </button>
                   </div>
                 ) : (
@@ -290,30 +292,30 @@ export default function BillingPage() {
             <div className="space-y-6">
               <div className="rounded-xl border bg-white p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-amber-500" /> Intelligent Auto-Coding Engine
+                  <Zap className="h-5 w-5 text-amber-500" /> {t("autoCodingEngine")}
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">Paste a clinical note and the AI will automatically extract CPT & ICD-10 codes using Medical Intelligence</p>
+                <p className="text-sm text-gray-500 mb-4">{t("autoCodingPasteHint")}</p>
                 <textarea
                   value={codingInput}
                   onChange={(e) => setCodingInput(e.target.value)}
-                  placeholder="Paste clinical note here... (e.g., 'Patient presented with acute bronchitis. Performed chest X-ray and prescribed antibiotics. Follow-up in 2 weeks.')"
+                  placeholder={t("pasteNotePlaceholder")}
                   className="w-full h-36 border rounded-lg p-3 text-sm focus:border-emerald-500 focus:outline-none resize-none"
                 />
                 <button onClick={handleAutoCode} disabled={codingLoading || !codingInput.trim()}
                   className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium">
                   {codingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                  {codingLoading ? "Analyzing......" : "Auto-Code with Medical Intelligence"}
+                  {codingLoading ? t("analyzing") : t("autoCodeBtn")}
                 </button>
               </div>
 
               {codingResult && (
                 <div className="rounded-xl border bg-white p-6 shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-600" /> AI Coding Results
+                    <CheckCircle2 className="h-5 w-5 text-green-600" /> {t("aiCodingResults")}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                      <h4 className="font-medium text-blue-900 mb-2">CPT Codes (Procedures)</h4>
+                      <h4 className="font-medium text-blue-900 mb-2">{t("cptCodes")}</h4>
                       <div className="space-y-1.5">
                         {(codingResult.cptCodes || []).map((code: string, i: number) => (
                           <div key={i} className="flex items-center gap-2">
@@ -321,12 +323,12 @@ export default function BillingPage() {
                           </div>
                         ))}
                         {(!codingResult.cptCodes || codingResult.cptCodes.length === 0) && (
-                          <p className="text-xs text-blue-600">No CPT codes detected</p>
+                          <p className="text-xs text-blue-600">{t("noCptCodes")}</p>
                         )}
                       </div>
                     </div>
                     <div className="p-4 rounded-lg bg-purple-50 border border-purple-200">
-                      <h4 className="font-medium text-purple-900 mb-2">ICD-10 Codes (Diagnoses)</h4>
+                      <h4 className="font-medium text-purple-900 mb-2">{t("icdCodes")}</h4>
                       <div className="space-y-1.5">
                         {(codingResult.icdCodes || []).map((code: string, i: number) => (
                           <div key={i} className="flex items-center gap-2">
@@ -334,20 +336,20 @@ export default function BillingPage() {
                           </div>
                         ))}
                         {(!codingResult.icdCodes || codingResult.icdCodes.length === 0) && (
-                          <p className="text-xs text-purple-600">No ICD codes detected</p>
+                          <p className="text-xs text-purple-600">{t("noIcdCodes")}</p>
                         )}
                       </div>
                     </div>
                   </div>
                   {codingResult.reasoning && (
                     <div className="p-3 rounded-lg bg-gray-50 border mb-4">
-                      <p className="text-xs text-gray-700"><strong>Clinical Reasoning:</strong> {codingResult.reasoning}</p>
+                      <p className="text-xs text-gray-700"><strong>{t("clinicalReasoning")}:</strong> {codingResult.reasoning}</p>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Confidence: <strong className="text-emerald-600">{codingResult.confidence || "96%"}</strong></span>
+                    <span className="text-sm text-gray-600">{t("confidence")}: <strong className="text-emerald-600">{codingResult.confidence || "96%"}</strong></span>
                     <button onClick={handleSubmitClaim} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                      <FileText className="h-4 w-4" /> Submit as Insurance Claim
+                      <FileText className="h-4 w-4" /> {t("submitInsuranceClaim")}
                     </button>
                   </div>
                 </div>
@@ -359,7 +361,7 @@ export default function BillingPage() {
           {activeTab === "insurance" && (
             <div className="space-y-6">
               <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Insurance Providers (NPHIES Connected)</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("insuranceProviders")}</h3>
                 <div className="space-y-3">
                   {[
                     { name: "Bupa Arabia", code: "BUPA", type: "Medical & Dental", coverage: "80-100%", status: "active" },
@@ -378,7 +380,7 @@ export default function BillingPage() {
                         </div>
                       </div>
                       <span className={`px-2.5 py-1 rounded text-xs font-medium ${status === "active" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                        {status === "active" ? "Connected" : "Pending Setup"}
+                        {status === "active" ? t("connected") : t("pendingSetup")}
                       </span>
                     </div>
                   ))}
@@ -387,7 +389,7 @@ export default function BillingPage() {
 
               {/* NPHIES Capabilities */}
               <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">NPHIES Capabilities</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("nphiesCapabilities")}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { name: "Eligibility Verification", desc: "Real-time insurance check" },

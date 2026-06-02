@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { FileText, HeartPulse, History, Mic, Stethoscope } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -38,11 +39,12 @@ const VALID_TABS = ["overview", "encounters", "vitals", "documents", "timeline"]
 type TabId = (typeof VALID_TABS)[number];
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("Patients");
   const { id } = await params;
   const n = Number(id);
-  if (!Number.isInteger(n) || n <= 0) return { title: "Patient not found" };
+  if (!Number.isInteger(n) || n <= 0) return { title: t("patientNotFound") };
   const p = await getPatientById(n);
-  if (!p) return { title: "Patient not found" };
+  if (!p) return { title: t("patientNotFound") };
   return {
     title: `${p.firstName} ${p.lastName} · ${formatPatientId(p.id)}`,
   };
@@ -50,6 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function PatientDetailPage({ params, searchParams }: PageProps) {
   const [{ id: rawId }, search] = await Promise.all([params, searchParams]);
+  const t = await getTranslations("Patients");
 
   const id = Number(rawId);
   if (!Number.isInteger(id) || id <= 0) notFound();
@@ -102,25 +105,25 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
         <TabsList className="overflow-x-auto">
           <TabsTrigger value="overview">
             <Stethoscope className="size-3.5" />
-            Overview
+            {t("overview")}
           </TabsTrigger>
           <TabsTrigger value="encounters">
             <Mic className="size-3.5" />
-            Encounters
+            {t("encounters")}
             <CountChip n={aggregates.encounters} />
           </TabsTrigger>
           <TabsTrigger value="vitals">
             <HeartPulse className="size-3.5" />
-            Vitals
+            {t("vitals")}
             <CountChip n={aggregates.vitals} />
           </TabsTrigger>
           <TabsTrigger value="documents">
             <FileText className="size-3.5" />
-            Documents
+            {t("documents")}
           </TabsTrigger>
           <TabsTrigger value="timeline">
             <History className="size-3.5" />
-            Timeline
+            {t("timeline")}
           </TabsTrigger>
         </TabsList>
 

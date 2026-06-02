@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Heart,
   Activity,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 
 export default function AINursePage() {
+  const t = useTranslations("AIAgents");
   const [activeTab, setActiveTab] = useState<"dashboard" | "follow-ups" | "medications" | "triage">("dashboard");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -104,10 +106,10 @@ export default function AINursePage() {
   };
 
   const tabs = [
-    { id: "dashboard" as const, label: "Dashboard", icon: Activity },
-    { id: "follow-ups" as const, label: "Follow-ups", icon: ClipboardList },
-    { id: "medications" as const, label: "Med Alerts", icon: Pill },
-    { id: "triage" as const, label: "Smart Triage", icon: Stethoscope },
+    { id: "dashboard" as const, label: t("dashboard"), icon: Activity },
+    { id: "follow-ups" as const, label: t("followUps"), icon: ClipboardList },
+    { id: "medications" as const, label: t("medAlerts"), icon: Pill },
+    { id: "triage" as const, label: t("smartTriage"), icon: Stethoscope },
   ];
 
   return (
@@ -117,21 +119,21 @@ export default function AINursePage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Heart className="h-7 w-7 text-rose-600" />
-            AI Nurse
+            {t("aiNurse")}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Post-visit follow-up, medication management, chronic disease monitoring & patient triage
+            {t("aiNurseDesc")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleBatchProcess} disabled={processingBatch}
             className="flex items-center gap-2 px-3 py-2 border rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50">
             {processingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {processingBatch ? "Processing..." : "Run Batch Check"}
+            {processingBatch ? t("processingBatch") : t("runBatchCheck")}
           </button>
           <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700">
             <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            Monitoring Active
+            {t("monitoringActive")}
           </span>
         </div>
       </div>
@@ -155,7 +157,7 @@ export default function AINursePage() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
-          <span className="ml-3 text-gray-500">Loading nurse dashboard...</span>
+          <span className="ml-3 text-gray-500">{t("loadingNurseDashboard")}</span>
         </div>
       ) : (
         <>

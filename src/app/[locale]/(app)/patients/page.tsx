@@ -3,6 +3,7 @@ export const fetchCache = "force-no-store";
 
 import Link from "next/link";
 import { UserPlus, Users } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +35,10 @@ import { PatientListFilters } from "./_components/patient-list-filters";
 import { PatientListPagination } from "./_components/patient-list-pagination";
 import { NewPatientButton } from "./_components/new-patient-button";
 
-export const metadata = {
-  title: "Patients",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Patients");
+  return { title: t("title") };
+}
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -48,6 +50,7 @@ interface PageProps {
  */
 export default async function PatientsPage({ searchParams }: PageProps) {
   const raw = await searchParams;
+  const t = await getTranslations("Patients");
 
   // Normalise: arrays → first value, undefined → undefined
   const cleaned: Record<string, string | undefined> = {};
@@ -69,13 +72,13 @@ export default async function PatientsPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-            Records
+            {t("records")}
           </div>
-          <h1 className="mt-1 text-3xl font-black tracking-tight">Patients</h1>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">{t("title")}</h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
             {total === 0
-              ? "No patients yet. Add your first to get started."
-              : `${total.toLocaleString()} record${total === 1 ? "" : "s"} in the system`}
+              ? t("noPatientsYet")
+              : t("recordCount", { count: total })}
           </p>
         </div>
         <NewPatientButton size="md" />
@@ -122,7 +125,8 @@ function GridView({ rows }: { rows: PatientListRow[] }) {
   );
 }
 
-function PatientGridCard({ p }: { p: PatientListRow }) {
+async function PatientGridCard({ p }: { p: PatientListRow }) {
+  const t = await getTranslations("Patients");
   const fullName = `${p.firstName} ${p.lastName}`;
   const age = calculateAge(p.dateOfBirth);
   return (
@@ -142,7 +146,7 @@ function PatientGridCard({ p }: { p: PatientListRow }) {
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
                 <span className="text-[color:var(--color-muted-foreground)]">
-                  {age} yrs · {p.sex.charAt(0).toUpperCase()}
+                  {t("ageYears", { age })} · {p.sex.charAt(0).toUpperCase()}
                 </span>
                 {p.bloodType && p.bloodType !== "unknown" && (
                   <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
@@ -155,13 +159,13 @@ function PatientGridCard({ p }: { p: PatientListRow }) {
 
           <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[color:var(--color-border)] pt-3 text-[11px]">
             <div>
-              <div className="text-[color:var(--color-muted-foreground)]">Phone</div>
+              <div className="text-[color:var(--color-muted-foreground)]">{t("phone")}</div>
               <div className="truncate font-medium">{p.phone ?? "—"}</div>
             </div>
             <div>
-              <div className="text-[color:var(--color-muted-foreground)]">Insurance</div>
+              <div className="text-[color:var(--color-muted-foreground)]">{t("insurance")}</div>
               <div className="truncate font-medium">
-                {p.insuranceProvider ?? "Cash"}
+                {p.insuranceProvider ?? t("cash")}
               </div>
             </div>
           </div>
@@ -174,18 +178,19 @@ function PatientGridCard({ p }: { p: PatientListRow }) {
 // ─────────────────────────────────────────────────────────────────
 //  List view
 // ─────────────────────────────────────────────────────────────────
-function ListView({ rows }: { rows: PatientListRow[] }) {
+async function ListView({ rows }: { rows: PatientListRow[] }) {
+  const t = await getTranslations("Patients");
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Patient</TableHead>
-          <TableHead>ID</TableHead>
-          <TableHead>Age / Sex</TableHead>
-          <TableHead>Blood</TableHead>
-          <TableHead>Phone</TableHead>
-          <TableHead>Insurance</TableHead>
-          <TableHead>Updated</TableHead>
+          <TableHead>{t("patient")}</TableHead>
+          <TableHead>{t("id")}</TableHead>
+          <TableHead>{t("ageSex")}</TableHead>
+          <TableHead>{t("blood")}</TableHead>
+          <TableHead>{t("phone")}</TableHead>
+          <TableHead>{t("insurance")}</TableHead>
+          <TableHead>{t("updated")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -227,7 +232,7 @@ function ListView({ rows }: { rows: PatientListRow[] }) {
                 {p.insuranceProvider ? (
                   p.insuranceProvider
                 ) : (
-                  <span className="text-[color:var(--color-muted-foreground)]">Cash</span>
+                  <span className="text-[color:var(--color-muted-foreground)]">{t("cash")}</span>
                 )}
               </TableCell>
               <TableCell className="text-xs text-[color:var(--color-muted-foreground)]">
@@ -244,13 +249,14 @@ function ListView({ rows }: { rows: PatientListRow[] }) {
 // ─────────────────────────────────────────────────────────────────
 //  Empty state
 // ─────────────────────────────────────────────────────────────────
-function EmptyState({
+async function EmptyState({
   query,
   hasFilters,
 }: {
   query?: string;
   hasFilters: boolean;
 }) {
+  const t = await getTranslations("Patients");
   const filtered = !!query || hasFilters;
 
   return (
@@ -261,12 +267,12 @@ function EmptyState({
         </div>
         <div className="max-w-md space-y-1.5">
           <h3 className="text-lg font-bold tracking-tight">
-            {filtered ? "No patients match those filters" : "No patients yet"}
+            {filtered ? t("noMatchTitle") : t("noPatientsTitle")}
           </h3>
           <p className="text-sm text-[color:var(--color-muted-foreground)]">
             {filtered
-              ? "Try adjusting your search or clearing the filters."
-              : "Add your first patient to start using MediScript, PharmaX and the rest of your clinical workspace."}
+              ? t("noMatchDescription")
+              : t("noPatientsDescription")}
           </p>
         </div>
         {!filtered && <NewPatientButton size="md" />}

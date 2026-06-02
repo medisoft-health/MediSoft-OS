@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Calendar,
   Clock,
@@ -209,6 +210,7 @@ function generateDemoAppointments(): Appointment[] {
 
 // ─── Main Component ──────────────────────────────────────────────
 export default function AppointmentsPage() {
+  const t = useTranslations("Appointments");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
@@ -282,10 +284,10 @@ export default function AppointmentsPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-[color:var(--color-foreground)]">
-                Appointments
+                {t("title")}
               </h1>
               <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-                Manage your clinical schedule and patient appointments
+                {t("manageSchedule")}
               </p>
             </div>
             <button
@@ -293,7 +295,7 @@ export default function AppointmentsPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[color:var(--color-brand-pink)] to-[color:var(--color-brand-magenta)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
             >
               <Plus className="size-4" />
-              New Appointment
+              {t("newAppointment")}
             </button>
           </div>
         </div>
@@ -303,10 +305,10 @@ export default function AppointmentsPage() {
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Today", value: todayCount, icon: Calendar, color: "text-blue-600" },
-            { label: "Confirmed", value: confirmedCount, icon: CheckCircle2, color: "text-green-600" },
-            { label: "Pending", value: pendingCount, icon: Clock, color: "text-amber-600" },
-            { label: "Telehealth", value: telehealthCount, icon: Video, color: "text-purple-600" },
+            { label: t("today"), value: todayCount, icon: Calendar, color: "text-blue-600" },
+            { label: t("confirmed"), value: confirmedCount, icon: CheckCircle2, color: "text-green-600" },
+            { label: t("pending"), value: pendingCount, icon: Clock, color: "text-amber-600" },
+            { label: t("telehealth"), value: telehealthCount, icon: Video, color: "text-purple-600" },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-4">
               <div className="flex items-center gap-3">
@@ -333,7 +335,7 @@ export default function AppointmentsPage() {
               onClick={() => setSelectedDate(new Date())}
               className="rounded-lg border border-[color:var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[color:var(--color-muted)]/50"
             >
-              Today
+              {t("today")}
             </button>
             <button onClick={() => navigateDate(1)} className="rounded-lg border border-[color:var(--color-border)] p-2 hover:bg-[color:var(--color-muted)]/50">
               <ChevronRight className="size-4" />
@@ -349,7 +351,7 @@ export default function AppointmentsPage() {
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <input
                 type="text"
-                placeholder="Search appointments..."
+                placeholder={t("searchAppointments")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-9 rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]"
@@ -360,13 +362,13 @@ export default function AppointmentsPage() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="h-9 rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]"
             >
-              <option value="all">All Status</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="checked_in">Checked In</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="all">{t("allStatus")}</option>
+              <option value="scheduled">{t("scheduled")}</option>
+              <option value="confirmed">{t("confirmed")}</option>
+              <option value="checked_in">{t("checkedIn")}</option>
+              <option value="in_progress">{t("inProgress")}</option>
+              <option value="completed">{t("completed")}</option>
+              <option value="cancelled">{t("cancelled")}</option>
             </select>
             <div className="flex rounded-lg border border-[color:var(--color-border)]">
               {(["day", "week", "list"] as ViewMode[]).map((mode) => (
@@ -400,7 +402,7 @@ export default function AppointmentsPage() {
               <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-[color:var(--color-border)]">
                 <div className="text-center">
                   <Calendar className="mx-auto size-10 text-[color:var(--color-muted-foreground)]" />
-                  <p className="mt-2 text-sm text-[color:var(--color-muted-foreground)]">No appointments found</p>
+                   <p className="mt-2 text-sm text-[color:var(--color-muted-foreground)]">{t("noAppointmentsFound")}</p>
                 </div>
               </div>
             ) : (
@@ -471,12 +473,13 @@ export default function AppointmentsPage() {
         <AppointmentDetailModal
           appointment={selectedAppointment}
           onClose={() => setSelectedAppointment(null)}
+          t={t}
         />
       )}
 
       {/* New Appointment Modal */}
       {showNewForm && (
-        <NewAppointmentModal onClose={() => setShowNewForm(false)} />
+        <NewAppointmentModal onClose={() => setShowNewForm(false)} t={t} />
       )}
     </div>
   );
@@ -484,6 +487,7 @@ export default function AppointmentsPage() {
 
 // ─── Appointment Card (List View) ────────────────────────────────
 function AppointmentCard({ appointment, onClick }: { appointment: Appointment; onClick: () => void }) {
+  const t = useTranslations("Appointments");
   const colors = STATUS_COLORS[appointment.status] || STATUS_COLORS.scheduled;
   const TypeIcon = TYPE_ICONS[appointment.appointmentType] || Stethoscope;
   const date = new Date(appointment.scheduledAt);
@@ -519,7 +523,7 @@ function AppointmentCard({ appointment, onClick }: { appointment: Appointment; o
           )}
         </div>
         <div className="text-xs text-[color:var(--color-muted-foreground)]">
-          via {appointment.bookedVia}
+          {t("via")} {appointment.bookedVia}
         </div>
       </div>
     </button>
@@ -527,7 +531,7 @@ function AppointmentCard({ appointment, onClick }: { appointment: Appointment; o
 }
 
 // ─── Appointment Detail Modal ────────────────────────────────────
-function AppointmentDetailModal({ appointment, onClose }: { appointment: Appointment; onClose: () => void }) {
+function AppointmentDetailModal({ appointment, onClose, t }: { appointment: Appointment; onClose: () => void; t: ReturnType<typeof useTranslations<"Appointments">> }) {
   const colors = STATUS_COLORS[appointment.status] || STATUS_COLORS.scheduled;
   const date = new Date(appointment.scheduledAt);
 
@@ -538,7 +542,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[color:var(--color-foreground)]">Appointment Details</h2>
+          <h2 className="text-lg font-bold text-[color:var(--color-foreground)]">{t("appointmentDetails")}</h2>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-[color:var(--color-muted)]/50">
             <XCircle className="size-5" />
           </button>
@@ -549,7 +553,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
             <User className="size-5 text-[color:var(--color-muted-foreground)]" />
             <div>
               <div className="text-sm font-semibold">{appointment.patientName || `Patient #${appointment.patientId}`}</div>
-              <div className="text-xs text-[color:var(--color-muted-foreground)]">Patient ID: {appointment.patientId}</div>
+              <div className="text-xs text-[color:var(--color-muted-foreground)]">{t("patientId")}: {appointment.patientId}</div>
             </div>
           </div>
 
@@ -557,7 +561,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
             <Calendar className="size-5 text-[color:var(--color-muted-foreground)]" />
             <div>
               <div className="text-sm font-semibold">{date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</div>
-              <div className="text-xs text-[color:var(--color-muted-foreground)]">{formatTime(date)} — {appointment.duration} minutes</div>
+              <div className="text-xs text-[color:var(--color-muted-foreground)]">{formatTime(date)} — {appointment.duration} {t("minutes")}</div>
             </div>
           </div>
 
@@ -573,33 +577,33 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
 
           {appointment.reason && (
             <div className="rounded-lg bg-[color:var(--color-muted)]/30 p-3">
-              <div className="text-xs font-semibold text-[color:var(--color-muted-foreground)]">Reason</div>
+              <div className="text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("reason")}</div>
               <div className="mt-1 text-sm">{appointment.reason}</div>
             </div>
           )}
 
           {appointment.notes && (
             <div className="rounded-lg bg-[color:var(--color-muted)]/30 p-3">
-              <div className="text-xs font-semibold text-[color:var(--color-muted-foreground)]">Notes</div>
+              <div className="text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("notes")}</div>
               <div className="mt-1 text-sm">{appointment.notes}</div>
             </div>
           )}
 
           <div className="flex items-center gap-4 text-xs text-[color:var(--color-muted-foreground)]">
-            <span>Booked by: {appointment.bookedBy}</span>
-            <span>Via: {appointment.bookedVia}</span>
-            {appointment.reminderSent && <span className="text-green-600">Reminder sent</span>}
+            <span>{t("bookedBy")}: {appointment.bookedBy}</span>
+            <span>{t("via")}: {appointment.bookedVia}</span>
+            {appointment.reminderSent && <span className="text-green-600">{t("reminderSent")}</span>}
           </div>
 
           <div className="flex gap-2 pt-2">
             <button className="flex-1 rounded-xl bg-green-600 py-2.5 text-sm font-semibold text-white hover:bg-green-700">
-              <CheckCircle2 className="mr-1 inline size-4" /> Check In
+              <CheckCircle2 className="mr-1 inline size-4" /> {t("checkIn")}
             </button>
             <button className="flex-1 rounded-xl border border-[color:var(--color-border)] py-2.5 text-sm font-semibold hover:bg-[color:var(--color-muted)]/50">
-              Reschedule
+              {t("reschedule")}
             </button>
             <button className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30">
-              Cancel
+              {t("cancelBtn")}
             </button>
           </div>
         </div>
@@ -609,7 +613,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
 }
 
 // ─── New Appointment Modal ───────────────────────────────────────
-function NewAppointmentModal({ onClose }: { onClose: () => void }) {
+function NewAppointmentModal({ onClose, t }: { onClose: () => void; t: ReturnType<typeof useTranslations<"Appointments">> }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
@@ -617,7 +621,7 @@ function NewAppointmentModal({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[color:var(--color-foreground)]">New Appointment</h2>
+          <h2 className="text-lg font-bold text-[color:var(--color-foreground)]">{t("newAppointment")}</h2>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-[color:var(--color-muted)]/50">
             <XCircle className="size-5" />
           </button>
@@ -625,55 +629,55 @@ function NewAppointmentModal({ onClose }: { onClose: () => void }) {
 
         <form className="mt-4 space-y-4" onSubmit={(e) => { e.preventDefault(); onClose(); }}>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">Patient</label>
-            <input type="text" placeholder="Search patient name or MRN..." className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]" />
+            <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("patient")}</label>
+            <input type="text" placeholder={t("searchPatientPlaceholder")} className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">Date</label>
+              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("date")}</label>
               <input type="date" className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">Time</label>
+              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("time")}</label>
               <input type="time" className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">Type</label>
+              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("type")}</label>
               <select className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]">
-                <option value="consultation">Consultation</option>
-                <option value="follow_up">Follow-up</option>
-                <option value="telehealth">Telehealth</option>
-                <option value="phone">Phone Call</option>
-                <option value="procedure">Procedure</option>
-                <option value="urgent">Urgent</option>
+                <option value="consultation">{t("consultation")}</option>
+                <option value="follow_up">{t("followUp")}</option>
+                <option value="telehealth">{t("telehealth")}</option>
+                <option value="phone">{t("phoneCall")}</option>
+                <option value="procedure">{t("procedure")}</option>
+                <option value="urgent">{t("urgent")}</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">Duration</label>
+              <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("duration")}</label>
               <select className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]">
-                <option value="15">15 minutes</option>
-                <option value="30" selected>30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">60 minutes</option>
+                <option value="15">{t("fifteenMin")}</option>
+                <option value="30" selected>{t("thirtyMin")}</option>
+                <option value="45">{t("fortyFiveMin")}</option>
+                <option value="60">{t("sixtyMin")}</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">Reason</label>
-            <textarea rows={2} placeholder="Reason for visit..." className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]" />
+            <label className="mb-1 block text-xs font-semibold text-[color:var(--color-muted-foreground)]">{t("reason")}</label>
+            <textarea rows={2} placeholder={t("reasonPlaceholder")} className="w-full rounded-lg border border-[color:var(--color-input)] bg-[color:var(--color-card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]" />
           </div>
 
           <div className="flex gap-2 pt-2">
             <button type="submit" className="flex-1 rounded-xl bg-gradient-to-r from-[color:var(--color-brand-pink)] to-[color:var(--color-brand-magenta)] py-2.5 text-sm font-semibold text-white hover:shadow-md">
-              Book Appointment
+              {t("bookAppointment")}
             </button>
             <button type="button" onClick={onClose} className="rounded-xl border border-[color:var(--color-border)] px-4 py-2.5 text-sm font-semibold hover:bg-[color:var(--color-muted)]/50">
-              Cancel
+              {t("cancelBtn")}
             </button>
           </div>
         </form>

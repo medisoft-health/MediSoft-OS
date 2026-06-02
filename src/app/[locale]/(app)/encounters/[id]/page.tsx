@@ -11,6 +11,7 @@ import {
   Stethoscope,
   UserIcon,
 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -56,7 +57,8 @@ const statusVariant: Record<
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  return { title: `Encounter ${id.slice(0, 8)}` };
+  const t = await getTranslations("Encounters");
+  return { title: `${t("encounterLabel")} ${id.slice(0, 8)}` };
 }
 
 export default async function EncounterDetailPage({ params }: PageProps) {
@@ -67,6 +69,8 @@ export default async function EncounterDetailPage({ params }: PageProps) {
   if (!row) notFound();
 
   const { encounter: e, patient, physician } = row;
+
+  const t = await getTranslations("Encounters");
 
   // Audit view (fire-and-forget).
   const session = await requireSession();
@@ -111,7 +115,7 @@ export default async function EncounterDetailPage({ params }: PageProps) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Back to {patientName}
+          {t("backToPatient", { name: patientName })}
         </Link>
       </div>
 
@@ -121,7 +125,7 @@ export default async function EncounterDetailPage({ params }: PageProps) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-                Encounter
+                {t("encounterLabel")}
               </div>
               <h1 className="mt-1 text-2xl font-black tracking-tight">
                 {patientName}{" "}
@@ -131,19 +135,19 @@ export default async function EncounterDetailPage({ params }: PageProps) {
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[color:var(--color-muted-foreground)]">
                 <span className="capitalize">
-                  {e.encounterType ?? "outpatient"}
+                  {e.encounterType ?? t("outpatient")}
                 </span>
                 <span>·</span>
                 <span>{formatClinicalDate(e.encounterDate)}</span>
                 <span>·</span>
                 <span>
                   <UserIcon className="mr-1 inline size-3" />
-                  {physician?.name ?? "Unknown physician"}
+                  {physician?.name ?? t("unknownPhysician")}
                   {physician?.specialty ? ` · ${physician.specialty}` : ""}
                 </span>
                 <span>·</span>
                 <span>
-                  {age} yrs · <span className="capitalize">{patient.sex}</span>
+                  {age} {t("yrsAge")} · <span className="capitalize">{patient.sex}</span>
                 </span>
               </div>
             </div>
@@ -157,7 +161,7 @@ export default async function EncounterDetailPage({ params }: PageProps) {
               {isSigned && (
                 <Badge variant="success" className="gap-1 text-[10px]">
                   <BadgeCheck className="size-3" />
-                  {e.signedAt ? formatClinicalDate(e.signedAt) : "Signed"}
+                  {e.signedAt ? formatClinicalDate(e.signedAt) : t("signed")}
                 </Badge>
               )}
               {isDraft && <SignEncounterButton encounterId={e.id} />}
@@ -169,71 +173,71 @@ export default async function EncounterDetailPage({ params }: PageProps) {
       {/* SOAP sections */}
       {!soap ? (
         <Alert>
-          <AlertTitle>No SOAP note attached</AlertTitle>
+          <AlertTitle>{t("noSoapNoteTitle")}</AlertTitle>
           <AlertDescription>
-            This encounter does not have a structured note yet.
+            {t("noSoapNoteDescription")}
           </AlertDescription>
         </Alert>
       ) : (
         <>
           <SoapSectionCard
-            title="Subjective"
+            title={t("subjective")}
             icon={Stethoscope}
             accent="text-[color:var(--color-brand-magenta)]"
           >
-            <Field label="Chief complaint" value={soap.subjective?.chiefComplaint} />
+            <Field label={t("chiefComplaint")} value={soap.subjective?.chiefComplaint} />
             <Field
-              label="History of present illness"
+              label={t("presentIllness")}
               value={soap.subjective?.historyOfPresentIllness}
             />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field
-                label="Past medical history"
+                label={t("pastMedicalHistory")}
                 value={soap.subjective?.pastMedicalHistory}
               />
               <Field
-                label="Current medications"
+                label={t("currentMedications")}
                 value={soap.subjective?.medications}
               />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Allergies" value={soap.subjective?.allergies} />
+              <Field label={t("allergies")} value={soap.subjective?.allergies} />
               <Field
-                label="Review of systems"
+                label={t("reviewOfSystems")}
                 value={soap.subjective?.reviewOfSystems}
               />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Social history" value={soap.subjective?.socialHistory} />
-              <Field label="Family history" value={soap.subjective?.familyHistory} />
+              <Field label={t("socialHistory")} value={soap.subjective?.socialHistory} />
+              <Field label={t("familyHistory")} value={soap.subjective?.familyHistory} />
             </div>
           </SoapSectionCard>
 
           <SoapSectionCard
-            title="Objective"
+            title={t("objective")}
             icon={HeartPulse}
             accent="text-[color:var(--color-brand-navy)]"
           >
-            <Field label="Vital signs" value={soap.objective?.vitalSigns} />
+            <Field label={t("vitalSigns")} value={soap.objective?.vitalSigns} />
             <Field
-              label="Physical examination"
+              label={t("physicalExam")}
               value={soap.objective?.physicalExamination}
             />
             <Field
-              label="Diagnostic results"
+              label={t("diagnosticResults")}
               value={soap.objective?.diagnosticResults}
             />
           </SoapSectionCard>
 
           <SoapSectionCard
-            title="Assessment"
+            title={t("assessment")}
             icon={ListChecks}
             accent="text-[color:var(--color-brand-purple)]"
           >
             {soap.assessment?.diagnoses && soap.assessment.diagnoses.length > 0 ? (
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-                  Diagnoses
+                  {t("diagnoses")}
                 </div>
                 <ul className="mt-2 space-y-2">
                   {soap.assessment.diagnoses.map((d, i) => (
@@ -256,11 +260,11 @@ export default async function EncounterDetailPage({ params }: PageProps) {
                       {d.verified ? (
                         <Badge variant="success" className="text-[10px]">
                           <BadgeCheck className="size-3" />
-                          Verified
+                          {t("verified")}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px]">
-                          Unverified
+                          {t("unverified")}
                         </Badge>
                       )}
                     </li>
@@ -269,30 +273,30 @@ export default async function EncounterDetailPage({ params }: PageProps) {
               </div>
             ) : null}
             <Field
-              label="Differential diagnosis"
+              label={t("differentialDiagnosis")}
               value={soap.assessment?.differentialDiagnosis}
             />
             <Field
-              label="Clinical reasoning"
+              label={t("clinicalReasoning")}
               value={soap.assessment?.clinicalReasoning}
             />
           </SoapSectionCard>
 
           <SoapSectionCard
-            title="Plan"
+            title={t("plan")}
             icon={ClipboardList}
             accent="text-[color:var(--color-brand-cyan)]"
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Diagnostic plan" value={soap.plan?.diagnosticPlan} />
-              <Field label="Therapeutic plan" value={soap.plan?.therapeuticPlan} />
+              <Field label={t("diagnosticPlan")} value={soap.plan?.diagnosticPlan} />
+              <Field label={t("therapeuticPlan")} value={soap.plan?.therapeuticPlan} />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field
-                label="Patient education"
+                label={t("patientEducation")}
                 value={soap.plan?.patientEducation}
               />
-              <Field label="Follow-up" value={soap.plan?.followUp} />
+              <Field label={t("followUp")} value={soap.plan?.followUp} />
             </div>
           </SoapSectionCard>
         </>
@@ -304,15 +308,15 @@ export default async function EncounterDetailPage({ params }: PageProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Eye className="size-4 text-[color:var(--color-muted-foreground)]" />
-              Transcripts
+              {t("transcripts")}
             </CardTitle>
-            <CardDescription>Stored for audit and reference.</CardDescription>
+            <CardDescription>{t("transcriptsDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {e.rawTranscript && (
               <div>
                 <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-                  Raw transcript
+                  {t("rawTranscript")}
                 </div>
                 <pre className="whitespace-pre-wrap rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-muted)]/30 p-3 font-sans text-sm leading-relaxed">
                   {e.rawTranscript}
@@ -324,7 +328,7 @@ export default async function EncounterDetailPage({ params }: PageProps) {
                 {e.rawTranscript && <Separator />}
                 <div>
                   <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-                    Corrected transcript
+                    {t("correctedTranscript")}
                   </div>
                   <pre className="whitespace-pre-wrap rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-muted)]/30 p-3 font-sans text-sm leading-relaxed">
                     {e.correctedTranscript}
@@ -342,7 +346,7 @@ export default async function EncounterDetailPage({ params }: PageProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText className="size-4 text-[color:var(--color-muted-foreground)]" />
-              ICD-11 codes
+              {t("icdCodes")}
             </CardTitle>
           </CardHeader>
           <CardContent>

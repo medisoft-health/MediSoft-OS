@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { getPatientById } from "@/lib/queries/patients";
 import { formatPatientId } from "@/lib/utils";
 import { ScanBuilder } from "./_components/scan-builder";
@@ -16,6 +17,8 @@ interface PageProps {
 }
 
 export default async function NewScanPage({ searchParams }: PageProps) {
+  const t = await getTranslations("MediScan");
+
   const sp = await searchParams;
   const raw = Array.isArray(sp.patientId) ? sp.patientId[0] : sp.patientId;
   const n = raw ? Number(raw) : null;
@@ -43,12 +46,11 @@ export default async function NewScanPage({ searchParams }: PageProps) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          MediScan
+          {t("title")}
         </Link>
-        <h1 className="mt-2 text-2xl font-black tracking-tight">New scan</h1>
+        <h1 className="mt-2 text-2xl font-black tracking-tight">{t("newPageTitle")}</h1>
         <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-          Upload an image, annotate, get an AI-drafted report — review before
-          saving.
+          {t("newPageDescription")}
         </p>
       </div>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Pill, Plus, ShieldAlert, Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -55,6 +56,9 @@ const severityVariant: Record<
 };
 
 export default async function PharmaxPage() {
+  const t = await getTranslations("PharmaX");
+  const tNav = await getTranslations("Nav");
+
   const [recent, counts] = await Promise.all([
     listRecentPrescriptions(15),
     countPrescriptionsByStatus(),
@@ -75,26 +79,24 @@ export default async function PharmaxPage() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Dashboard
+          {tNav("dashboard")}
         </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-              Pharmacokinetic Guard
+              {t("tagline")}
             </div>
             <h1 className="mt-1 text-3xl font-black tracking-tight">
               <ModuleLogo module="pharmax" height={40} />
             </h1>
             <p className="mt-1 max-w-xl text-sm text-[color:var(--color-muted-foreground)]">
-              Three-layer drug safety. RxNorm-normalized identification,
-              FDA-label warnings, and a intelligence-generated clinical summary —
-              before you sign the prescription.
+              {t("description")}
             </p>
           </div>
           <Link href="/pharmax/new">
             <Button variant="brand" size="md">
               <Plus className="size-4" />
-              New prescription
+              {t("newPrescription")}
             </Button>
           </Link>
         </div>
@@ -102,10 +104,10 @@ export default async function PharmaxPage() {
 
       {/* KPIs */}
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi label="Active" value={counts.active ?? 0} tone="success" />
-        <Kpi label="Drafts" value={counts.draft ?? 0} tone="warning" />
-        <Kpi label="Completed" value={counts.completed ?? 0} tone="info" />
-        <Kpi label="Total" value={total} tone="neutral" />
+        <Kpi label={t("kpiActive")} value={counts.active ?? 0} tone="success" />
+        <Kpi label={t("kpiDrafts")} value={counts.draft ?? 0} tone="warning" />
+        <Kpi label={t("kpiCompleted")} value={counts.completed ?? 0} tone="info" />
+        <Kpi label={t("kpiTotal")} value={total} tone="neutral" />
       </section>
 
       {/* Hero */}
@@ -119,17 +121,16 @@ export default async function PharmaxPage() {
               </div>
               <div>
                 <h2 className="text-lg font-bold tracking-tight">
-                  Build a new prescription
+                  {t("buildNewPrescription")}
                 </h2>
                 <p className="mt-1 max-w-lg text-sm text-[color:var(--color-muted-foreground)]">
-                  Pick a patient, add drugs from RxNorm, edit dose / frequency /
-                  route. The safety panel updates live as you go.
+                  {t("buildNewPrescriptionDescription")}
                 </p>
               </div>
             </div>
             <Link href="/pharmax/new">
               <Button variant="brand" size="lg">
-                Begin <Sparkles className="size-4" />
+                {t("begin")} <Sparkles className="size-4" />
               </Button>
             </Link>
           </div>
@@ -139,11 +140,11 @@ export default async function PharmaxPage() {
       {/* Recent table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent prescriptions</CardTitle>
+          <CardTitle className="text-base">{t("recentPrescriptions")}</CardTitle>
           <CardDescription>
             {total === 0
-              ? "Nothing prescribed yet — your prescriptions will appear here."
-              : `${total.toLocaleString()} prescription${total === 1 ? "" : "s"} in the system`}
+              ? t("emptyDescription")
+              : t("prescriptionsInSystem", { count: total })}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -152,14 +153,13 @@ export default async function PharmaxPage() {
               <div className="grid size-14 place-items-center rounded-2xl bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]">
                 <Pill className="size-6" />
               </div>
-              <p className="text-sm font-semibold">No prescriptions yet</p>
+              <p className="text-sm font-semibold">{t("noPrescriptionsYet")}</p>
               <p className="max-w-md text-xs text-[color:var(--color-muted-foreground)]">
-                Build your first prescription with PharmaX&apos;s three-layer
-                safety check.
+                {t("emptyHint")}
               </p>
               <Link href="/pharmax/new">
                 <Button variant="brand" size="sm">
-                  Build the first one
+                  {t("buildFirstOne")}
                 </Button>
               </Link>
             </div>
@@ -167,12 +167,12 @@ export default async function PharmaxPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Drug</TableHead>
-                  <TableHead>Dose</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Severity</TableHead>
+                  <TableHead>{t("tableCreated")}</TableHead>
+                  <TableHead>{t("tablePatient")}</TableHead>
+                  <TableHead>{t("tableDrug")}</TableHead>
+                  <TableHead>{t("tableDose")}</TableHead>
+                  <TableHead>{t("tableStatus")}</TableHead>
+                  <TableHead>{t("tableSeverity")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

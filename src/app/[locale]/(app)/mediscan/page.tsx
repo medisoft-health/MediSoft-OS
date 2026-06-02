@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Plus, ScanLine, Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -35,6 +36,9 @@ export const metadata = {
 };
 
 export default async function MediscanPage() {
+  const t = await getTranslations("MediScan");
+  const tNav = await getTranslations("Nav");
+
   const [recent, byType, counts] = await Promise.all([
     listRecentScans(15),
     countScansByType(),
@@ -49,35 +53,34 @@ export default async function MediscanPage() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Dashboard
+          {tNav("dashboard")}
         </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-              Vision Intelligence
+              {t("tagline")}
             </div>
             <h1 className="mt-1 text-3xl font-black tracking-tight">
               <ModuleLogo module="mediscan" height={40} />
             </h1>
             <p className="mt-1 max-w-xl text-sm text-[color:var(--color-muted-foreground)]">
-              Intelligent reading of radiology and medical images. Doctor-
-              friendly report, patient-friendly summary, both reviewed by you.
+              {t("description")}
             </p>
           </div>
           <Link href="/mediscan/new">
             <Button variant="brand" size="md">
               <Plus className="size-4" />
-              New scan
+              {t("newScan")}
             </Button>
           </Link>
         </div>
       </div>
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi label="Total scans" value={counts.total} />
-        <Kpi label="With AI report" value={counts.withAi} />
-        <Kpi label="X-ray" value={byType.xray ?? 0} />
-        <Kpi label="Other modalities" value={counts.total - (byType.xray ?? 0)} />
+        <Kpi label={t("totalScans")} value={counts.total} />
+        <Kpi label={t("withAiReport")} value={counts.withAi} />
+        <Kpi label={t("xrayLabel")} value={byType.xray ?? 0} />
+        <Kpi label={t("otherModalities")} value={counts.total - (byType.xray ?? 0)} />
       </section>
 
       <Card className="overflow-hidden">
@@ -90,17 +93,16 @@ export default async function MediscanPage() {
               </div>
               <div>
                 <h2 className="text-lg font-bold tracking-tight">
-                  Read a new scan
+                  {t("readNewScan")}
                 </h2>
                 <p className="mt-1 max-w-lg text-sm text-[color:var(--color-muted-foreground)]">
-                  Upload an X-ray, CT/MRI export, ultrasound, or pathology image.
-                  Annotate. Get a dual-audience AI report. Save the encounter.
+                  {t("readNewScanDescription")}
                 </p>
               </div>
             </div>
             <Link href="/mediscan/new">
               <Button variant="brand" size="lg">
-                Begin <Sparkles className="size-4" />
+                {t("begin")} <Sparkles className="size-4" />
               </Button>
             </Link>
           </div>
@@ -109,11 +111,11 @@ export default async function MediscanPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent scans</CardTitle>
+          <CardTitle className="text-base">{t("recentScans")}</CardTitle>
           <CardDescription>
             {counts.total === 0
-              ? "Nothing saved yet — your scans will appear here."
-              : `${counts.total.toLocaleString()} scan${counts.total === 1 ? "" : "s"} in the system`}
+              ? t("emptyDescription")
+              : t("scansInSystem", { count: counts.total })}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -122,13 +124,13 @@ export default async function MediscanPage() {
               <div className="grid size-14 place-items-center rounded-2xl bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]">
                 <ScanLine className="size-6" />
               </div>
-              <p className="text-sm font-semibold">No scans yet</p>
+              <p className="text-sm font-semibold">{t("noScansYet")}</p>
               <p className="max-w-md text-xs text-[color:var(--color-muted-foreground)]">
-                Upload the first image to build your imaging archive.
+                {t("emptyHint")}
               </p>
               <Link href="/mediscan/new">
                 <Button variant="brand" size="sm">
-                  Add the first scan
+                  {t("addFirstScan")}
                 </Button>
               </Link>
             </div>
@@ -136,11 +138,11 @@ export default async function MediscanPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Modality</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>AI</TableHead>
+                  <TableHead>{t("tableDate")}</TableHead>
+                  <TableHead>{t("tablePatient")}</TableHead>
+                  <TableHead>{t("tableModality")}</TableHead>
+                  <TableHead>{t("tableRegion")}</TableHead>
+                  <TableHead>{t("tableAi")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -179,7 +181,7 @@ export default async function MediscanPage() {
                     <TableCell>
                       {r.hasAiReport ? (
                         <Badge variant="success" className="text-[10px]">
-                          AI report
+                          {t("aiReport")}
                         </Badge>
                       ) : (
                         <span className="text-xs text-[color:var(--color-muted-foreground)]">

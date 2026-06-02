@@ -1,5 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { AnalyticsDashboard } from "./_components/analytics-dashboard";
 
 
@@ -11,11 +12,13 @@ export default async function AnalyticsPage() {
   const session = await requireSession();
   if (!session.ok) redirect("/login");
 
+  const t = await getTranslations("Analytics");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6 lg:p-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">لوحة التحليلات</h1>
-        <p className="mt-1 text-sm text-gray-600">نظرة شاملة على بيانات العيادة والمرضى</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+        <p className="mt-1 text-sm text-gray-600">{t("subtitle")}</p>
       </div>
       <AnalyticsDashboard />
     </div>

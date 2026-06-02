@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Phone,
   MessageSquare,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 
 export default function AIReceptionistPage() {
+  const t = useTranslations("AIAgents");
   const [activeTab, setActiveTab] = useState<"dashboard" | "calls" | "chat" | "settings">("dashboard");
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -74,10 +76,10 @@ export default function AIReceptionistPage() {
   };
 
   const tabs = [
-    { id: "dashboard" as const, label: "Dashboard", icon: BarChart3 },
-    { id: "calls" as const, label: "Call Log", icon: Phone },
-    { id: "chat" as const, label: "Live Chat", icon: MessageSquare },
-    { id: "settings" as const, label: "Settings", icon: Settings },
+    { id: "dashboard" as const, label: t("dashboard"), icon: BarChart3 },
+    { id: "calls" as const, label: t("callLog"), icon: Phone },
+    { id: "chat" as const, label: t("liveChat"), icon: MessageSquare },
+    { id: "settings" as const, label: t("settingsTab"), icon: Settings },
   ];
 
   return (
@@ -87,14 +89,14 @@ export default function AIReceptionistPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Bot className="h-7 w-7 text-indigo-600" />
-            Smart Receptionist
+            {t("aiReceptionist")}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">24/7 intelligent call handling, appointment scheduling & patient communication</p>
+          <p className="text-sm text-gray-500 mt-1">{t("aiReceptionistDesc")}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700">
             <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            Active — Handling Calls
+            {t("activeHandlingCalls")}
           </span>
           <button onClick={fetchStats} className="p-2 rounded-lg border hover:bg-gray-50">
             <RefreshCw className="h-4 w-4 text-gray-500" />
@@ -115,7 +117,7 @@ export default function AIReceptionistPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-          <span className="ml-3 text-gray-500">Loading receptionist data...</span>
+          <span className="ml-3 text-gray-500">{t("loadingReceptionistData")}</span>
         </div>
       ) : (
         <>

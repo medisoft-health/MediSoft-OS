@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { getPatientById } from "@/lib/queries/patients";
 import { formatPatientId } from "@/lib/utils";
 import { SessionWizard } from "./_components/session-wizard";
@@ -23,6 +24,8 @@ interface PageProps {
  * which pre-selects the patient and starts on the "Record" step.
  */
 export default async function NewMediScriptPage({ searchParams }: PageProps) {
+  const t = await getTranslations("MediScript");
+
   const sp = await searchParams;
   const raw = Array.isArray(sp.patientId) ? sp.patientId[0] : sp.patientId;
   const n = raw ? Number(raw) : null;
@@ -54,13 +57,13 @@ export default async function NewMediScriptPage({ searchParams }: PageProps) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          MediScript
+          {t("title")}
         </Link>
         <h1 className="mt-2 text-2xl font-black tracking-tight">
-          New session
+          {t("newSession")}
         </h1>
         <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-          Voice in. Structured SOAP out. Reviewed and signed by you.
+          {t("newPageDescription")}
         </p>
       </div>
 

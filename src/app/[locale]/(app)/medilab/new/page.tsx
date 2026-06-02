@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { getPatientById } from "@/lib/queries/patients";
 import { formatPatientId } from "@/lib/utils";
 import { LabEntryForm } from "./_components/lab-entry-form";
@@ -16,6 +17,8 @@ interface PageProps {
 }
 
 export default async function NewLabPage({ searchParams }: PageProps) {
+  const t = await getTranslations("MediLab");
+
   const sp = await searchParams;
   const raw = Array.isArray(sp.patientId) ? sp.patientId[0] : sp.patientId;
   const n = raw ? Number(raw) : null;
@@ -45,13 +48,13 @@ export default async function NewLabPage({ searchParams }: PageProps) {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          MediLab
+          {t("title")}
         </Link>
         <h1 className="mt-2 text-2xl font-black tracking-tight">
-          New lab result
+          {t("newLabResult")}
         </h1>
         <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-          Enter values manually or paste from CSV. Flags are calculated live.
+          {t("newPageDescription")}
         </p>
       </div>
 

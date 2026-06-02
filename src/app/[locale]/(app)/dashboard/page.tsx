@@ -7,6 +7,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -40,10 +41,11 @@ export const metadata = {
  * sizes grow.
  */
 export default async function DashboardHome() {
-  const [stats, activity, today] = await Promise.all([
+  const [stats, activity, today, t] = await Promise.all([
     getDashboardStats(),
     getRecentActivity(10),
     getTodayEncounters(),
+    getTranslations("Dashboard"),
   ]);
 
   return (
@@ -52,53 +54,58 @@ export default async function DashboardHome() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-            Today
+            {t("todayLabel")}
           </div>
           <h1 className="mt-1 text-3xl font-black tracking-tight">
-            Welcome to <span className="grad-text">MediSoft</span>
+            {t.rich("welcomeTo", {
+              appName: (chunks) => <span className="grad-text">{chunks}</span>,
+            })}
           </h1>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
             {stats.todayEncounters > 0
-              ? `${stats.todayEncounters} encounter${stats.todayEncounters === 1 ? "" : "s"} today · ${stats.pendingPrescriptions} prescription${stats.pendingPrescriptions === 1 ? "" : "s"} awaiting review.`
-              : "You have a clear day. A great time to review pending records."}
+              ? t("summaryBusy", {
+                  encounters: stats.todayEncounters,
+                  prescriptions: stats.pendingPrescriptions,
+                })
+              : t("summaryClear")}
           </p>
         </div>
         <Badge variant="success" className="gap-1.5 px-3 py-1">
           <span className="pulse-dot size-2 rounded-full bg-emerald-500" />
-          All systems operational
+          {t("allSystemsOperational")}
         </Badge>
       </div>
 
       {/* KPI cards */}
       <section
-        aria-label="Key performance indicators"
+        aria-label={t("kpiAriaLabel")}
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         <StatCard
-          label="Today's encounters"
+          label={t("todayEncounters")}
           value={stats.todayEncounters}
           icon={Calendar}
-          trendLabel="Live count"
+          trendLabel={t("liveCount")}
         />
         <StatCard
-          label="Active patients"
+          label={t("activePatients")}
           value={stats.activePatients}
           icon={Users}
-          trendLabel="All records"
+          trendLabel={t("allRecords")}
         />
         <StatCard
-          label="Pending prescriptions"
+          label={t("pendingPrescriptions")}
           value={stats.pendingPrescriptions}
           icon={Pill}
-          trendLabel={stats.pendingPrescriptions > 0 ? "Needs review" : "All clear"}
+          trendLabel={stats.pendingPrescriptions > 0 ? t("needsReview") : t("allClear")}
           trendTone={stats.pendingPrescriptions > 0 ? "warning" : "neutral"}
         />
         <StatCard
-          label="Critical alerts"
+          label={t("criticalAlerts")}
           value={stats.criticalAlerts}
           icon={Activity}
           trendLabel={
-            stats.criticalAlerts > 0 ? "Immediate attention" : "No critical items"
+            stats.criticalAlerts > 0 ? t("immediateAttention") : t("noCriticalItems")
           }
           trendTone={stats.criticalAlerts > 0 ? "critical" : "neutral"}
         />
@@ -109,45 +116,74 @@ export default async function DashboardHome() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Today&apos;s schedule</CardTitle>
+              <CardTitle>{t("todaySchedule")}</CardTitle>
               <CardDescription>
                 {today.length === 0
-                  ? "No encounters scheduled for today."
-                  : `${today.length} encounter${today.length === 1 ? "" : "s"} in progress or planned.`}
+                  ? t("noEncountersToday")
+                  : t("encountersInProgress", { count: today.length })}
               </CardDescription>
             </div>
             <Link
               href="/patients"
               className="text-xs font-semibold text-[color:var(--color-brand-magenta)] hover:underline"
             >
-              All patients →
+              {t("viewAllPatients")} →
             </Link>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
             {today.length === 0 ? (
               <EmptyRow
-                title="Nothing scheduled"
-                hint="Encounters appear here as soon as you start a MediScript session."
+                title={t("nothingScheduled")}
+                hint={t("nothingScheduledHint")}
               />
             ) : (
-              today.map((e) => <EncounterRow key={e.id} e={e} />)
+              today.map((e) => (
+                <EncounterRow
+                  key={e.id}
+                  e={e}
+                  encounterFallback={t("encounterFallback")}
+                />
+              ))
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent activity</CardTitle>
-            <CardDescription>Latest 10 audit events</CardDescription>
+            <CardTitle>{t("recentActivity")}</CardTitle>
+            <CardDescription>{t("latestAuditEvents")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
             {activity.length === 0 ? (
               <EmptyRow
-                title="No activity yet"
-                hint="Audit events appear here as you create patients and clinical records."
+                title={t("noActivityYet")}
+                hint={t("noActivityHint")}
               />
             ) : (
-              activity.map((a) => <ActivityRow key={a.id} a={a} />)
+              activity.map((a) => (
+                <ActivityRow
+                  key={a.id}
+                  a={a}
+                  describeActionT={(action: string) => describeAction(action, {
+                    created: t("actionCreated"),
+                    updated: t("actionUpdated"),
+                    viewed: t("actionViewed"),
+                    deleted: t("actionDeleted"),
+                    signedIn: t("actionSignedIn"),
+                    signedOut: t("actionSignedOut"),
+                    signedUp: t("actionSignedUp"),
+                    recorded: t("actionRecorded"),
+                    uploaded: t("actionUploaded"),
+                    signed: t("actionSigned"),
+                  })}
+                  formatTimeT={(d: Date | string) => formatRelativeTime(d, {
+                    justNow: t("timeJustNow"),
+                    mAgo: t("timeMinsAgo"),
+                    hAgo: t("timeHoursAgo"),
+                    dAgo: t("timeDaysAgo"),
+                  })}
+                />
+              ))
             )}
           </CardContent>
         </Card>
@@ -157,9 +193,9 @@ export default async function DashboardHome() {
       <section>
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Clinical modules</h2>
+            <h2 className="text-xl font-bold tracking-tight">{t("clinicalModules")}</h2>
             <p className="text-sm text-[color:var(--color-muted-foreground)]">
-              One brand, four Medical Intelligence systems
+              {t("clinicalModulesTagline")}
             </p>
           </div>
         </div>
@@ -167,35 +203,39 @@ export default async function DashboardHome() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <ModuleCard
             href="/mediscript"
-            title="MediScript"
-            subtitle="Cognitive Clinical Observer"
-            description="Voice → SOAP. Real-time clinical documentation with ICD-11 mapping."
+            title={t("mediscriptTitle")}
+            subtitle={t("mediscriptSubtitle")}
+            description={t("mediscriptDescription")}
             gradient="from-cyan-500/20 to-purple-500/20"
             pending={stats.pendingPrescriptions}
+            pendingLabel={t("pendingLabel")}
           />
           <ModuleCard
             href="/pharmax"
-            title="PharmaX"
-            subtitle="Pharmacokinetic Guard"
-            description="Evidence-based drug safety. RxNorm + OpenFDA + AI clinical reasoning."
+            title={t("pharmaxTitle")}
+            subtitle={t("pharmaxSubtitle")}
+            description={t("pharmaxDescription")}
             gradient="from-pink-500/20 to-orange-500/20"
             pending={stats.criticalAlerts}
+            pendingLabel={t("pendingLabel")}
           />
           <ModuleCard
             href="/medilab"
-            title="MediLab"
-            subtitle="Biomarker Narrative"
-            description="Personalised lab interpretation with trend analysis and patient education."
+            title={t("medilabTitle")}
+            subtitle={t("medilabSubtitle")}
+            description={t("medilabDescription")}
             gradient="from-blue-500/20 to-teal-500/20"
             pending={0}
+            pendingLabel={t("pendingLabel")}
           />
           <ModuleCard
             href="/mediscan"
-            title="MediScan"
-            subtitle="Vision Intelligence"
-            description="Intelligent X-ray, CT, MRI and ultrasound analysis with radiologist disclaimer."
+            title={t("mediscanTitle")}
+            subtitle={t("mediscanSubtitle")}
+            description={t("mediscanDescription")}
             gradient="from-purple-500/20 to-pink-500/20"
             pending={0}
+            pendingLabel={t("pendingLabel")}
           />
         </div>
       </section>
@@ -260,6 +300,7 @@ interface ModuleCardProps {
   description: string;
   gradient: string;
   pending: number;
+  pendingLabel: string;
 }
 
 function ModuleCard({
@@ -269,6 +310,7 @@ function ModuleCard({
   description,
   gradient,
   pending,
+  pendingLabel,
 }: ModuleCardProps) {
   return (
     <Link href={href} className="group">
@@ -299,7 +341,7 @@ function ModuleCard({
               <span className="font-bold text-[color:var(--color-foreground)] tabular-nums">
                 {pending}
               </span>{" "}
-              pending
+              {pendingLabel}
             </span>
             <ArrowRight className="size-4 text-[color:var(--color-muted-foreground)] transition-transform group-hover:translate-x-1" />
           </div>
@@ -309,7 +351,13 @@ function ModuleCard({
   );
 }
 
-function EncounterRow({ e }: { e: TodayEncounterItem }) {
+function EncounterRow({
+  e,
+  encounterFallback,
+}: {
+  e: TodayEncounterItem;
+  encounterFallback: string;
+}) {
   const fullName = `${e.patientFirstName} ${e.patientLastName}`;
   const time = new Date(e.encounterDate).toLocaleTimeString("en-GB", {
     hour: "2-digit",
@@ -337,7 +385,7 @@ function EncounterRow({ e }: { e: TodayEncounterItem }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold">{fullName}</div>
         <div className="text-[11px] text-[color:var(--color-muted-foreground)]">
-          {e.encounterType ?? "encounter"} · {time} ·{" "}
+          {e.encounterType ?? encounterFallback} · {time} ·{" "}
           <span className="font-mono">{formatPatientId(e.patientId)}</span>
         </div>
       </div>
@@ -348,9 +396,17 @@ function EncounterRow({ e }: { e: TodayEncounterItem }) {
   );
 }
 
-function ActivityRow({ a }: { a: RecentActivityItem }) {
-  const relativeTime = formatRelativeTime(a.createdAt);
-  const verb = describeAction(a.action);
+function ActivityRow({
+  a,
+  describeActionT,
+  formatTimeT,
+}: {
+  a: RecentActivityItem;
+  describeActionT: (action: string) => string;
+  formatTimeT: (d: Date | string) => string;
+}) {
+  const relativeTime = formatTimeT(a.createdAt);
+  const verb = describeActionT(a.action);
   return (
     <div className="flex items-start gap-3 rounded-xl px-2 py-2">
       <div className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[color:var(--color-brand-pink)]" />
@@ -381,44 +437,63 @@ function EmptyRow({ title, hint }: { title: string; hint: string }) {
   );
 }
 
-function describeAction(action: string): string {
-  // turn "patient.create" → "Created patient"
+interface ActionVerbs {
+  created: string;
+  updated: string;
+  viewed: string;
+  deleted: string;
+  signedIn: string;
+  signedOut: string;
+  signedUp: string;
+  recorded: string;
+  uploaded: string;
+  signed: string;
+}
+
+function describeAction(action: string, verbs: ActionVerbs): string {
   const [resource, verb] = action.split(".");
   const verbWord =
     verb === "create"
-      ? "Created"
+      ? verbs.created
       : verb === "update"
-        ? "Updated"
+        ? verbs.updated
         : verb === "view"
-          ? "Viewed"
+          ? verbs.viewed
           : verb === "delete"
-            ? "Deleted"
+            ? verbs.deleted
             : verb === "signin"
-              ? "Signed in"
+              ? verbs.signedIn
               : verb === "signout"
-                ? "Signed out"
+                ? verbs.signedOut
                 : verb === "signup"
-                  ? "Signed up"
+                  ? verbs.signedUp
                   : verb === "record"
-                    ? "Recorded"
+                    ? verbs.recorded
                     : verb === "upload"
-                      ? "Uploaded"
+                      ? verbs.uploaded
                       : verb === "sign"
-                        ? "Signed"
+                        ? verbs.signed
                         : action;
   return resource ? `${verbWord} ${resource.replace("_", " ")}` : verbWord;
 }
 
-function formatRelativeTime(d: Date | string): string {
+interface RelativeTimeLabels {
+  justNow: string;
+  mAgo: string;
+  hAgo: string;
+  dAgo: string;
+}
+
+function formatRelativeTime(d: Date | string, labels: RelativeTimeLabels): string {
   const date = new Date(d);
   const diffMs = Date.now() - date.getTime();
   const diffSec = Math.round(diffMs / 1000);
-  if (diffSec < 60) return "just now";
+  if (diffSec < 60) return labels.justNow;
   const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) return labels.mAgo.replace("{count}", String(diffMin));
   const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffHr < 24) return labels.hAgo.replace("{count}", String(diffHr));
   const diffDay = Math.round(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffDay < 7) return labels.dAgo.replace("{count}", String(diffDay));
   return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 }

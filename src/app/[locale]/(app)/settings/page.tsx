@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, KeyRound, Monitor, Settings, User } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -15,9 +16,11 @@ import { PreferencesTab } from "./_components/preferences-tab";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const metadata = {
-  title: "Settings",
-};
+
+export async function generateMetadata() {
+  const t = await getTranslations("Settings");
+  return { title: t("title") };
+}
 
 export default async function SettingsPage() {
   const session = await requireSession();
@@ -25,6 +28,8 @@ export default async function SettingsPage() {
 
   const user = await getUserById(session.user.id);
   if (!user) redirect("/login");
+
+  const t = await getTranslations("Settings");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6 lg:p-8">
@@ -34,11 +39,11 @@ export default async function SettingsPage() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Dashboard
+          {t("dashboard")}
         </Link>
-        <h1 className="mt-2 text-3xl font-black tracking-tight">Settings</h1>
+        <h1 className="mt-2 text-3xl font-black tracking-tight">{t("title")}</h1>
         <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-          Manage your profile, security, sessions, and preferences.
+          {t("description")}
         </p>
       </div>
 
@@ -46,19 +51,19 @@ export default async function SettingsPage() {
         <TabsList className="overflow-x-auto">
           <TabsTrigger value="profile">
             <User className="size-3.5" />
-            Profile
+            {t("profile")}
           </TabsTrigger>
           <TabsTrigger value="security">
             <KeyRound className="size-3.5" />
-            Security
+            {t("security")}
           </TabsTrigger>
           <TabsTrigger value="sessions">
             <Monitor className="size-3.5" />
-            Sessions
+            {t("sessions")}
           </TabsTrigger>
           <TabsTrigger value="preferences">
             <Settings className="size-3.5" />
-            Preferences
+            {t("preferences")}
           </TabsTrigger>
         </TabsList>
 

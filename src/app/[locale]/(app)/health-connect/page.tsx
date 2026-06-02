@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import {
   Watch,
   Heart,
@@ -42,6 +43,7 @@ const demoDevices = [
 ];
 
 export default function HealthConnectPage() {
+  const t = useTranslations("GoogleHealth");
   return (
     <div className="space-y-6 p-6 md:p-8">
       {/* Header */}
@@ -51,21 +53,21 @@ export default function HealthConnectPage() {
             <Watch className="size-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Health Connect</h1>
+            <h1 className="text-2xl font-bold">{t("healthConnect")}</h1>
             <p className="text-sm text-[color:var(--color-muted-foreground)]">
-              Wearable device data & continuous patient monitoring
+              {t("wearableDevices")}
             </p>
           </div>
         </div>
         <button className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
           <Plus className="size-4" />
-          Connect Device
+          {t("connectDevice")}
         </button>
       </div>
 
       {/* Connected Devices */}
       <div className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-5">
-        <h2 className="mb-4 text-sm font-semibold">Connected Devices</h2>
+        <h2 className="mb-4 text-sm font-semibold">{t("connectedDevices")}</h2>
         <div className="space-y-3">
           {demoDevices.map((device) => (
             <div
@@ -161,7 +163,7 @@ export default function HealthConnectPage() {
         <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/5 p-5">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-yellow-700">
             <AlertTriangle className="size-4" />
-            Health Alerts
+            {t("healthAlerts")}
           </h2>
           <div className="space-y-2">
             {demoAlerts.map((alert, idx) => (
@@ -177,7 +179,7 @@ export default function HealthConnectPage() {
       {/* Pre-visit Summary */}
       <div className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">7-Day Pre-Visit Health Summary</h2>
+          <h2 className="text-sm font-semibold">{t("preVisitSummary")}</h2>
           <button className="flex items-center gap-1.5 rounded-lg border border-[color:var(--color-border)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[color:var(--color-muted)]/50">
             <RefreshCw className="size-3" />
             Refresh

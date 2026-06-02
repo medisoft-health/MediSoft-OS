@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Beaker, Plus, Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import {
   Card,
@@ -34,6 +35,9 @@ export const metadata = {
 };
 
 export default async function MedilabPage() {
+  const t = await getTranslations("MediLab");
+  const tNav = await getTranslations("Nav");
+
   const [recent, counts] = await Promise.all([
     listRecentLabs(15),
     countLabsByCriticalFlag(),
@@ -47,25 +51,24 @@ export default async function MedilabPage() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)]"
         >
           <ArrowLeft className="size-3.5" />
-          Dashboard
+          {tNav("dashboard")}
         </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-              Biomarker Narrative
+              {t("tagline")}
             </div>
             <h1 className="mt-1 text-3xl font-black tracking-tight">
               <ModuleLogo module="medilab" height={40} />
             </h1>
             <p className="mt-1 max-w-xl text-sm text-[color:var(--color-muted-foreground)]">
-              Curated reference ranges, automatic flagging, and a intelligence-generated
-              narrative aimed at the audience you choose — physician or patient.
+              {t("description")}
             </p>
           </div>
           <Link href="/medilab/new">
             <Button variant="brand" size="md">
               <Plus className="size-4" />
-              New result
+              {t("newResult")}
             </Button>
           </Link>
         </div>
@@ -75,7 +78,7 @@ export default async function MedilabPage() {
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-5">
-            <div className="text-xs text-[color:var(--color-muted-foreground)]">Total results</div>
+            <div className="text-xs text-[color:var(--color-muted-foreground)]">{t("totalResults")}</div>
             <div className="mt-1.5 text-3xl font-black tabular-nums tracking-tight">
               {counts.total.toLocaleString()}
             </div>
@@ -83,7 +86,7 @@ export default async function MedilabPage() {
         </Card>
         <Card>
           <CardContent className="p-5">
-            <div className="text-xs text-[color:var(--color-muted-foreground)]">With critical flags</div>
+            <div className="text-xs text-[color:var(--color-muted-foreground)]">{t("withCriticalFlags")}</div>
             <div className="mt-1.5 text-3xl font-black tabular-nums tracking-tight">
               {counts.withCritical.toLocaleString()}
             </div>
@@ -91,7 +94,7 @@ export default async function MedilabPage() {
         </Card>
         <Card>
           <CardContent className="p-5">
-            <div className="text-xs text-[color:var(--color-muted-foreground)]">Critical rate</div>
+            <div className="text-xs text-[color:var(--color-muted-foreground)]">{t("criticalRate")}</div>
             <div className="mt-1.5 text-3xl font-black tabular-nums tracking-tight">
               {counts.total > 0
                 ? `${Math.round((counts.withCritical / counts.total) * 100)}%`
@@ -112,17 +115,16 @@ export default async function MedilabPage() {
               </div>
               <div>
                 <h2 className="text-lg font-bold tracking-tight">
-                  Record a lab result
+                  {t("recordLabResult")}
                 </h2>
                 <p className="mt-1 max-w-lg text-sm text-[color:var(--color-muted-foreground)]">
-                  Pick a curated panel, type each value, watch the flags appear
-                  live, save with one click.
+                  {t("recordLabResultDescription")}
                 </p>
               </div>
             </div>
             <Link href="/medilab/new">
               <Button variant="brand" size="lg">
-                Begin <Sparkles className="size-4" />
+                {t("begin")} <Sparkles className="size-4" />
               </Button>
             </Link>
           </div>
@@ -132,11 +134,11 @@ export default async function MedilabPage() {
       {/* Recent */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent results</CardTitle>
+          <CardTitle className="text-base">{t("recentResults")}</CardTitle>
           <CardDescription>
             {counts.total === 0
-              ? "Nothing recorded yet — saved lab panels will appear here."
-              : `${counts.total.toLocaleString()} panel${counts.total === 1 ? "" : "s"} in the system`}
+              ? t("emptyDescription")
+              : t("panelsInSystem", { count: counts.total })}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -145,14 +147,13 @@ export default async function MedilabPage() {
               <div className="grid size-14 place-items-center rounded-2xl bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]">
                 <Beaker className="size-6" />
               </div>
-              <p className="text-sm font-semibold">No lab results yet</p>
+              <p className="text-sm font-semibold">{t("noLabResultsYet")}</p>
               <p className="max-w-md text-xs text-[color:var(--color-muted-foreground)]">
-                Add the first panel — MediLab will flag abnormal values and can
-                generate a dual-audience narrative.
+                {t("emptyHint")}
               </p>
               <Link href="/medilab/new">
                 <Button variant="brand" size="sm">
-                  Add the first result
+                  {t("addFirstResult")}
                 </Button>
               </Link>
             </div>
@@ -160,11 +161,11 @@ export default async function MedilabPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Panel</TableHead>
-                  <TableHead>Lab</TableHead>
-                  <TableHead>Physician</TableHead>
+                  <TableHead>{t("tableDate")}</TableHead>
+                  <TableHead>{t("tablePatient")}</TableHead>
+                  <TableHead>{t("tablePanel")}</TableHead>
+                  <TableHead>{t("tableLab")}</TableHead>
+                  <TableHead>{t("tablePhysician")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Calendar,
   Clock,
@@ -55,6 +56,7 @@ type Message = {
 
 // ─── Component ──────────────────────────────────────────────────
 export default function PatientPortalPage() {
+  const t = useTranslations("PatientPortal");
   const [activeTab, setActiveTab] = useState<"appointments" | "results" | "medications" | "messages">("appointments");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -162,21 +164,21 @@ export default function PatientPortalPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Patient Portal</h1>
-          <p className="text-sm text-gray-400 mt-1">Manage your appointments, results, medications & messages</p>
+          <h1 className="text-2xl font-bold text-white">{t("title")}</h1>
+          <p className="text-sm text-gray-400 mt-1">{t("subtitle")}</p>
         </div>
         <button onClick={() => { fetchAppointments(); fetchMessages(); }} className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg text-gray-300 hover:bg-gray-700 text-sm">
-          <RefreshCw className="w-4 h-4" /> Refresh
+          <RefreshCw className="w-4 h-4" /> {t("refresh")}
         </button>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-900 p-1 rounded-xl">
         {[
-          { key: "appointments", icon: Calendar, label: "Appointments" },
-          { key: "results", icon: FileText, label: "Lab Results" },
-          { key: "medications", icon: Pill, label: "Medications" },
-          { key: "messages", icon: MessageCircle, label: "Messages" },
+          { key: "appointments", icon: Calendar, label: t("myAppointments") },
+          { key: "results", icon: FileText, label: t("myLabResults") },
+          { key: "medications", icon: Pill, label: t("medications") },
+          { key: "messages", icon: MessageCircle, label: t("messages") },
         ].map(({ key, icon: Icon, label }) => (
           <button
             key={key}
@@ -193,7 +195,7 @@ export default function PatientPortalPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <span className="ml-3 text-gray-400">Loading data from server...</span>
+          <span className="ml-3 text-gray-400">{t("loadingData")}</span>
         </div>
       ) : (
         <>
@@ -201,28 +203,28 @@ export default function PatientPortalPage() {
           {activeTab === "appointments" && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-white">Your Appointments</h2>
+                <h2 className="text-lg font-semibold text-white">{t("yourAppointments")}</h2>
                 <button onClick={() => setBookingOpen(!bookingOpen)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                  <Plus className="w-4 h-4" /> Book Appointment
+                  <Plus className="w-4 h-4" /> {t("bookAppointment")}
                 </button>
               </div>
 
               {/* Booking Form */}
               {bookingOpen && (
                 <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
-                  <h3 className="text-white font-medium">New Appointment</h3>
+                  <h3 className="text-white font-medium">{t("newAppointment")}</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <input type="date" value={bookingData.date} onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })} className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm" />
                     <input type="time" value={bookingData.time} onChange={(e) => setBookingData({ ...bookingData, time: e.target.value })} className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm" />
                   </div>
-                  <input type="text" placeholder="Reason for visit..." value={bookingData.reason} onChange={(e) => setBookingData({ ...bookingData, reason: e.target.value })} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm" />
+                  <input type="text" placeholder={t("reasonForVisit")} value={bookingData.reason} onChange={(e) => setBookingData({ ...bookingData, reason: e.target.value })} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm" />
                   <select value={bookingData.type} onChange={(e) => setBookingData({ ...bookingData, type: e.target.value })} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm">
                     <option value="consultation">Consultation</option>
                     <option value="follow_up">Follow-up</option>
                     <option value="procedure">Procedure</option>
                     <option value="video">Video Call</option>
                   </select>
-                  <button onClick={handleBookAppointment} className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">Confirm Booking</button>
+                  <button onClick={handleBookAppointment} className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">{t("confirmBooking")}</button>
                 </div>
               )}
 
@@ -230,8 +232,8 @@ export default function PatientPortalPage() {
               {appointments.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No upcoming appointments</p>
-                  <p className="text-sm mt-1">Book a new appointment to get started</p>
+                  <p>{t("noUpcomingAppointments")}</p>
+                  <p className="text-sm mt-1">{t("bookNewHint")}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -255,7 +257,7 @@ export default function PatientPortalPage() {
                           {appt.status}
                         </span>
                         {appt.status === "scheduled" && (
-                          <button onClick={() => handleCancelAppointment(appt.id)} className="px-2 py-1 text-xs text-red-400 hover:bg-red-900/20 rounded">Cancel</button>
+                          <button onClick={() => handleCancelAppointment(appt.id)} className="px-2 py-1 text-xs text-red-400 hover:bg-red-900/20 rounded">{t("cancelAppointment")}</button>
                         )}
                       </div>
                     </div>
@@ -268,12 +270,12 @@ export default function PatientPortalPage() {
           {/* Messages Tab */}
           {activeTab === "messages" && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Messages</h2>
+              <h2 className="text-lg font-semibold text-white">{t("messages")}</h2>
               <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
                 {/* Messages List */}
                 <div className="max-h-96 overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">No messages yet. Start a conversation with your doctor.</p>
+                    <p className="text-center text-gray-500 py-8">{t("noMessagesYet")}</p>
                   ) : (
                     messages.map((msg) => (
                       <div key={msg.id} className={`flex ${msg.senderType === "patient" ? "justify-end" : "justify-start"}`}>
@@ -292,7 +294,7 @@ export default function PatientPortalPage() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    placeholder="Type your message..."
+                    placeholder={t("typeMessage")}
                     className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
                   />
                   <button onClick={handleSendMessage} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -306,12 +308,12 @@ export default function PatientPortalPage() {
           {/* Lab Results Tab */}
           {activeTab === "results" && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Lab Results</h2>
-              <p className="text-sm text-gray-400">Lab results are fetched from the MediLab module. Visit MediLab for detailed analysis.</p>
+              <h2 className="text-lg font-semibold text-white">{t("myLabResults")}</h2>
+              <p className="text-sm text-gray-400">{t("labResultsConnected")}</p>
               <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 text-center">
                 <FileText className="w-12 h-12 mx-auto text-blue-400 mb-3" />
-                <p className="text-white font-medium">Connected to MediLab</p>
-                <p className="text-sm text-gray-400 mt-1">Your lab results are automatically synced from the MediLab module</p>
+                <p className="text-white font-medium">{t("connectedToMediLab")}</p>
+                <p className="text-sm text-gray-400 mt-1">{t("labResultsSynced")}</p>
                 <a href="/medilab" className="inline-flex items-center gap-1 mt-3 text-blue-400 hover:text-blue-300 text-sm">
                   View in MediLab <ChevronRight className="w-4 h-4" />
                 </a>
@@ -322,12 +324,12 @@ export default function PatientPortalPage() {
           {/* Medications Tab */}
           {activeTab === "medications" && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Active Medications</h2>
-              <p className="text-sm text-gray-400">Medication data is synced from PharmaX prescriptions.</p>
+              <h2 className="text-lg font-semibold text-white">{t("activeMedications")}</h2>
+              <p className="text-sm text-gray-400">{t("medsConnected")}</p>
               <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 text-center">
                 <Pill className="w-12 h-12 mx-auto text-green-400 mb-3" />
-                <p className="text-white font-medium">Connected to PharmaX</p>
-                <p className="text-sm text-gray-400 mt-1">Your medications and reminders are managed by the PharmaX module</p>
+                <p className="text-white font-medium">{t("connectedToPharmaX")}</p>
+                <p className="text-sm text-gray-400 mt-1">{t("medsSynced")}</p>
                 <a href="/pharmax" className="inline-flex items-center gap-1 mt-3 text-green-400 hover:text-green-300 text-sm">
                   View in PharmaX <ChevronRight className="w-4 h-4" />
                 </a>

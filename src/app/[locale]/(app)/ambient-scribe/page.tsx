@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Radio,
   Mic,
@@ -26,6 +27,7 @@ import {
 
 // ─── Component ───────────────────────────────────────────────────
 export default function AmbientScribePage() {
+  const t = useTranslations("AIAgents");
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -97,9 +99,9 @@ export default function AmbientScribePage() {
   };
 
   const tabs = [
-    { id: "scribe" as const, label: "Ambient Scribe", icon: Radio },
-    { id: "notes" as const, label: "Generated Notes", icon: FileText },
-    { id: "settings" as const, label: "Settings", icon: Settings },
+    { id: "scribe" as const, label: t("ambientScribe"), icon: Radio },
+    { id: "notes" as const, label: t("generatedNotes"), icon: FileText },
+    { id: "settings" as const, label: t("settingsTab"), icon: Settings },
   ];
 
   return (
@@ -109,17 +111,17 @@ export default function AmbientScribePage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Radio className="h-7 w-7 text-violet-600" />
-            Ambient Scribe
+            {t("ambientScribe")}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Continuous AI listening — automatically documents the entire consultation without pressing any button
+            {t("ambientScribeDesc")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {isRecording && (
             <span className="flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700">
               <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              Recording
+              {t("recording")}
             </span>
           )}
         </div>
@@ -153,7 +155,7 @@ export default function AmbientScribePage() {
               <div className="mb-6">
                 <p className="text-4xl font-mono font-bold text-gray-900">{formatTime(elapsedTime)}</p>
                 <p className="text-sm text-gray-500 mt-1">
-                  {isRecording ? (isPaused ? "Paused" : "Recording consultation...") : "Ready to start"}
+                  {isRecording ? (isPaused ? t("paused") : t("recordingConsultation")) : t("readyToStart")}
                 </p>
               </div>
 
@@ -182,7 +184,7 @@ export default function AmbientScribePage() {
                     className="flex items-center gap-3 rounded-2xl bg-violet-600 px-8 py-4 text-white hover:bg-violet-700 transition-all shadow-lg hover:shadow-xl"
                   >
                     <Mic className="h-6 w-6" />
-                    <span className="text-lg font-medium">Start Ambient Recording</span>
+                    <span className="text-lg font-medium">{t("startAmbientRecording")}</span>
                   </button>
                 ) : (
                   <>

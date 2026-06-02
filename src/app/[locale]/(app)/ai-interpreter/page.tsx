@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Languages,
   Mic,
@@ -45,6 +46,7 @@ const LANGUAGES = [
 ];
 
 export default function AIInterpreterPage() {
+  const t = useTranslations("AIAgents");
   const [activeTab, setActiveTab] = useState<"translate" | "live" | "history" | "phrases">("translate");
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("ar");
@@ -117,10 +119,10 @@ export default function AIInterpreterPage() {
   const getLangFlag = (code: string) => LANGUAGES.find((l) => l.code === code)?.flag || "🌐";
 
   const tabs = [
-    { id: "translate" as const, label: "Text Translation", icon: Languages },
-    { id: "live" as const, label: "Live Interpretation", icon: Mic },
-    { id: "history" as const, label: "History", icon: History },
-    { id: "phrases" as const, label: "Medical Phrases", icon: FileText },
+    { id: "translate" as const, label: t("textTranslation"), icon: Languages },
+    { id: "live" as const, label: t("liveInterpretation"), icon: Mic },
+    { id: "history" as const, label: t("translationHistory"), icon: History },
+    { id: "phrases" as const, label: t("medicalPhrases"), icon: FileText },
   ];
 
   return (
@@ -130,10 +132,10 @@ export default function AIInterpreterPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Languages className="h-7 w-7 text-indigo-600" />
-            AI Medical Interpreter
+            {t("aiInterpreter")}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Real-time medical translation — 20 languages with clinical terminology accuracy
+            {t("aiInterpreterDesc")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -141,12 +143,12 @@ export default function AIInterpreterPage() {
             <input type="checkbox" checked={medicalMode} onChange={(e) => setMedicalMode(e.target.checked)}
               className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
             <span className="text-sm text-gray-600 flex items-center gap-1">
-              <Stethoscope className="h-3.5 w-3.5" /> Medical Mode
+              <Stethoscope className="h-3.5 w-3.5" /> {t("medicalMode")}
             </span>
           </label>
           <span className="rounded-full bg-indigo-100 px-3 py-1.5 text-xs font-medium text-indigo-700">
             <Globe2 className="inline h-3 w-3 mr-1" />
-            20 Languages
+            {t("twentyLanguages")}
           </span>
         </div>
       </div>
@@ -206,7 +208,7 @@ export default function AIInterpreterPage() {
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Type or speak the text to translate..."
+                placeholder={t("typeOrSpeak")}
                 className="w-full p-4 text-sm focus:outline-none min-h-[200px] resize-none"
                 dir={["ar", "ur", "fa"].includes(sourceLang) ? "rtl" : "ltr"}
               />
@@ -230,12 +232,12 @@ export default function AIInterpreterPage() {
                 {translating ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-                    <span className="ml-2 text-sm text-indigo-500">Translating...</span>
+                    <span className="ml-2 text-sm text-indigo-500">{t("translatingStatus")}</span>
                   </div>
                 ) : translatedText ? (
                   <p className="text-sm text-indigo-900">{translatedText}</p>
                 ) : (
-                  <p className="text-sm text-indigo-400 italic">Translation will appear here...</p>
+                  <p className="text-sm text-indigo-400 italic">{t("translationPlaceholder")}</p>
                 )}
               </div>
             </div>
@@ -245,12 +247,12 @@ export default function AIInterpreterPage() {
             <button onClick={handleTranslate} disabled={translating || !inputText.trim()}
               className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
               {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-              {translating ? "Translating..." : "Translate"}
+              {translating ? t("translatingStatus") : t("translateBtn")}
             </button>
             {medicalMode && (
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <Stethoscope className="h-3.5 w-3.5" />
-                Medical terminology mode active — ensures clinical accuracy
+                {t("medicalModeActive")}
               </div>
             )}
           </div>
@@ -267,23 +269,23 @@ export default function AIInterpreterPage() {
               {isListening ? <MicOff className="h-12 w-12 text-red-600" /> : <Mic className="h-12 w-12 text-indigo-600" />}
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {isListening ? "Listening... Speak now" : "Live Medical Interpretation"}
+              {isListening ? t("listeningNow") : t("liveInterpretation")}
             </h2>
             <p className="text-sm text-gray-500 mb-6">
               {isListening
-                ? "The AI is listening and translating in real-time. Both parties can speak."
-                : "Start a live interpretation session between doctor and patient in different languages."}
+                ? t("listeningDesc")
+                : t("liveSessionDesc")}
             </p>
             <button onClick={() => setIsListening(!isListening)}
               className={`rounded-xl px-8 py-3 text-sm font-medium transition-all ${
                 isListening ? "bg-red-600 text-white hover:bg-red-700" : "bg-indigo-600 text-white hover:bg-indigo-700"
               }`}>
-              {isListening ? "Stop Session" : "Start Live Session"}
+              {isListening ? t("stopSession") : t("startLiveSession")}
             </button>
           </div>
 
           <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-900 mb-4">How Live Interpretation Works</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t("howLiveWorks")}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
                 { icon: Mic, title: "1. Doctor Speaks", desc: "AI captures and identifies the language" },
@@ -307,7 +309,7 @@ export default function AIInterpreterPage() {
       {activeTab === "history" && (
         <div className="rounded-xl border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Translation History (from Database)</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{t("translationHistory")}</h3>
             <button onClick={fetchHistory} className="p-2 rounded-lg border hover:bg-gray-50">
               <RefreshCw className="h-4 w-4 text-gray-500" />
             </button>
@@ -332,7 +334,7 @@ export default function AIInterpreterPage() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-gray-500 py-10">No translation history yet. Start translating to build history.</p>
+            <p className="text-center text-gray-500 py-10">{t("noTranslationHistory")}</p>
           )}
         </div>
       )}
@@ -340,8 +342,8 @@ export default function AIInterpreterPage() {
       {/* Medical Phrases Tab */}
       {activeTab === "phrases" && (
         <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Common Medical Phrases</h3>
-          <p className="text-sm text-gray-500 mb-4">Click any phrase to auto-fill the translation panel.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("commonMedicalPhrases")}</h3>
+          <p className="text-sm text-gray-500 mb-4">{t("clickPhraseHint")}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
               { en: "Where does it hurt?", ar: "أين يؤلمك؟", category: "Assessment" },
