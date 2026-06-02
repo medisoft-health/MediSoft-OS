@@ -77,9 +77,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    const locale = (body as Record<string, unknown>)?.locale as string | undefined || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
     const result = await analyzeDrugSafety({
       drugs: parsed.data.drugs,
       patientContext,
+      locale,
     });
     return NextResponse.json(result, {
       headers: { ...rl.headers, "Cache-Control": "private, no-store" },

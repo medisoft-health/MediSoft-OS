@@ -19,6 +19,7 @@ const requestSchema = z.object({
   sessionId: z.string().uuid().optional(),
   mode: z.enum(["physician", "patient"]).default("physician"),
   patientId: z.number().int().positive().optional(),
+  locale: z.string().max(10).optional(),
 });
 
 export async function POST(request: Request) {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
 
   const { message, mode, patientId } = parsed.data;
   let { sessionId } = parsed.data;
+  const locale = parsed.data.locale || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
 
   // Get or create session
   let session;
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
   }
 
   // Chat
-  const result = await chat(message, history, mode as MedibotMode, patientCtx);
+  const result = await chat(message, history, mode as MedibotMode, patientCtx, locale);
 
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 502 });

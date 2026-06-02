@@ -18,6 +18,7 @@ export const maxDuration = 180;
 
 const requestSchema = z.object({
   labResultId: z.string().uuid(),
+  locale: z.string().max(10).optional(),
 });
 
 export async function POST(request: Request) {
@@ -56,13 +57,15 @@ export async function POST(request: Request) {
   // Fetch patient context for medications + conditions
   const ctx = await getPatientFullContext(labRow.patient.id);
 
+  const locale = parsed.data.locale || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
+
   const result = await generateNarrativeReport(currentResults, ctx ? {
     age: ctx.demographics.age,
     sex: ctx.demographics.sex,
     chronicConditions: ctx.demographics.chronicConditions.map((c) => c.description),
     allergies: ctx.demographics.allergies.map((a) => a.substance),
     medications: ctx.activeMedications.map((m) => `${m.drugName} ${m.dose}`),
-  } : undefined);
+  } : undefined, locale);
 
   if (result.kind === "not_configured") {
     return NextResponse.json(

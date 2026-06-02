@@ -112,11 +112,14 @@ function buildPatientContext(ctx: PatientFullContext): string {
 // Core chat function
 // ─────────────────────────────────────────────────────────────────
 
+const ARABIC_LOCALE_INSTRUCTION = `\n\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.`;
+
 export async function chat(
   userMessage: string,
   history: ChatMessage[],
   mode: MedibotMode,
   patientContext?: PatientFullContext,
+  locale: string = "en",
 ): Promise<ChatResponse | { error: string }> {
   if (!isGeminiConfigured()) return { error: "Gemini not configured." };
   const client = getGeminiClient();
@@ -139,7 +142,7 @@ export async function chat(
       model: GEMINI_MODEL,
       contents,
       config: {
-        systemInstruction: systemPrompt + contextBlock,
+        systemInstruction: systemPrompt + contextBlock + (locale === "ar" ? ARABIC_LOCALE_INSTRUCTION : ""),
         temperature: 0.3,
       },
     });

@@ -27,6 +27,8 @@ export type CorrectionOutcome =
   | { kind: "not_configured"; message: string }
   | { kind: "error"; message: string };
 
+const ARABIC_LOCALE_INSTRUCTION = `\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.\n`;
+
 export async function correctTranscript(
   rawTranscript: string,
   patientContext?: {
@@ -34,6 +36,7 @@ export async function correctTranscript(
     knownConditions?: string[];
     patientName?: string;
   },
+  locale: string = "en",
 ): Promise<CorrectionOutcome> {
   if (!isGeminiConfigured()) {
     return { kind: "not_configured", message: "Gemini not configured." };
@@ -45,8 +48,10 @@ export async function correctTranscript(
     ? `\nPatient context:\n- Known medications: ${patientContext.knownMedications?.join(", ") ?? "none"}\n- Known conditions: ${patientContext.knownConditions?.join(", ") ?? "none"}\n- Patient name: ${patientContext.patientName ?? "unknown"}`
     : "";
 
-  const prompt = `You are a medical transcription editor. Correct the following raw transcript from a doctor-patient encounter.
+  const localeInstruction = locale === "ar" ? ARABIC_LOCALE_INSTRUCTION : "";
 
+  const prompt = `You are a medical transcription editor. Correct the following raw transcript from a doctor-patient encounter.
+${localeInstruction}
 RULES:
 1. Fix medical terminology spelling (e.g., "metforman" → "Metformin")
 2. Standardize drug names to proper spelling

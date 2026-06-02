@@ -193,9 +193,12 @@ function buildContextText(ctx: PatientFullContext, symptoms: SymptomInput): stri
 // Main function
 // ─────────────────────────────────────────────────────────────────
 
+const ARABIC_LOCALE_INSTRUCTION = `\n\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.`;
+
 export async function generateDifferentialDiagnosis(
   ctx: PatientFullContext,
   symptoms: SymptomInput,
+  locale: string = "en",
 ): Promise<DDxResult> {
   if (!isGeminiConfigured()) {
     return { kind: "not_configured", message: "Set GOOGLE_GEMINI_API_KEY to enable AI diagnosis." };
@@ -212,7 +215,7 @@ export async function generateDifferentialDiagnosis(
       model: GEMINI_MODEL,
       contents: [{ role: "user", parts: [{ text: `Perform a differential diagnosis based on this patient data:\n\n${contextText}\n\nProvide ranked diagnoses with evidence, recommended tests, and actions.` }] }],
       config: {
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction: SYSTEM_PROMPT + (locale === "ar" ? ARABIC_LOCALE_INSTRUCTION : ""),
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
         temperature: 0.2,

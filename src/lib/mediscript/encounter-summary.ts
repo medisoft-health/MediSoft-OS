@@ -48,9 +48,12 @@ const RESPONSE_SCHEMA: Schema = {
   required: ["clinicalSummary", "clinicalSummaryAr", "patientSummary", "keyFindings", "newDiagnoses", "medicationChanges", "followUpPlan", "warningSignsForPatient"],
 };
 
+const ARABIC_LOCALE_INSTRUCTION = `\n\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.`;
+
 export async function generateEncounterSummary(
   soapNote: Record<string, unknown>,
   patientInfo?: { name?: string; age?: number; sex?: string },
+  locale: string = "en",
 ): Promise<SummaryResult> {
   if (!isGeminiConfigured()) return { kind: "not_configured", message: "Gemini not configured." };
   const client = getGeminiClient();
@@ -81,7 +84,7 @@ Write all Arabic text directly — no Unicode escapes.`;
       model: GEMINI_MODEL,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: "You are a medical summarization AI for MediSoft C-OS. Write concise, accurate summaries. Patient-facing text must be in Arabic.",
+        systemInstruction: "You are a medical summarization AI for MediSoft C-OS. Write concise, accurate summaries. Patient-facing text must be in Arabic." + (locale === "ar" ? ARABIC_LOCALE_INSTRUCTION : ""),
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
         temperature: 0.2,

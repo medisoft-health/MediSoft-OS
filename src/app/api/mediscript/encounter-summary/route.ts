@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const requestSchema = z.object({ encounterId: z.string().uuid() });
+const requestSchema = z.object({ encounterId: z.string().uuid(), locale: z.string().max(10).optional() });
 
 export async function POST(request: Request) {
   const auth = await requireSessionApi();
@@ -31,9 +31,12 @@ export async function POST(request: Request) {
 
   const [patient] = await db.select().from(patients).where(eq(patients.id, encounter.patientId)).limit(1);
 
+  const locale = parsed.data.locale || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
+
   const result = await generateEncounterSummary(
     (encounter.soapNote ?? {}) as Record<string, unknown>,
     patient ? { name: `${patient.firstName} ${patient.lastName}`, age: patient.dateOfBirth ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : undefined, sex: patient.sex ?? undefined } : undefined,
+    locale,
   );
 
   if (result.kind !== "ok") {

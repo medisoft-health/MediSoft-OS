@@ -55,6 +55,8 @@ export async function POST(request: Request) {
     ? new Date().getFullYear() - new Date(row.patient.dateOfBirth).getFullYear()
     : undefined;
 
+  const locale = (body as Record<string, unknown>)?.locale as string | undefined || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
+
   const result = await generateLabNarrative({
     panelName: row.lab.panelName,
     laboratory: row.lab.laboratory,
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
       age,
       sex: row.patient.sex === "male" || row.patient.sex === "female" ? row.patient.sex : undefined,
     },
-  });
+  }, locale);
 
   if (result.kind === "not_configured") {
     return NextResponse.json(

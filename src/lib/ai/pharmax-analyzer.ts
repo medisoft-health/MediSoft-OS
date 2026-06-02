@@ -71,6 +71,7 @@ interface AnalyzerInput {
     allergies?: string[];
     chronicConditions?: string[];
   };
+  locale?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -188,6 +189,7 @@ export async function analyzeDrugSafety(
         interactions,
         fdaLabels,
         patientContext: input.patientContext,
+        locale: input.locale,
       });
       geminiUsed = true;
     } catch (err) {
@@ -264,6 +266,8 @@ function truncate(s: string, n: number): string {
 // ─────────────────────────────────────────────────────────────────
 // Gemini synthesis
 // ─────────────────────────────────────────────────────────────────
+const ARABIC_LOCALE_INSTRUCTION = `\n\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.`;
+
 const GEMINI_SYSTEM = `
 You are PharmaX, a clinical pharmacology assistant for licensed physicians.
 
@@ -290,6 +294,7 @@ async function runGeminiSynthesis(input: {
   interactions: InteractionItem[];
   fdaLabels: Map<string, OpenFdaLabel | null>;
   patientContext?: AnalyzerInput["patientContext"];
+  locale?: string;
 }): Promise<string | null> {
   const client = getGeminiClient();
   if (!client) return null;
@@ -342,7 +347,7 @@ async function runGeminiSynthesis(input: {
       model: GEMINI_MODEL,
       contents: [{ role: "user", parts: [{ text: lines.join("\n") }] }],
       config: {
-        systemInstruction: GEMINI_SYSTEM,
+        systemInstruction: GEMINI_SYSTEM + (input.locale === "ar" ? ARABIC_LOCALE_INSTRUCTION : ""),
         responseMimeType: "application/json",
         responseSchema: GEMINI_SCHEMA,
         temperature: 0.2,

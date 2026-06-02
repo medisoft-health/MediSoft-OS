@@ -237,6 +237,8 @@ export type NarrativeReportResult =
   | { kind: "not_configured"; message: string }
   | { kind: "error"; message: string };
 
+const ARABIC_LOCALE_INSTRUCTION = `\n\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.`;
+
 export async function generateNarrativeReport(
   results: Array<{
     testName: string;
@@ -253,6 +255,7 @@ export async function generateNarrativeReport(
     allergies?: string[];
     medications?: string[];
   },
+  locale: string = "en",
 ): Promise<NarrativeReportResult> {
   if (!isGeminiConfigured()) {
     return {
@@ -353,7 +356,7 @@ Instructions:
       model: GEMINI_MODEL,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction: SYSTEM_PROMPT + (locale === "ar" ? ARABIC_LOCALE_INSTRUCTION : ""),
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
         temperature: 0.2,

@@ -14,6 +14,7 @@ import {
 import {
   SOAP_RESPONSE_SCHEMA,
   SOAP_SYSTEM_PROMPT,
+  getSOAPSystemPrompt,
   buildUserPrompt,
 } from "@/lib/mediscript/soap-prompt";
 import { emptySoapNote } from "@/lib/encounter-soap";
@@ -36,6 +37,7 @@ export const maxDuration = 60;
 const requestSchema = z.object({
   transcript: z.string().min(10, "Transcript is too short").max(100_000),
   patientHint: z.string().max(500).optional(),
+  locale: z.string().max(10).optional(),
 });
 
 export async function POST(request: Request) {
@@ -80,6 +82,7 @@ export async function POST(request: Request) {
   }
 
   const { transcript, patientHint } = parsed.data;
+  const locale = parsed.data.locale || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
 
   // ── Gemini call ─────────────────────────────────────────────────
   let rawJson: string;
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
       model: GEMINI_MODEL,
       contents: [{ role: "user", parts: [{ text: buildUserPrompt(transcript, patientHint) }] }],
       config: {
-        systemInstruction: SOAP_SYSTEM_PROMPT,
+        systemInstruction: getSOAPSystemPrompt(locale),
         responseMimeType: "application/json",
         responseSchema: SOAP_RESPONSE_SCHEMA,
         temperature: 0.2,

@@ -126,13 +126,16 @@ export async function POST(request: Request) {
   const bytes = new Uint8Array(await image.arrayBuffer());
   const base64 = Buffer.from(bytes).toString("base64");
 
+  const localeRaw = (form.get("locale") as string | null)?.trim() || undefined;
+  const locale = localeRaw || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
+
   const result = await analyzeImage({
     imageBase64: base64,
     mimeType: image.type,
     scanType: scanTypeRaw as ScanType,
     bodyPart,
     patient,
-  });
+  }, locale);
 
   if (result.kind === "not_configured") {
     return NextResponse.json(

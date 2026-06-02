@@ -20,6 +20,7 @@ const requestSchema = z.object({
   severity: z.enum(["mild", "moderate", "severe"]).optional(),
   onset: z.enum(["sudden", "gradual"]).optional(),
   additionalNotes: z.string().optional(),
+  locale: z.string().max(10).optional(),
 });
 
 export async function POST(request: Request) {
@@ -47,13 +48,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Patient not found." }, { status: 404 });
   }
 
+  const locale = parsed.data.locale || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
+
   const result = await generateDifferentialDiagnosis(ctx, {
     symptoms: parsed.data.symptoms,
     duration: parsed.data.duration,
     severity: parsed.data.severity,
     onset: parsed.data.onset,
     additionalNotes: parsed.data.additionalNotes,
-  });
+  }, locale);
 
   if (result.kind === "not_configured") {
     return NextResponse.json({ error: result.message, reason: "not_configured" }, { status: 503 });

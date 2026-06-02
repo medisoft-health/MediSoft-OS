@@ -11,6 +11,7 @@ export const maxDuration = 60;
 const requestSchema = z.object({
   rawTranscript: z.string().min(10),
   patientId: z.number().int().positive().optional(),
+  locale: z.string().max(10).optional(),
 });
 
 export async function POST(request: Request) {
@@ -39,7 +40,9 @@ export async function POST(request: Request) {
     }
   }
 
-  const result = await correctTranscript(parsed.data.rawTranscript, patientContext);
+  const locale = parsed.data.locale || (request.headers.get("accept-language")?.startsWith("ar") ? "ar" : "en");
+
+  const result = await correctTranscript(parsed.data.rawTranscript, patientContext, locale);
   if (result.kind !== "ok") {
     return NextResponse.json({ error: result.message }, { status: result.kind === "not_configured" ? 503 : 502 });
   }

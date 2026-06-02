@@ -9,7 +9,7 @@ import { Type, type Schema } from "@google/genai";
  * fields the model omits are filled with empty strings server-side.
  */
 
-export const SOAP_SYSTEM_PROMPT = `
+const SOAP_SYSTEM_PROMPT_EN = `
 You are MediScript, a clinical AI scribe trained to convert a doctor-patient
 consultation transcript into a structured SOAP note suitable for inclusion
 in an electronic medical record.
@@ -31,6 +31,15 @@ Core rules:
 7. Return ONLY the JSON object that conforms to the response schema.
    No commentary, no markdown fences, no apology text.
 `.trim();
+
+const ARABIC_INSTRUCTION = `\n\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.`;
+
+export function getSOAPSystemPrompt(locale: string = "en"): string {
+  return locale === "ar" ? SOAP_SYSTEM_PROMPT_EN + ARABIC_INSTRUCTION : SOAP_SYSTEM_PROMPT_EN;
+}
+
+/** @deprecated Use getSOAPSystemPrompt() instead */
+export const SOAP_SYSTEM_PROMPT = SOAP_SYSTEM_PROMPT_EN;
 
 /**
  * Response schema for Gemini structured output. Uses the SDK's `Type`
