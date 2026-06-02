@@ -5,7 +5,7 @@ import {
   extractLabFromImage,
   extractLabFromText,
 } from "@/lib/medilab/extract";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 /**
  * POST /api/medilab/extract
@@ -13,7 +13,7 @@ import * as XLSX from "xlsx";
  * Optimized per-type processing:
  *   PDF    → extract text with pdf-parse → send TEXT to Gemini (fast)
  *   Image  → compress with sharp (max 1MB) → send image to Gemini
- *   Excel  → parse with xlsx → map columns directly (NO AI needed)
+ *   Excel  → parse with exceljs → map columns directly (NO AI needed)
  *   CSV    → parse as text → map columns directly (NO AI needed)
  *
  * Key insight: don't send raw binary to Gemini. Extract text first.
@@ -215,17 +215,19 @@ async function handleExcel(
   headers: Record<string, string>,
 ) {
   console.log("[medilab/extract] Excel → parsing directly (no AI)...");
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const workbook = XLSX.read(bytes, { type: "array" });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(arrayBuffer);
+
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
     return NextResponse.json({ error: "Excel has no sheets." }, { status: 400 });
   }
 
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-    workbook.Sheets[sheetName],
-    { defval: "" },
-  );
+  const sheetName = worksheet.name;
+
+  // Convert ExcelJS worksheet to row objects (like xlsx's sheet_to_json)
+  const rows = excelSheetToJson(worksheet);
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "Excel sheet is empty." }, { status: 400 });
@@ -250,7 +252,7 @@ async function handleExcel(
 
   // If direct mapping failed, fall back to sending as text to Gemini
   console.log("[medilab/extract] Direct mapping failed, sending to Gemini...");
-  const textContent = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+  const textContent = excelSheetToCsv(worksheet);
   const geminiResult = await extractLabFromText(textContent);
   if (geminiResult.kind !== "ok") {
     return NextResponse.json(
@@ -277,17 +279,12 @@ async function handleCsv(
     return NextResponse.json({ error: "CSV has no data rows." }, { status: 400 });
   }
 
-  // Parse as XLSX CSV for consistent handling
-  const workbook = XLSX.read(text, { type: "string" });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
+  // Parse CSV into row objects
+  const rows = csvToJson(text);
+
+  if (rows.length === 0) {
     return NextResponse.json({ error: "Could not parse CSV." }, { status: 400 });
   }
-
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-    workbook.Sheets[sheetName],
-    { defval: "" },
-  );
 
   const results = mapRowsToLabResults(rows);
 
@@ -309,6 +306,119 @@ async function handleCsv(
     );
   }
   return NextResponse.json(geminiResult.data, { headers });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ExcelJS helpers: replicate xlsx sheet_to_json / sheet_to_csv
+// ─────────────────────────────────────────────────────────────────
+
+function getCellString(cell: ExcelJS.Cell | undefined): string {
+  if (!cell || cell.value === null || cell.value === undefined) return "";
+  if (typeof cell.value === "object" && "result" in cell.value) {
+    return String((cell.value as { result?: unknown }).result ?? "");
+  }
+  return String(cell.value);
+}
+
+function excelSheetToJson(
+  worksheet: ExcelJS.Worksheet,
+): Record<string, unknown>[] {
+  const rows: Record<string, unknown>[] = [];
+  const headerRow = worksheet.getRow(1);
+  const headers: string[] = [];
+
+  headerRow.eachCell((cell, colNumber) => {
+    headers[colNumber - 1] = getCellString(cell) || `col_${colNumber}`;
+  });
+
+  if (headers.length === 0) return [];
+
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const rowData: Record<string, unknown> = {};
+    let hasData = false;
+    headers.forEach((header, idx) => {
+      const cell = row.getCell(idx + 1);
+      const val = getCellString(cell);
+      rowData[header] = val;
+      if (val) hasData = true;
+    });
+    if (hasData) rows.push(rowData);
+  });
+
+  return rows;
+}
+
+function excelSheetToCsv(worksheet: ExcelJS.Worksheet): string {
+  const lines: string[] = [];
+  worksheet.eachRow((row) => {
+    const cells: string[] = [];
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      const val = getCellString(cell);
+      // Escape CSV values that contain commas or quotes
+      if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+        cells.push(`"${val.replace(/"/g, '""')}"`);
+      } else {
+        cells.push(val);
+      }
+    });
+    lines.push(cells.join(","));
+  });
+  return lines.join("\n");
+}
+
+function csvToJson(text: string): Record<string, unknown>[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return [];
+
+  // Simple CSV parser (handles quoted fields)
+  const parseLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else if (ch === '"') {
+          inQuotes = false;
+        } else {
+          current += ch;
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ",") {
+          result.push(current.trim());
+          current = "";
+        } else {
+          current += ch;
+        }
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseLine(lines[0]);
+  const rows: Record<string, unknown>[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseLine(lines[i]);
+    const row: Record<string, unknown> = {};
+    let hasData = false;
+    headers.forEach((header, idx) => {
+      const val = values[idx] ?? "";
+      row[header] = val;
+      if (val) hasData = true;
+    });
+    if (hasData) rows.push(row);
+  }
+
+  return rows;
 }
 
 // ─────────────────────────────────────────────────────────────────
