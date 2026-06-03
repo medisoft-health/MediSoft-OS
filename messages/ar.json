@@ -735,7 +735,17 @@
     "recommendations": "التوصيات",
     "criticalValues": "القيم الحرجة",
     "pendingResults": "نتائج معلقة",
-    "completedResults": "نتائج مكتملة"
+    "completedResults": "نتائج مكتملة",
+    "viewVisualReport": "عرض التقرير المرئي",
+    "visualReport": "التقرير المرئي",
+    "normalResult": "طبيعي",
+    "borderlineResult": "حدّي",
+    "abnormalResult": "غير طبيعي",
+    "criticalResult": "حرج",
+    "improving": "تحسّن",
+    "stable": "مستقر",
+    "worsening": "تدهور",
+    "printReport": "طباعة التقرير"
   },
   "MediScan": {
     "title": "ميدي سكان",

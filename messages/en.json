@@ -735,7 +735,17 @@
     "recommendations": "Recommendations",
     "criticalValues": "Critical Values",
     "pendingResults": "Pending Results",
-    "completedResults": "Completed Results"
+    "completedResults": "Completed Results",
+    "viewVisualReport": "View Visual Report",
+    "visualReport": "Visual Report",
+    "normalResult": "Normal",
+    "borderlineResult": "Borderline",
+    "abnormalResult": "Abnormal",
+    "criticalResult": "Critical",
+    "improving": "Improving",
+    "stable": "Stable",
+    "worsening": "Worsening",
+    "printReport": "Print Report"
   },
   "MediScan": {
     "title": "MediScan",

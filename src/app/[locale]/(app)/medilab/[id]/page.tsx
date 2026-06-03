@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Beaker,
+  BarChart3,
   CheckCircle2,
   User as UserIcon,
 } from "lucide-react";
@@ -68,9 +69,10 @@ export default async function LabDetailPage({ params }: PageProps) {
   if (!row) notFound();
   const { lab, patient, physician } = row;
 
-  const [session, t] = await Promise.all([
+  const [session, t, tLab] = await Promise.all([
     requireSession(),
     getTranslations("MediLabDetail"),
+    getTranslations("MediLab"),
   ]);
   if (session.ok) {
     void logAudit({
@@ -184,6 +186,13 @@ export default async function LabDetailPage({ params }: PageProps) {
                   LOINC {lab.panelLoincCode}
                 </Badge>
               )}
+              <Link
+                href={`/medilab/${lab.id}/report`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-card)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-foreground)] transition-colors hover:bg-[color:var(--color-muted)]/50"
+              >
+                <BarChart3 className="size-3.5" />
+                {tLab("viewVisualReport")}
+              </Link>
             </div>
           </div>
         </CardHeader>
