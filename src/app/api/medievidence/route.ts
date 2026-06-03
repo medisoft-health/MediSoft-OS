@@ -4,9 +4,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { queryGuidelines, getDrugEvidence, validateTreatmentPlan, GUIDELINE_DATABASE, RECENT_UPDATES } from "@/lib/medievidence";
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const totalGuidelines = Object.values(GUIDELINE_DATABASE).reduce((sum, arr) => sum + arr.length, 0);
   const conditions = Object.keys(GUIDELINE_DATABASE);
   
@@ -34,6 +38,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await request.json();
     const { action } = body;

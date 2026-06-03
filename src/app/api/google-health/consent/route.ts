@@ -22,6 +22,7 @@
  * @see https://docs.cloud.google.com/healthcare-api/docs/concepts/consent
  */
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   createConsent,
   revokeConsent,
@@ -38,6 +39,9 @@ export const runtime = "nodejs";
 
 // ─── GET /api/google-health/consent ──────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const view = searchParams.get("view");
   const patientId = searchParams.get("patientId");
@@ -119,6 +123,9 @@ export async function GET(req: NextRequest) {
 
 // ─── POST /api/google-health/consent ─────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action } = body;

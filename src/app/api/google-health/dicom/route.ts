@@ -12,6 +12,7 @@
  * @see https://cloud.google.com/healthcare-api/docs/how-tos/dicomweb
  */
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   healthcareConfig,
   storeDICOMInstance,
@@ -22,6 +23,9 @@ import {
 // ─── GET /api/google-health/dicom ────────────────────────────────────────────
 // Returns DICOM Store status and capabilities
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     return NextResponse.json({
       status: "active",
@@ -79,6 +83,9 @@ export async function GET() {
 // ─── POST /api/google-health/dicom ───────────────────────────────────────────
 // Actions: store, retrieve, search, metadata
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const contentType = req.headers.get("content-type") || "";
 

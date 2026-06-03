@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { encounters, patients } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -11,6 +12,9 @@ import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // POST /api/ambient-scribe — Process audio transcript and generate clinical notes
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action } = body;
@@ -207,6 +211,9 @@ Respond in JSON:
 
 // GET /api/ambient-scribe — Get scribe sessions/stats
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get("action");

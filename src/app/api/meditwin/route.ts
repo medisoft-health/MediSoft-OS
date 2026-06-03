@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   simulateTreatment,
   simulateRegimen,
@@ -13,6 +14,9 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   return NextResponse.json({
     success: true,
     system: "MediTwin — Patient Digital Twin",
@@ -73,6 +77,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action } = body;

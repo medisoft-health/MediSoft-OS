@@ -13,6 +13,7 @@
  * @see https://developers.google.com/health-ai-developer-foundations/path-foundation
  */
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   analyzePathologyImage,
   screenForMalignancy,
@@ -29,6 +30,9 @@ export const maxDuration = 120;
 
 // ─── GET /api/google-health/path-foundation ──────────────────────────────────
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   return NextResponse.json({
     status: isGeminiConfigured() ? "active" : "not_configured",
     model: "Path Foundation (Gemini 2.5 Pro — Digital Pathology Analysis)",
@@ -85,6 +89,9 @@ export async function GET() {
 
 // ─── POST /api/google-health/path-foundation ─────────────────────────────────
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   if (!isGeminiConfigured()) {
     return NextResponse.json(
       { error: "Path Foundation not configured. Set GOOGLE_GEMINI_API_KEY." },

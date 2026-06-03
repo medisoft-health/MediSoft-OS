@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   getHealthConnectAuthUrl,
   generateHealthSummary,
@@ -10,6 +11,9 @@ import {
  * Returns Health Connect status and OAuth URL
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const patientId = searchParams.get("patientId");
   const action = searchParams.get("action");
@@ -48,6 +52,9 @@ export async function GET(req: NextRequest) {
  * Body: { patientId, accessToken, days? }
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { patientId, accessToken, days = 7 } = body;

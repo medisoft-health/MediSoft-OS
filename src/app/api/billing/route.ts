@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { billingClaims, insuranceProviders, encounters, patients } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -11,6 +12,9 @@ import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // GET /api/billing — List claims or get billing stats
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const patientId = searchParams.get("patientId");
@@ -78,6 +82,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/billing — Create claim or auto-code encounter
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action, encounterId, patientId, physicianId, insuranceProviderId } = body;
@@ -231,6 +238,9 @@ Generate the response in JSON format:
 
 // PATCH /api/billing — Update claim status (physician verification)
 export async function PATCH(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { claimId, action: patchAction, ...updateData } = body;

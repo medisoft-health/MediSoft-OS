@@ -13,6 +13,7 @@
  * @see https://developers.google.com/health-ai-developer-foundations/medsiglip
  */
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   classifyMedicalImage,
   triageMedicalImage,
@@ -26,6 +27,9 @@ export const maxDuration = 60;
 
 // ─── GET /api/google-health/medsiglip ────────────────────────────────────────
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   return NextResponse.json({
     status: isGeminiConfigured() ? "active" : "not_configured",
     model: "MedSigLIP (Gemini 2.5 Pro Vision — Medical Image Classification)",
@@ -76,6 +80,9 @@ export async function GET() {
 
 // ─── POST /api/google-health/medsiglip ───────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   if (!isGeminiConfigured()) {
     return NextResponse.json(
       { error: "MedSigLIP not configured. Set GOOGLE_GEMINI_API_KEY." },

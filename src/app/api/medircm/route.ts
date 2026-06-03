@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   autoCode,
   predictDenial,
@@ -18,6 +19,9 @@ import {
 } from "@/lib/medircm";
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const analytics = getARAnalytics();
   return NextResponse.json({
     service: "MediRCM",
@@ -62,6 +66,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await request.json();
     const { action } = body;

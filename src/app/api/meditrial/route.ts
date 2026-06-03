@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   matchPatientToTrials,
   searchTrialsByCondition,
@@ -14,6 +15,9 @@ import {
 } from "@/lib/meditrial";
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const stats = getTrialStats();
   return NextResponse.json({
     service: "MediTrial",
@@ -58,6 +62,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await request.json();
     const { action } = body;

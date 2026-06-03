@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { healthcareConfig, getFHIRStoreMetadata } from "@/lib/google-health/fhir-client";
 import { getMedGemmaStatus } from "@/lib/google-health/medgemma";
 import { isGeminiConfigured } from "@/lib/ai/gemini";
@@ -9,6 +10,9 @@ import { isGeminiConfigured } from "@/lib/ai/gemini";
  * Includes all Health AI Developer Foundations models
  */
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const medgemma = getMedGemmaStatus();
   const aiConfigured = isGeminiConfigured();
 

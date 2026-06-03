@@ -13,6 +13,7 @@
  * @see https://developers.google.com/health-ai-developer-foundations/medasr
  */
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   transcribeMedicalAudio,
   enhanceMedicalTranscript,
@@ -28,6 +29,9 @@ export const maxDuration = 120; // Audio processing can take time
 
 // ─── GET /api/google-health/medasr ───────────────────────────────────────────
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   return NextResponse.json({
     status: isGeminiConfigured() ? "active" : "not_configured",
     model: "MedASR (Gemini 2.5 Pro Medical ASR)",
@@ -71,6 +75,9 @@ export async function GET() {
 
 // ─── POST /api/google-health/medasr ──────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   if (!isGeminiConfigured()) {
     return NextResponse.json(
       { error: "MedASR not configured. Set GOOGLE_GEMINI_API_KEY." },

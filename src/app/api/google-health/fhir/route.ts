@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   healthcareConfig,
   getFHIRStoreMetadata,
@@ -14,6 +15,9 @@ import {
  * Returns real-time FHIR Store status with live connectivity check
  */
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const metadata = await getFHIRStoreMetadata();
 
@@ -68,6 +72,9 @@ export async function GET() {
  * Perform FHIR operations: sync patient, create resource, search, export
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action, patientId, resourceType, resource, searchParams } = body;

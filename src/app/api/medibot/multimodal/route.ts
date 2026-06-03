@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -112,6 +113,9 @@ interface MultimodalAnalysis {
 }
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   return NextResponse.json({
     success: true,
     system: "Multimodal Clinical Reasoning Engine",
@@ -149,6 +153,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body: MultimodalInput = await req.json();
     const { images, labResults, vitals, clinicalNotes, symptoms, patientContext, clinicalQuestion } = body;

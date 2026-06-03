@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { appointments, communicationLog, patients } from "@/db/schema";
 import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
@@ -18,6 +19,9 @@ const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER;
 
 // GET /api/ai-receptionist — Get receptionist stats and recent interactions
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const period = searchParams.get("period") || "today";
@@ -67,6 +71,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/ai-receptionist — Process incoming message/call
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { channel, fromNumber, message, patientId } = body;

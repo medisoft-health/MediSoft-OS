@@ -4,9 +4,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { processReading, generatePatientInsight, getRecommendedMonitoring, SUPPORTED_DEVICES } from "@/lib/medisense";
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   return NextResponse.json({
     service: "MediSense",
     version: "1.0.0",
@@ -33,6 +37,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await request.json();
     const { action } = body;

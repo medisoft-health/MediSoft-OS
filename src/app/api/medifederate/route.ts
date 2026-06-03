@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   registerNode,
   getRegisteredNodes,
@@ -18,6 +19,9 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const nodes = getRegisteredNodes();
   const history = getTrainingHistory();
 
@@ -65,6 +69,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action } = body;

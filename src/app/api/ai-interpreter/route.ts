@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { translationSessions, patients } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -35,6 +36,9 @@ const SUPPORTED_LANGUAGES: Record<string, string> = {
 
 // GET /api/ai-interpreter — Get translation sessions history
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get("action");
@@ -79,6 +83,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/ai-interpreter — Translate text or manage sessions
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action } = body;

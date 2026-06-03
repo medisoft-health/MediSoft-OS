@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 import { verifyMediBotResponse } from "@/lib/ai/mediguard-medibot";
 
@@ -29,6 +30,9 @@ export const maxDuration = 60;
  * }
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const client = getGeminiClient();
     if (!client) {
@@ -130,6 +134,9 @@ export async function POST(req: NextRequest) {
  * Returns MediBot status with MediGuard integration info
  */
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   const configured = !!getGeminiClient();
   return NextResponse.json({
     status: configured ? "active" : "unconfigured",

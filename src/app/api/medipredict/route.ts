@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   predictDeterioration,
   screenAllPatients,
@@ -18,6 +19,9 @@ import { eq, desc } from "drizzle-orm";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function GET() {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     // Get all patients and their latest vitals for dashboard overview
     const allPatients = await db.select().from(patients);
@@ -145,6 +149,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action, patientId, patientIds } = body;

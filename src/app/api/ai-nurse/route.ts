@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { followUpTasks, patients, prescriptions, encounters, communicationLog } from "@/db/schema";
 import { eq, and, gte, lte, desc, asc, sql } from "drizzle-orm";
@@ -15,6 +16,9 @@ const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
 // GET /api/ai-nurse — Get follow-up tasks, patient adherence stats
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get("action");
@@ -89,6 +93,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/ai-nurse — Create follow-up tasks, send reminders, or run triage
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { action } = body;
@@ -315,6 +322,9 @@ Respond in JSON:
 
 // PATCH /api/ai-nurse — Update task status (patient responded, completed, etc.)
 export async function PATCH(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { taskId, status, patientResponse } = body;
