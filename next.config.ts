@@ -48,7 +48,7 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           { key: "X-Frame-Options", value: "DENY" },
-          // X-Content-Type-Options removed — Nginx already adds it
+          { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
