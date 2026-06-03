@@ -55,7 +55,9 @@ import {
   useGlobalSearch,
 } from "@/components/global-search";
 import { LocaleSwitcher } from "@/components/clinical/locale-switcher";
+import { AdaptiveProvider } from "@/components/ui/adaptive-context";
 import { ModuleLogo, type ModuleKey } from "@/components/brand/module-logo";
+import { ContextSwitcher } from "@/components/ui/context-switcher";
 
 type NavItemDef = {
   href: string;
@@ -119,11 +121,13 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, user }: DashboardLayoutProps) {
   return (
-    <GlobalSearchProvider>
-      <MediBotProvider>
-        <DashboardShell user={user}>{children}</DashboardShell>
-      </MediBotProvider>
-    </GlobalSearchProvider>
+    <AdaptiveProvider>
+      <GlobalSearchProvider>
+        <MediBotProvider>
+          <DashboardShell user={user}>{children}</DashboardShell>
+        </MediBotProvider>
+      </GlobalSearchProvider>
+    </AdaptiveProvider>
   );
 }
 
@@ -227,6 +231,9 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
           </Button>
 
           <SearchTrigger />
+
+          {/* Clinical context mode switcher */}
+          <ContextSwitcher className="hidden md:flex" />
 
           <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
             <LocaleSwitcher />

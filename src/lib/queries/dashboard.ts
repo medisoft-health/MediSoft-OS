@@ -81,11 +81,14 @@ export interface RecentActivityItem {
   patientId: number | null;
   createdAt: Date;
   actorId: string | null;
+  patientFirstName: string | null;
+  patientLastName: string | null;
 }
 
 /**
  * Last N audit-log entries. Used by the dashboard's "Recent activity" feed.
- * Returns the raw audit rows; client-side formatting handles labels.
+ * Joins patient names so the UI can show "Viewed patient Ahmed Mostafa" instead
+ * of the raw "patient · 1" identifier.
  */
 export async function getRecentActivity(limit = 10): Promise<RecentActivityItem[]> {
   const rows = await db
@@ -97,8 +100,11 @@ export async function getRecentActivity(limit = 10): Promise<RecentActivityItem[
       patientId: auditLog.patientId,
       createdAt: auditLog.createdAt,
       actorId: auditLog.actorId,
+      patientFirstName: patients.firstName,
+      patientLastName: patients.lastName,
     })
     .from(auditLog)
+    .leftJoin(patients, eq(auditLog.patientId, patients.id))
     .orderBy(desc(auditLog.createdAt))
     .limit(limit);
   return rows;

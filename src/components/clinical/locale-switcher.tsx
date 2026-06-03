@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useLocale } from "next-intl";
-import { useRouter, usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 
 const LOCALE_LABELS: Record<Locale, string> = {
@@ -21,6 +21,9 @@ const LOCALE_LABELS: Record<Locale, string> = {
 /**
  * Locale toggle for the topbar. Switches between /en/... and /ar/...
  * while preserving the current path.
+ *
+ * Uses next-intl's locale-aware useRouter so the middleware properly
+ * handles the locale cookie and URL rewriting.
  */
 export function LocaleSwitcher() {
   const currentLocale = useLocale() as Locale;
@@ -29,25 +32,7 @@ export function LocaleSwitcher() {
 
   function switchTo(locale: Locale) {
     if (locale === currentLocale) return;
-    // Strip the current locale prefix and prepend the new one.
-    // The middleware's `localePrefix: "as-needed"` means the default
-    // locale (en) may or may not have a prefix. Handle both.
-    let cleanPath = pathname;
-    for (const l of routing.locales) {
-      if (cleanPath.startsWith(`/${l}/`)) {
-        cleanPath = cleanPath.slice(l.length + 1);
-        break;
-      }
-      if (cleanPath === `/${l}`) {
-        cleanPath = "/";
-        break;
-      }
-    }
-    const newPath =
-      locale === routing.defaultLocale
-        ? cleanPath || "/"
-        : `/${locale}${cleanPath || "/"}`;
-    router.replace(newPath);
+    router.replace(pathname, { locale });
   }
 
   return (

@@ -407,6 +407,17 @@ function ActivityRow({
 }) {
   const relativeTime = formatTimeT(a.createdAt);
   const verb = describeActionT(a.action);
+
+  // Show patient name when available, otherwise fall back to resource type + ID
+  const patientName =
+    a.patientFirstName && a.patientLastName
+      ? `${a.patientFirstName} ${a.patientLastName}`
+      : a.patientFirstName || a.patientLastName || null;
+
+  const resourceLabel = patientName
+    ? patientName
+    : `${a.resourceType}${a.resourceId ? ` · ${a.resourceId.slice(0, 8)}` : ""}`;
+
   return (
     <div className="flex items-start gap-3 rounded-xl px-2 py-2">
       <div className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[color:var(--color-brand-pink)]" />
@@ -414,8 +425,7 @@ function ActivityRow({
         <div className="text-sm">
           <span className="font-semibold">{verb}</span>{" "}
           <span className="text-[color:var(--color-muted-foreground)]">
-            {a.resourceType}
-            {a.resourceId ? ` · ${a.resourceId.slice(0, 8)}` : ""}
+            {resourceLabel}
           </span>
         </div>
         <div className="text-[11px] text-[color:var(--color-muted-foreground)]">
