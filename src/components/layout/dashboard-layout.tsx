@@ -32,6 +32,7 @@ import {
   Bell,
   Activity,
   CircleDot,
+  ChevronDown,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,25 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
 // ─────────────────────────────────────────────────────────────────
 // Sidebar content (shared between desktop aside and mobile sheet)
 // ─────────────────────────────────────────────────────────────────
+
+/** Group NAV items into sections for collapsible rendering */
+function groupNavItems(nav: NavItemDef[]) {
+  const sections: { tKey: string | null; items: NavItemDef[] }[] = [];
+  for (const item of nav) {
+    if (item.sectionTKey) {
+      sections.push({ tKey: item.sectionTKey, items: [item] });
+    } else {
+      if (sections.length === 0) {
+        sections.push({ tKey: null, items: [] });
+      }
+      sections[sections.length - 1].items.push(item);
+    }
+  }
+  return sections;
+}
+
+const NAV_SECTIONS = groupNavItems(NAV);
+
 function SidebarContent({
   collapsed,
   pathname,
@@ -270,6 +290,17 @@ function SidebarContent({
   onSignOut: () => void;
   t: ReturnType<typeof useTranslations<"Nav">>;
 }) {
+  const [collapsedSections, setCollapsedSections] = React.useState<Set<string>>(new Set());
+
+  const toggleSection = (key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   return (
     <>
       {/* Brand header */}
@@ -282,82 +313,108 @@ function SidebarContent({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {NAV.map((item, idx) => {
-          const isActive =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          const label = t(item.tKey as Parameters<typeof t>[0]);
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+        {NAV_SECTIONS.map((section, sIdx) => {
+          const sectionKey = section.tKey ?? "__default";
+          const isSectionCollapsed = collapsedSections.has(sectionKey);
+
           return (
-            <React.Fragment key={item.href}>
+            <div key={sectionKey}>
               {/* Section header */}
-              {item.sectionTKey && !collapsed && (
-                <div className={cn("mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]", idx > 0 && "mt-5")}>
-                  {t(item.sectionTKey as Parameters<typeof t>[0])}
+              {section.tKey && (
+                <>
+                  {collapsed ? (
+                    <div className={cn("my-3 h-px bg-[color:var(--color-sidebar-border)]", sIdx === 0 && "mt-0")} />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleSection(sectionKey)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]",
+                        sIdx > 0 && "mt-4",
+                      )}
+                    >
+                      <span>{t(section.tKey as Parameters<typeof t>[0])}</span>
+                      <ChevronDown className={cn("size-3 transition-transform", isSectionCollapsed && "-rotate-90")} />
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Section items */}
+              {(!isSectionCollapsed || collapsed) && (
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const isActive =
+                      item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                    const Icon = item.icon;
+                    const label = t(item.tKey as Parameters<typeof t>[0]);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
+                            : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
+                        )}
+                        title={collapsed ? label : undefined}
+                      >
+                        {isActive && (
+                          <span
+                            aria-hidden
+                            className="absolute -start-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full grad-pink-navy"
+                          />
+                        )}
+                        {collapsed || !item.moduleKey ? (
+                          <Icon className="size-[18px] shrink-0" strokeWidth={2} />
+                        ) : (
+                          <ModuleLogo module={item.moduleKey} height={24} maxWidth={160} sidebarMode className="shrink-0" />
+                        )}
+                        {!collapsed && (
+                          <>
+                            {!item.moduleKey && (
+                              <span className="flex-1 truncate">{label}</span>
+                            )}
+                            {item.moduleKey && <span className="flex-1" />}
+                            {item.ai && (
+                              <Sparkles className="size-3.5 text-[color:var(--color-brand-cyan)]" />
+                            )}
+                            {item.badge && (
+                              <Badge
+                                variant={item.badge.variant}
+                                className="ms-auto px-1.5 py-0 text-[9px]"
+                              >
+                                {item.badge.text}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
-              <Link
-                href={item.href}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
-                    : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
-                )}
-                title={collapsed ? label : undefined}
-              >
-                {isActive && (
-                  <span
-                    aria-hidden
-                    className="absolute -start-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full grad-pink-navy"
-                  />
-                )}
-                {/* Show Lucide icon when collapsed; show brand logo when expanded + moduleKey exists */}
-                {collapsed || !item.moduleKey ? (
-                  <Icon className="size-[18px] shrink-0" strokeWidth={2} />
-                ) : (
-                  <ModuleLogo module={item.moduleKey} height={24} maxWidth={160} sidebarMode className="shrink-0" />
-                )}
-                {!collapsed && (
-                  <>
-                    {/* Hide the text label when showing a module logo — the logo IS the label */}
-                    {!item.moduleKey && (
-                      <span className="flex-1 truncate">{label}</span>
-                    )}
-                    {item.moduleKey && <span className="flex-1" />}
-                    {item.ai && (
-                      <Sparkles className="size-3.5 text-[color:var(--color-brand-cyan)]" />
-                    )}
-                    {item.badge && (
-                      <Badge
-                        variant={item.badge.variant}
-                        className="ms-auto px-1.5 py-0 text-[9px]"
-                      >
-                        {item.badge.text}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </Link>
-            </React.Fragment>
+            </div>
           );
         })}
 
-        {/* Settings — always at the bottom of nav */}
-        {!collapsed && (
-          <Link
-            href="/settings"
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors mt-2",
-              pathname.startsWith("/settings")
-                ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
-                : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
-            )}
-          >
-            <Settings className="size-[18px]" strokeWidth={2} />
-            <span>{t("settings")}</span>
-          </Link>
-        )}
+        {/* Settings — always visible, including when sidebar is collapsed */}
+        <Link
+          href="/settings"
+          className={cn(
+            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors mt-2",
+            pathname.startsWith("/settings")
+              ? "bg-[color:var(--color-brand-pink)]/10 text-[color:var(--color-brand-magenta)]"
+              : "text-[color:var(--color-sidebar-foreground)] hover:bg-[color:var(--color-sidebar-accent)]",
+            collapsed && "justify-center",
+          )}
+          title={collapsed ? t("settings") : undefined}
+        >
+          <Settings className="size-[18px]" strokeWidth={2} />
+          {!collapsed && <span>{t("settings")}</span>}
+        </Link>
       </nav>
 
       {/* Upgrade card */}
@@ -367,9 +424,12 @@ function SidebarContent({
           <div className="font-[family-name:var(--font-script)] text-xl">
             {t("upgradePro")}
           </div>
-          <button className="mt-3 w-full rounded-lg bg-white/20 py-1.5 text-xs font-semibold backdrop-blur transition-colors hover:bg-white/30">
+          <Link
+            href="/settings"
+            className="mt-3 flex w-full items-center justify-center rounded-lg bg-white/20 py-1.5 text-xs font-semibold backdrop-blur transition-colors hover:bg-white/30"
+          >
             {t("learnMore")}
-          </button>
+          </Link>
         </div>
       )}
 
