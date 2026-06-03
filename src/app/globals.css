@@ -56,7 +56,7 @@
   --radius-xl: 1.5rem;
 
   /* --- Fonts --- */
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), var(--font-arabic), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-script: var(--font-pacifico), cursive;
 }
@@ -80,9 +80,49 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* ============================================
+   Dark mode — overrides for the .dark class
+   toggled by AdaptiveProvider
+   ============================================ */
+.dark {
+  --color-primary: oklch(0.7 0.12 230);
+  --color-primary-foreground: oklch(0.12 0.02 230);
+  --color-secondary: oklch(0.45 0.06 175);
+  --color-secondary-foreground: oklch(0.92 0.03 175);
+  --color-background: oklch(0.13 0.015 250);
+  --color-foreground: oklch(0.93 0.01 240);
+  --color-card: oklch(0.17 0.015 250);
+  --color-card-foreground: oklch(0.93 0.01 240);
+  --color-muted: oklch(0.22 0.01 250);
+  --color-muted-foreground: oklch(0.65 0.015 240);
+  --color-border: oklch(0.28 0.01 250);
+  --color-input: oklch(0.28 0.01 250);
+  --color-ring: oklch(0.65 0.12 230);
+  --color-accent: oklch(0.25 0.02 320);
+  --color-accent-foreground: oklch(0.88 0.06 320);
+  --color-success: oklch(0.7 0.14 145);
+  --color-warning: oklch(0.78 0.14 70);
+  --color-destructive: oklch(0.65 0.2 25);
+  --color-destructive-foreground: oklch(0.98 0.01 25);
+  --color-critical: oklch(0.6 0.22 15);
+  --color-sidebar: oklch(0.15 0.015 250);
+  --color-sidebar-foreground: oklch(0.88 0.01 240);
+  --color-sidebar-accent: oklch(0.22 0.01 250);
+  --color-sidebar-border: oklch(0.26 0.01 250);
+  color-scheme: dark;
+}
+
 /* RTL support for Arabic */
 html[dir="rtl"] body {
   font-family: var(--font-sans);
+}
+
+/* Global focus-visible safety net for interactive elements */
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* Medical data — tabular numbers for aligned values */
@@ -115,7 +155,10 @@ html[dir="rtl"] body {
 }
 
 .grad-soft {
-  background: linear-gradient(135deg, #fdf2f8 0%, #eff6ff 100%);
+  background: linear-gradient(135deg, oklch(0.97 0.01 340) 0%, oklch(0.97 0.01 240) 100%);
+}
+.dark .grad-soft {
+  background: linear-gradient(135deg, oklch(0.2 0.02 340) 0%, oklch(0.2 0.02 240) 100%);
 }
 
 /* ============================================
@@ -161,6 +204,12 @@ html[dir="rtl"] body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-muted-foreground);
+}
+
+/* Firefox scrollbar support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 /* ============================================
@@ -252,9 +301,21 @@ html[dir="rtl"] body {
 
 /* ── Print styles for Infographic Report ────────────────────── */
 @media print {
-  /* Hide everything except the infographic */
-  body > *:not(.infographic-print-root) {
-    /* Don't hide if we're inside the report page */
+  /* General print: hide sidebar, header, and navigation chrome */
+  aside,
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    overflow: visible !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
   }
 
   .infographic-report {

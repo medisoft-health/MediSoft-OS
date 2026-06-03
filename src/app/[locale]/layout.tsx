@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { Inter, JetBrains_Mono, Pacifico } from "next/font/google";
+import { Inter, JetBrains_Mono, Noto_Sans_Arabic, Pacifico } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { routing, isRtlLocale, type Locale } from "@/i18n/routing";
 
@@ -33,6 +33,13 @@ const pacifico = Pacifico({
   display: "swap",
 });
 
+const notoSansArabic = Noto_Sans_Arabic({
+  variable: "--font-arabic",
+  subsets: ["arabic"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
 /**
  * Locale-aware root shell. Owns the <html> element so we can set
  * `lang` + `dir` per request, mounts the next-intl client provider
@@ -58,7 +65,7 @@ export default async function LocaleLayout({
     <html
       lang={typedLocale}
       dir={isRtlLocale(typedLocale) ? "rtl" : "ltr"}
-      className={`${inter.variable} ${jetbrainsMono.variable} ${pacifico.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${pacifico.variable} ${notoSansArabic.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <NextIntlClientProvider locale={typedLocale} messages={messages}>
