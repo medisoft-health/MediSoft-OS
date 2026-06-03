@@ -72,7 +72,7 @@ export const DialogContent = React.forwardRef<
         {!hideClose && (
           <DialogPrimitive.Close
             className={cn(
-              "absolute right-4 top-4 grid size-8 place-items-center rounded-lg",
+              "absolute end-4 top-4 grid size-8 place-items-center rounded-lg",
               "text-[color:var(--color-muted-foreground)] transition-colors",
               "hover:bg-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-ring)]",
@@ -94,7 +94,7 @@ export function DialogHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("flex flex-col gap-1.5 text-left", className)}
+      className={cn("flex flex-col gap-1.5 text-start", className)}
       {...props}
     />
   );

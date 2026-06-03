@@ -39,9 +39,9 @@ type Side = "left" | "right" | "top" | "bottom";
 
 const sideStyles: Record<Side, string> = {
   right:
-    "inset-y-0 right-0 h-full w-full max-w-md border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+    "inset-y-0 end-0 h-full w-full max-w-md border-s data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
   left:
-    "inset-y-0 left-0 h-full w-full max-w-md border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
+    "inset-y-0 start-0 h-full w-full max-w-md border-e data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
   top:
     "inset-x-0 top-0 w-full border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
   bottom:
@@ -77,7 +77,7 @@ export const SheetContent = React.forwardRef<
         {!hideClose && (
           <DialogPrimitive.Close
             className={cn(
-              "absolute right-4 top-4 grid size-8 place-items-center rounded-lg",
+              "absolute end-4 top-4 grid size-8 place-items-center rounded-lg",
               "text-[color:var(--color-muted-foreground)] transition-colors",
               "hover:bg-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-ring)]",
@@ -97,7 +97,7 @@ export function SheetHeader({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("flex flex-col gap-1.5 text-left", className)} {...props} />
+    <div className={cn("flex flex-col gap-1.5 text-start", className)} {...props} />
   );
 }
 

@@ -89,8 +89,8 @@ export const TableHead = React.forwardRef<
     <th
       ref={ref}
       className={cn(
-        "h-11 px-4 text-left align-middle text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-muted-foreground)]",
-        "[&:has([role=checkbox])]:pr-0",
+        "h-11 px-4 text-start align-middle text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-muted-foreground)]",
+        "[&:has([role=checkbox])]:pe-0",
         className,
       )}
       {...props}
@@ -105,7 +105,7 @@ export const TableCell = React.forwardRef<
   return (
     <td
       ref={ref}
-      className={cn("px-4 py-3 align-middle [&:has([role=checkbox])]:pr-0", className)}
+      className={cn("px-4 py-3 align-middle [&:has([role=checkbox])]:pe-0", className)}
       {...props}
     />
   );

@@ -33,8 +33,8 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert
       role="alert"
       className={cn(
         "relative w-full rounded-xl border px-4 py-3 text-sm",
-        "[&>svg]:absolute [&>svg]:left-4 [&>svg]:top-3.5 [&>svg]:size-4",
-        "[&>svg~*]:pl-7",
+        "[&>svg]:absolute [&>svg]:start-4 [&>svg]:top-3.5 [&>svg]:size-4",
+        "[&>svg~*]:ps-7",
         variantStyles[variant],
         className,
       )}

@@ -154,7 +154,7 @@ export function CommandShortcut({
   return (
     <span
       className={cn(
-        "ml-auto text-xs tracking-widest text-[color:var(--color-muted-foreground)]",
+        "ms-auto text-xs tracking-widest text-[color:var(--color-muted-foreground)]",
         className,
       )}
       {...props}
