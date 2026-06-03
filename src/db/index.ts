@@ -55,6 +55,9 @@ function createConnection() {
     // Query configuration
     prepare: false,             // required for transaction poolers & Cloud SQL
 
+    // SSL — scoped to DB connection only (not global NODE_TLS)
+    ssl: { rejectUnauthorized: false },
+
     // Connection reliability
     connection: {
       application_name: "medisoft-cos",
