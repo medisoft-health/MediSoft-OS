@@ -473,7 +473,18 @@
     "transcriptsDescription": "محفوظة للتدقيق والمرجعية.",
     "rawTranscript": "النص الأصلي",
     "correctedTranscript": "النص المصحح",
-    "icdCodes": "رموز ICD-11"
+    "icdCodes": "رموز ICD-11",
+    "description": "عرض وإدارة جميع الزيارات السريرية عبر المرضى.",
+    "noEncounters": "لا توجد زيارات",
+    "noEncountersDescription": "ستظهر الزيارات هنا بمجرد بدء جلسة ميدي سكريبت.",
+    "filterByStatus": "تصفية حسب الحالة",
+    "allStatuses": "جميع الحالات",
+    "date": "التاريخ",
+    "patient": "المريض",
+    "type": "النوع",
+    "actions": "الإجراءات",
+    "viewEncounter": "عرض الزيارة",
+    "recordCount": "{count, plural, one {زيارة واحدة} two {زيارتان} few {# زيارات} many {# زيارة} other {# زيارة}}"
   },
   "Appointments": {
     "title": "المواعيد",
@@ -595,7 +606,11 @@
     "dictation": "إملاء",
     "realTimeTranscription": "نسخ فوري",
     "speakerIdentification": "تحديد المتحدث",
-    "medicalTermRecognition": "التعرف على المصطلحات الطبية"
+    "medicalTermRecognition": "التعرف على المصطلحات الطبية",
+    "stepPatient": "المريض",
+    "stepRecord": "التسجيل",
+    "stepReview": "المراجعة",
+    "stepSave": "حفظ"
   },
   "PharmaX": {
     "title": "فارماكس",

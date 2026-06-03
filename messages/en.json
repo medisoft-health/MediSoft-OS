@@ -473,7 +473,18 @@
     "transcriptsDescription": "Stored for audit and reference.",
     "rawTranscript": "Raw transcript",
     "correctedTranscript": "Corrected transcript",
-    "icdCodes": "ICD-11 codes"
+    "icdCodes": "ICD-11 codes",
+    "description": "View and manage all clinical encounters across patients.",
+    "noEncounters": "No encounters found",
+    "noEncountersDescription": "Encounters will appear here once you start a MediScript session.",
+    "filterByStatus": "Filter by status",
+    "allStatuses": "All statuses",
+    "date": "Date",
+    "patient": "Patient",
+    "type": "Type",
+    "actions": "Actions",
+    "viewEncounter": "View encounter",
+    "recordCount": "{count, plural, one {# encounter} other {# encounters}}"
   },
   "Appointments": {
     "title": "Appointments",
@@ -595,7 +606,11 @@
     "dictation": "Dictation",
     "realTimeTranscription": "Real-time Transcription",
     "speakerIdentification": "Speaker Identification",
-    "medicalTermRecognition": "Medical Term Recognition"
+    "medicalTermRecognition": "Medical Term Recognition",
+    "stepPatient": "Patient",
+    "stepRecord": "Record",
+    "stepReview": "Review",
+    "stepSave": "Save"
   },
   "PharmaX": {
     "title": "PharmaX",
