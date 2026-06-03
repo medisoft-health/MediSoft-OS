@@ -229,23 +229,24 @@ export function NarrativePanel({
  setLoading(false);
  }
 
- // Enrich results for patient view
- const enriched = React.useMemo(() => {
- return results.map((r) => {
- const cls = classify(r);
- return {
- testName: r.testName,
- value: String(r.value),
- unit: r.unit ?? "",
- refLow: cls.refLow,
- refHigh: cls.refHigh,
- status: cls.status,
- direction: cls.direction,
- note: narrative?.highlights.find((h) => h.testName.toLowerCase() === r.testName.toLowerCase())?.note ?? "",
- icon: getIcon(r.testName),
- } satisfies EnrichedHighlight;
- });
- }, [results, narrative]);
+  // Enrich results for patient view
+  const enriched = React.useMemo(() => {
+  if (!results || !Array.isArray(results)) return [];
+  return results.map((r) => {
+  const cls = classify(r);
+  return {
+  testName: r.testName,
+  value: String(r.value),
+  unit: r.unit ?? "",
+  refLow: cls.refLow,
+  refHigh: cls.refHigh,
+  status: cls.status,
+  direction: cls.direction,
+  note: narrative?.highlights.find((h) => h.testName?.toLowerCase() === r.testName?.toLowerCase())?.note ?? "",
+  icon: getIcon(r.testName),
+  } satisfies EnrichedHighlight;
+  });
+  }, [results, narrative]);
 
  const normalCount = enriched.filter((r) => r.status === "normal").length;
  const warningCount = enriched.filter((r) => r.status === "warning").length;
