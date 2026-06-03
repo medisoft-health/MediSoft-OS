@@ -10,7 +10,6 @@ const ScanBuilder = nextDynamic(
   () => import("./_components/scan-builder").then((m) => m.ScanBuilder),
   {
     loading: () => <Skeleton className="h-96 rounded-2xl" />,
-    ssr: false,
   },
 );
 

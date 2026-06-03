@@ -11,7 +11,6 @@ const AnalyticsDashboard = nextDynamic(
     ),
   {
     loading: () => <Skeleton className="h-96 rounded-2xl" />,
-    ssr: false,
   },
 );
 

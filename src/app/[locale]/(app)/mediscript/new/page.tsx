@@ -11,7 +11,6 @@ const SessionWizard = nextDynamic(
     import("./_components/session-wizard").then((m) => m.SessionWizard),
   {
     loading: () => <Skeleton className="h-96 rounded-2xl" />,
-    ssr: false,
   },
 );
 

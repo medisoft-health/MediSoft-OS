@@ -11,7 +11,6 @@ const LabEntryForm = nextDynamic(
     import("./_components/lab-entry-form").then((m) => m.LabEntryForm),
   {
     loading: () => <Skeleton className="h-96 rounded-2xl" />,
-    ssr: false,
   },
 );
 
