@@ -18,6 +18,7 @@ import {
   User as UserIcon,
   XCircle,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   Card,
@@ -49,10 +50,10 @@ import {
 import { formatPatientId, cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: 1, label: "Patient", icon: UserIcon },
-  { id: 2, label: "Record", icon: Mic },
-  { id: 3, label: "Review", icon: ClipboardEdit },
-  { id: 4, label: "Save", icon: FileCheck },
+  { id: 1, labelKey: "stepPatient" as const, icon: UserIcon },
+  { id: 2, labelKey: "stepRecord" as const, icon: Mic },
+  { id: 3, labelKey: "stepReview" as const, icon: ClipboardEdit },
+  { id: 4, labelKey: "stepSave" as const, icon: FileCheck },
 ] as const;
 
 type StepId = (typeof STEPS)[number]["id"];
@@ -320,6 +321,7 @@ function Stepper({
   current: StepId;
   onJump: (s: StepId) => void;
 }) {
+  const t = useTranslations("MediScript");
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
       {STEPS.map((s, i) => {
@@ -355,7 +357,7 @@ function Stepper({
               >
                 {isDone ? <Check className="size-3" /> : s.id}
               </span>
-              <span className="hidden sm:inline">{s.label}</span>
+              <span className="hidden sm:inline">{t(s.labelKey)}</span>
               <Icon className="size-3.5 sm:hidden" />
             </button>
             {i < STEPS.length - 1 && (
