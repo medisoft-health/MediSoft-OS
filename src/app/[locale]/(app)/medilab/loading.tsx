@@ -1,20 +1,81 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function MedilabLoading() {
+/**
+ * MediLab skeleton — matches breadcrumb + header + 3 KPI cards + hero CTA +
+ * recent results table layout.
+ */
+export default function MediLabLoading() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6 lg:p-8">
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-9 w-40" />
-        <Skeleton className="h-4 w-96" />
+      {/* Breadcrumb */}
+      <Skeleton className="h-3 w-24" />
+
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-10 w-44" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <Skeleton className="h-10 w-36 rounded-lg" />
       </div>
+
+      {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 rounded-2xl" />
+          <div
+            key={i}
+            className="rounded-2xl border border-[color:var(--color-border)] p-5 space-y-3"
+          >
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-16" />
+          </div>
         ))}
       </div>
-      <Skeleton className="h-32 rounded-2xl" />
-      <Skeleton className="h-72 rounded-2xl" />
+
+      {/* Hero CTA card */}
+      <div className="rounded-2xl border border-[color:var(--color-border)] overflow-hidden">
+        <Skeleton className="h-1.5 w-full" />
+        <div className="flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+          <div className="flex items-start gap-4">
+            <Skeleton className="size-12 rounded-2xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+          </div>
+          <Skeleton className="h-11 w-28 rounded-lg" />
+        </div>
+      </div>
+
+      {/* Recent results card */}
+      <div className="rounded-2xl border border-[color:var(--color-border)]">
+        <div className="space-y-1.5 p-6">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-3 w-52" />
+        </div>
+        <div className="px-0">
+          {/* Table header */}
+          <div className="flex items-center gap-6 border-b border-[color:var(--color-border)] py-3 px-6">
+            {[72, 140, 100, 80, 80].map((w, i) => (
+              <Skeleton key={i} className="h-3" style={{ width: w }} />
+            ))}
+          </div>
+          {/* Table rows */}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-6 border-b border-[color:var(--color-border)] py-4 px-6"
+            >
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
