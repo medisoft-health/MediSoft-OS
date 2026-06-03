@@ -130,43 +130,37 @@ async function PatientGridCard({ p }: { p: PatientListRow }) {
   const fullName = `${p.firstName} ${p.lastName}`;
   const age = calculateAge(p.dateOfBirth);
   return (
-    <Link href={`/patients/${p.id}`} className="group">
-      <Card className="h-full transition-all hover:-translate-y-1 hover:shadow-lg">
-        <CardContent className="p-5">
-          <div className="flex items-start gap-3">
-            <Avatar className="size-12">
-              <AvatarFallback>{getInitials(fullName)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-bold tracking-tight">
-                {fullName}
-              </div>
-              <div className="mt-0.5 text-[11px] font-mono text-[color:var(--color-muted-foreground)]">
-                {formatPatientId(p.id)}
-              </div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="text-[color:var(--color-muted-foreground)]">
-                  {t("ageYears", { age })} · {p.sex.charAt(0).toUpperCase()}
-                </span>
-                {p.bloodType && p.bloodType !== "unknown" && (
-                  <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-                    {p.bloodType}
-                  </Badge>
-                )}
-              </div>
+    <Card className="group relative h-full transition-all hover:-translate-y-1 hover:shadow-lg">
+      <CardContent className="p-5">
+        <div className="flex items-start gap-3">
+          <Avatar className="size-12">
+            <AvatarFallback>{getInitials(fullName)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/patients/${p.id}`}
+              className="truncate text-sm font-bold tracking-tight hover:text-[color:var(--color-brand-magenta)] transition-colors after:absolute after:inset-0 after:content-['']"
+            >
+              {fullName}
+            </Link>
+            <div className="mt-0.5 text-[11px] font-mono text-[color:var(--color-muted-foreground)]">
+              {formatPatientId(p.id)}
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+              <span className="text-[color:var(--color-muted-foreground)]">
+                {t("ageYears", { age })} · {p.sex.charAt(0).toUpperCase()}
+              </span>
+              {p.bloodType && p.bloodType !== "unknown" && (
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                  {p.bloodType}
+                </Badge>
+              )}
             </div>
           </div>
+        </div>
 
-          <div className="mt-3 flex justify-end border-t border-[color:var(--color-border)] pt-2">
-            <Link
-              href={`/patients/${p.id}?tab=patient360`}
-              className="inline-flex items-center gap-1 text-[10px] font-medium text-[color:var(--color-primary)] hover:underline"
-            >
-              <Brain className="size-3" />
-              Medi360
-            </Link>
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[color:var(--color-border)] pt-3 text-[11px]">
+        <div className="mt-3 flex items-center justify-between border-t border-[color:var(--color-border)] pt-3 text-[11px]">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 flex-1">
             <div>
               <div className="text-[color:var(--color-muted-foreground)]">{t("phone")}</div>
               <div className="truncate font-medium">{p.phone ?? "—"}</div>
@@ -178,9 +172,16 @@ async function PatientGridCard({ p }: { p: PatientListRow }) {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+          <Link
+            href={`/patients/${p.id}?tab=patient360`}
+            className="relative z-10 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-[color:var(--color-primary)] hover:bg-[color:var(--color-primary)]/10 transition-colors"
+          >
+            <Brain className="size-3" />
+            Medi360
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -207,7 +208,7 @@ async function ListView({ rows }: { rows: PatientListRow[] }) {
         {rows.map((p) => {
           const fullName = `${p.firstName} ${p.lastName}`;
           return (
-            <TableRow key={p.id} className="cursor-pointer">
+            <TableRow key={p.id} className="transition-colors hover:bg-[color:var(--color-muted)]/50">
               <TableCell>
                 <Link
                   href={`/patients/${p.id}`}
