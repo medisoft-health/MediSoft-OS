@@ -81,13 +81,20 @@ export default async function ScanDetailPage({ params }: PageProps) {
   }
 
   // Decode findings & annotations back out of the JSONB.
-  const allFindings =
-    (scan.findings as Array<{
+  let rawFindings = scan.findings as unknown;
+  if (typeof rawFindings === "string") {
+    try { rawFindings = JSON.parse(rawFindings); } catch { rawFindings = null; }
+  }
+
+  let allFindings =
+    (rawFindings as Array<{
       location?: string;
       description: string;
       severity?: Severity;
       characteristics?: string;
     }> | null) ?? [];
+
+  if (!Array.isArray(allFindings)) { allFindings = []; }
 
   let annotations: Annotation[] = [];
   let patientSummary: string | null = null;
