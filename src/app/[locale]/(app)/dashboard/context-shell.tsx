@@ -5,8 +5,10 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   Activity,
+  AlertTriangle,
   ArrowRight,
   Calendar,
+  Clock,
   Pill,
   TrendingUp,
   Users,
@@ -14,7 +16,6 @@ import {
   Thermometer,
   Droplets,
   Wind,
-  AlertTriangle,
   FlaskConical,
   ScanLine,
   Dumbbell,
@@ -226,12 +227,13 @@ export function DashboardContextShell({
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         {[
-          { label: "Today's encounters", value: stats.todayEncounters, icon: Calendar, trendLabel: "Live count", tone: "neutral" },
-          { label: "Active patients", value: stats.activePatients, icon: Users, trendLabel: "All records", tone: "neutral" },
-          { label: "Pending prescriptions", value: stats.pendingPrescriptions, icon: Pill, trendLabel: stats.pendingPrescriptions > 0 ? "Needs review" : "All clear", tone: stats.pendingPrescriptions > 0 ? "warning" : "neutral" },
-          { label: "Critical alerts", value: stats.criticalAlerts, icon: Activity, trendLabel: stats.criticalAlerts > 0 ? "Immediate attention" : "No critical items", tone: stats.criticalAlerts > 0 ? "critical" : "neutral" },
+          { label: "Today's encounters", value: stats.todayEncounters, icon: Calendar, trendLabel: "Live count", tone: "neutral", trendIcon: TrendingUp },
+          { label: "Active patients", value: stats.activePatients, icon: Users, trendLabel: "All records", tone: "neutral", trendIcon: TrendingUp },
+          { label: "Pending prescriptions", value: stats.pendingPrescriptions, icon: Pill, trendLabel: stats.pendingPrescriptions > 0 ? "Needs review" : "All clear", tone: stats.pendingPrescriptions > 0 ? "warning" : "neutral", trendIcon: stats.pendingPrescriptions > 0 ? Clock : TrendingUp },
+          { label: "Critical alerts", value: stats.criticalAlerts, icon: Activity, trendLabel: stats.criticalAlerts > 0 ? "Immediate attention" : "No critical items", tone: stats.criticalAlerts > 0 ? "critical" : "neutral", trendIcon: stats.criticalAlerts > 0 ? AlertTriangle : TrendingUp },
         ].map((stat, i) => {
           const Icon = stat.icon;
+          const TrendIcon = stat.trendIcon;
           const trendColor =
             stat.tone === "warning"
               ? "text-amber-600"
@@ -258,7 +260,7 @@ export function DashboardContextShell({
                       {stat.value.toLocaleString()}
                     </div>
                     <div className={`mt-1 flex items-center gap-1 text-xs ${trendColor}`}>
-                      <TrendingUp className="size-3" />
+                      <TrendIcon className="size-3" />
                       {stat.trendLabel}
                     </div>
                   </div>
@@ -434,7 +436,7 @@ function EncounterRow({ e }: { e: TodayEncounterItem }) {
         </div>
       </div>
       <Badge variant={statusVariant[e.status] ?? "default"} className="text-[10px]">
-        {e.status.replace("_", " ")}
+        {e.status.replaceAll("_", " ")}
       </Badge>
     </Link>
   );
@@ -472,31 +474,23 @@ function ActivityRow({ a }: { a: RecentActivityItem }) {
   );
 }
 
+const VERB_MAP: Record<string, string> = {
+  create: "Created",
+  update: "Updated",
+  view: "Viewed",
+  delete: "Deleted",
+  signin: "Signed in",
+  signout: "Signed out",
+  signup: "Signed up",
+  record: "Recorded",
+  upload: "Uploaded",
+  sign: "Signed",
+};
+
 function describeAction(action: string): string {
   const [resource, verb] = action.split(".");
-  const verbWord =
-    verb === "create"
-      ? "Created"
-      : verb === "update"
-        ? "Updated"
-        : verb === "view"
-          ? "Viewed"
-          : verb === "delete"
-            ? "Deleted"
-            : verb === "signin"
-              ? "Signed in"
-              : verb === "signout"
-                ? "Signed out"
-                : verb === "signup"
-                  ? "Signed up"
-                  : verb === "record"
-                    ? "Recorded"
-                    : verb === "upload"
-                      ? "Uploaded"
-                      : verb === "sign"
-                        ? "Signed"
-                        : action;
-  return resource ? `${verbWord} ${resource.replace("_", " ")}` : verbWord;
+  const verbWord = (verb && VERB_MAP[verb]) ?? action;
+  return resource ? `${verbWord} ${resource.replaceAll("_", " ")}` : verbWord;
 }
 
 function formatRelativeTime(d: Date | string): string {
