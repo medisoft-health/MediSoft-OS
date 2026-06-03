@@ -404,6 +404,7 @@ export function detectDrugLabInteractions(
   const alerts: DrugLabAlert[] = [];
 
   for (const med of medications) {
+    if (!med || !med.drugName) continue;
     const drugLower = med.drugName.toLowerCase();
 
     for (const kb of KNOWLEDGE_BASE) {
@@ -413,6 +414,7 @@ export function detectDrugLabInteractions(
 
       // Match lab test
       for (const lab of labResults) {
+        if (!lab.testName) continue;
         const testLower = lab.testName.toLowerCase();
         const labMatch = kb.labPatterns.some((p) => testLower.includes(p));
         if (!labMatch) continue;
