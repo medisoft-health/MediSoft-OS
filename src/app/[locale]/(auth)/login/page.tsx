@@ -20,9 +20,9 @@ import { cn } from "@/lib/utils";
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
-  const [submitting, setSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
+  const errorRef = React.useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -36,7 +36,6 @@ export default function LoginPage() {
 
   const onSubmit = async (values: LoginInput) => {
     setFormError(null);
-    setSubmitting(true);
     try {
       const { error } = await authClient.signIn.email({
         email: values.email,
@@ -57,12 +56,17 @@ export default function LoginPage() {
       const message =
         err instanceof Error ? err.message : t("somethingWentWrong");
       setFormError(message);
-    } finally {
-      setSubmitting(false);
     }
   };
 
-  const isLoading = submitting || isSubmitting;
+  // Focus the error alert when it appears so screen readers announce it
+  React.useEffect(() => {
+    if (formError && errorRef.current) {
+      errorRef.current.focus();
+    }
+  }, [formError]);
+
+  const isLoading = isSubmitting;
 
   return (
     <Card className="overflow-hidden">
@@ -87,8 +91,10 @@ export default function LoginPage() {
 
         {formError && (
           <div
+            ref={errorRef}
             role="alert"
-            className="mb-5 flex items-start gap-2 rounded-xl border border-[color:var(--color-destructive)]/20 bg-[color:var(--color-destructive)]/10 px-3 py-2.5 text-sm text-[color:var(--color-destructive)]"
+            tabIndex={-1}
+            className="mb-5 flex items-start gap-2 rounded-xl border border-[color:var(--color-destructive)]/20 bg-[color:var(--color-destructive)]/10 px-3 py-2.5 text-sm text-[color:var(--color-destructive)] outline-none"
           >
             <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <span>{formError}</span>
@@ -99,13 +105,13 @@ export default function LoginPage() {
           <div>
             <Label htmlFor="email">{t("emailAddress")}</Label>
             <div className="relative mt-1.5">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
+              <Mail className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="sarah.mansour@medisoft.health"
-                className={cn("pl-9", errors.email && "border-[color:var(--color-destructive)]")}
+                placeholder="doctor@example.com"
+                className={cn("ps-9", errors.email && "border-[color:var(--color-destructive)]")}
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? "email-error" : undefined}
                 disabled={isLoading}
@@ -124,20 +130,20 @@ export default function LoginPage() {
               <Label htmlFor="password">{t("password")}</Label>
               <Link
                 href="/forgot-password"
-                className="text-xs font-medium text-[color:var(--color-brand-magenta)] hover:underline"
+                className="rounded-md px-1.5 py-1 text-xs font-medium text-[color:var(--color-brand-magenta)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-ring)]"
               >
                 {t("forgot")}
               </Link>
             </div>
             <div className="relative mt-1.5">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
+              <Lock className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--color-muted-foreground)]" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="••••••••••••"
                 className={cn(
-                  "pl-9 pr-10",
+                  "ps-9 pe-10",
                   errors.password && "border-[color:var(--color-destructive)]",
                 )}
                 aria-invalid={!!errors.password}
@@ -148,9 +154,8 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)] transition-colors"
+                className="absolute end-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[color:var(--color-muted-foreground)] hover:text-[color:var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-ring)] transition-colors"
                 aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-                tabIndex={-1}
               >
                 {showPassword ? (
                   <EyeOff className="size-4" />
