@@ -1,10 +1,19 @@
+import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getPatientById } from "@/lib/queries/patients";
 import { formatPatientId } from "@/lib/utils";
-import { LabEntryForm } from "./_components/lab-entry-form";
+import { Skeleton } from "@/components/ui/skeleton";
 
+const LabEntryForm = nextDynamic(
+  () =>
+    import("./_components/lab-entry-form").then((m) => m.LabEntryForm),
+  {
+    loading: () => <Skeleton className="h-96 rounded-2xl" />,
+    ssr: false,
+  },
+);
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";

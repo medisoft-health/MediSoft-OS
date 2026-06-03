@@ -1,8 +1,19 @@
+import nextDynamic from "next/dynamic";
 import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { AnalyticsDashboard } from "./_components/analytics-dashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
+const AnalyticsDashboard = nextDynamic(
+  () =>
+    import("./_components/analytics-dashboard").then(
+      (m) => m.AnalyticsDashboard,
+    ),
+  {
+    loading: () => <Skeleton className="h-96 rounded-2xl" />,
+    ssr: false,
+  },
+);
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";

@@ -1,10 +1,18 @@
+import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getPatientById } from "@/lib/queries/patients";
 import { formatPatientId } from "@/lib/utils";
-import { ScanBuilder } from "./_components/scan-builder";
+import { Skeleton } from "@/components/ui/skeleton";
 
+const ScanBuilder = nextDynamic(
+  () => import("./_components/scan-builder").then((m) => m.ScanBuilder),
+  {
+    loading: () => <Skeleton className="h-96 rounded-2xl" />,
+    ssr: false,
+  },
+);
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";

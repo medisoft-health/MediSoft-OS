@@ -1,10 +1,19 @@
+import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { getPatientById } from "@/lib/queries/patients";
 import { formatPatientId } from "@/lib/utils";
-import { SessionWizard } from "./_components/session-wizard";
+import { Skeleton } from "@/components/ui/skeleton";
 
+const SessionWizard = nextDynamic(
+  () =>
+    import("./_components/session-wizard").then((m) => m.SessionWizard),
+  {
+    loading: () => <Skeleton className="h-96 rounded-2xl" />,
+    ssr: false,
+  },
+);
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
