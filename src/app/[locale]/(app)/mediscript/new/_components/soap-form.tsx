@@ -48,6 +48,8 @@ import {
 } from "@/lib/validations/encounter";
 import { emptySoapNote } from "@/lib/encounter-soap";
 import { cn } from "@/lib/utils";
+import { OrderSuggestionsPanel } from "@/components/mediscript/order-suggestions-panel";
+import { BillingCodesPanel } from "@/components/mediscript/billing-codes-panel";
 
 interface Props {
   patientId: number;
@@ -454,6 +456,72 @@ export function SoapForm({
           />
         </div>
       </SoapSection>
+
+      {/* ── Post-SOAP Intelligence ─────────────────────────────────── */}
+      <Separator />
+      <div className="space-y-4">
+        <OrderSuggestionsPanel
+          soapNote={watch("soapNote") as EncounterCreateInput["soapNote"]}
+          patientId={patientId}
+          patientContext={patientLabel}
+          onCreatePrescription={(rx) => {
+            const params = new URLSearchParams({
+              patientId: String(patientId),
+              drug: rx.drugName,
+              dose: rx.dose,
+              frequency: rx.frequency,
+              route: rx.route,
+              duration: rx.duration,
+              instructions: rx.instructions,
+            });
+            window.open(`/pharmax/new?${params.toString()}`, "_blank");
+          }}
+          onCreateLabOrder={(lab) => {
+            const params = new URLSearchParams({
+              patientId: String(patientId),
+              panel: lab.panelName,
+              priority: lab.priority,
+              fasting: String(lab.fasting ?? false),
+            });
+            window.open(`/medilab/new?${params.toString()}`, "_blank");
+          }}
+          onCreateImagingOrder={(img) => {
+            const params = new URLSearchParams({
+              patientId: String(patientId),
+              type: img.scanType,
+              bodyPart: img.bodyPart,
+              modality: img.modality,
+              priority: img.priority,
+              contrast: String(img.contrastRequired ?? false),
+            });
+            window.open(`/mediscan/new?${params.toString()}`, "_blank");
+          }}
+          onCreateReferral={(ref) => {
+            const params = new URLSearchParams({
+              patientId: String(patientId),
+              specialty: ref.specialty,
+              reason: ref.reason,
+              urgency: ref.urgency,
+              question: ref.clinicalQuestion,
+            });
+            window.open(`/referrals/new?${params.toString()}`, "_blank");
+          }}
+          onScheduleFollowUp={(fu) => {
+            const params = new URLSearchParams({
+              patientId: String(patientId),
+              timeframe: fu.timeframe,
+              type: fu.appointmentType,
+              reason: fu.reason,
+            });
+            window.open(`/appointments/new?${params.toString()}`, "_blank");
+          }}
+        />
+        <BillingCodesPanel
+          soapNote={watch("soapNote") as EncounterCreateInput["soapNote"]}
+          encounterType={encType}
+          patientContext={patientLabel}
+        />
+      </div>
 
       <Separator />
 
