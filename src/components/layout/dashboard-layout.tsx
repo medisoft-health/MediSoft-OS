@@ -33,6 +33,8 @@ import {
   Activity,
   CircleDot,
   ChevronDown,
+  MessageSquare,
+  Video,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,7 @@ import { toast } from "sonner";
 import { NewPatientButton } from "@/components/clinical/new-patient-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { MediBotPanel, MediBotProvider } from "@/components/medibot";
+import { PatientChatbot } from "@/components/patient-chatbot";
 import { MediBotPatientDetector } from "@/components/medibot/use-patient-route";
 import {
   GlobalSearchProvider,
@@ -102,7 +105,9 @@ const NAV: NavItemDef[] = [
   { href: "/medisport", tKey: "medisport", icon: Activity, moduleKey: "medisport", sectionTKey: "sectionSportsMed", ai: true, badge: { text: "NEW", variant: "success" } },
   // ── DENTAL ──
   { href: "/medident", tKey: "medident", icon: Sparkles, moduleKey: "medident", sectionTKey: "sectionDental", ai: true, badge: { text: "NEW", variant: "success" } },
-  // ── INTEGRATIONS ──
+  // ── COMMUNICATION ──
+  { href: "/mediconnect", tKey: "mediconnect", icon: MessageSquare, sectionTKey: "sectionCommunication", badge: { text: "NEW", variant: "success" } },
+  { href: "/telemedicine", tKey: "telemedicine", icon: Video, badge: { text: "NEW", variant: "success" } },
   { href: "/health-connect", tKey: "healthConnect", icon: Cable },
   { href: "/patient-portal", tKey: "patientPortal", icon: UserCircle },
   // ── SYSTEM ──
@@ -249,6 +254,9 @@ function DashboardShell({ children, user }: DashboardLayoutProps) {
 
       {/* ─────────────── MediBot Panel (persistent right column) ─────────────── */}
       <MediBotPanel />
+
+      {/* ─────────────── Patient AI Chatbot (floating) ─────────────── */}
+      <PatientChatbot floating />
     </div>
   );
 }

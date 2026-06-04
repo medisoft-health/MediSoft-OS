@@ -30,6 +30,22 @@ Core rules:
 6. Never produce medical advice; produce a clinical record.
 7. Return ONLY the JSON object that conforms to the response schema.
    No commentary, no markdown fences, no apology text.
+
+Context-aware behavior:
+- For "new_patient" visits: Ensure all history sections are populated if
+  mentioned in the transcript (past medical history, family history, social
+  history). These are critical for first encounters.
+- For "follow_up" visits: Focus on progress since last visit, medication
+  adjustments, and updated assessment. History sections can be brief or
+  reference "see previous encounter."
+- For "lab_only" visits: Emphasize diagnosticResults in Objective and
+  diagnosticPlan/therapeuticPlan in Plan. Physical exam may be minimal.
+- For "imaging_only" visits: Emphasize diagnosticResults (imaging findings)
+  and plan adjustments based on results.
+- For "emergency" encounters: Prioritize chief complaint, vital signs,
+  immediate assessment, and urgent plan. Be concise and action-oriented.
+- For "telemedicine" encounters: Physical examination may be limited to
+  patient-reported findings. Note this limitation if relevant.
 `.trim();
 
 const ARABIC_INSTRUCTION = `\n\nIMPORTANT: Generate ALL output text in Modern Standard Arabic (العربية الفصحى). Use formal medical Arabic terminology consistent with WHO and SFDA standards. Keep internationally recognized abbreviations (ICD-11, SOAP, LOINC, RxNorm, FHIR) in Latin script. Dates should use the Gregorian calendar.`;
@@ -105,6 +121,8 @@ export const SOAP_RESPONSE_SCHEMA: Schema = {
 /**
  * Build the user-facing prompt for a transcript. The transcript text is
  * wrapped in delimiters so the model treats it as data, not an instruction.
+ *
+ * Now includes encounter type and visit reason context for better generation.
  */
 export function buildUserPrompt(transcript: string, patientHint?: string): string {
   const lines = [

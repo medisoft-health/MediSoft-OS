@@ -35,6 +35,20 @@ import { PatientPicker, type PickedPatient } from "@/components/clinical/patient
 import { AudioRecorder } from "@/components/mediscript/audio-recorder";
 import { PatientBriefing } from "@/components/mediscript/patient-briefing";
 import { TranscriptReview } from "@/components/mediscript/transcript-review";
+import { LiveTranscript } from "@/components/mediscript/live-transcript";
+import { OfflineSyncProvider } from "@/components/mediscript/offline-sync";
+import {
+  EncounterTypeSelector,
+  type EncounterTypeValue,
+  type VisitReasonValue,
+} from "@/components/mediscript/encounter-type-selector";
+import {
+  SoapTemplateConfig,
+  type SoapSectionConfig,
+  getPresetSections,
+  ALL_SECTIONS,
+} from "@/components/mediscript/soap-template-config";
+import { useSession } from "@/lib/auth-client";
 import { SoapForm } from "./soap-form";
 import { createEncounter } from "@/lib/actions/encounters";
 import type {
@@ -110,6 +124,9 @@ type PipelineState =
 export function SessionWizard({ initialPatient }: Props) {
   const router = useRouter();
   const search = useSearchParams();
+  const { data: session } = useSession();
+  // better-auth additionalFields are not in the default type
+  const userSpecialty = (session?.user as { specialty?: string } | undefined)?.specialty ?? null;
 
   const [step, setStep] = React.useState<StepId>(initialPatient ? 2 : 1);
   const [patient, setPatient] = React.useState<PickedPatient | null>(initialPatient);
@@ -121,6 +138,23 @@ export function SessionWizard({ initialPatient }: Props) {
   const [fieldErrors, setFieldErrors] = React.useState<
     Record<string, string[]> | undefined
   >(undefined);
+
+  // ── New feature state ──────────────────────────────────────────────
+  const [encounterType, setEncounterType] = React.useState<EncounterTypeValue>("outpatient");
+  const [visitReason, setVisitReason] = React.useState<VisitReasonValue>("follow_up");
+  const [detectedLanguage, setDetectedLanguage] = React.useState<"ar" | "en" | null>(null);
+  const [isRecording, setIsRecording] = React.useState(false);
+  const [liveTranscript, setLiveTranscript] = React.useState<string>("");
+  const [soapSections, setSoapSections] = React.useState<SoapSectionConfig[]>(
+    () => getPresetSections(userSpecialty),
+  );
+
+  // Update SOAP sections when session loads with specialty
+  React.useEffect(() => {
+    if (userSpecialty) {
+      setSoapSections(getPresetSections(userSpecialty));
+    }
+  }, [userSpecialty]);
 
   // ── SOAP generation from transcript ────────────────────────────────
   const generateSoap = React.useCallback(
@@ -161,6 +195,18 @@ export function SessionWizard({ initialPatient }: Props) {
     [],
   );
 
+  // ── Build patient hint with encounter context ─────────────────────
+  const buildPatientHint = React.useCallback(() => {
+    if (!patient) return "";
+    const parts = [patient.label, patient.sublabel];
+    parts.push(`Encounter: ${encounterType}`);
+    parts.push(`Visit: ${visitReason.replace("_", " ")}`);
+    if (detectedLanguage) {
+      parts.push(`Language: ${detectedLanguage === "ar" ? "Arabic" : "English"}`);
+    }
+    return parts.filter(Boolean).join(" · ");
+  }, [patient, encounterType, visitReason, detectedLanguage]);
+
   // ── AI pipeline (transcribe → correct → SOAP) ─────────────────────
   const runAIPipeline = React.useCallback(
     async (a: CapturedAudio, hint: string) => {
@@ -196,17 +242,17 @@ export function SessionWizard({ initialPatient }: Props) {
   const handleCorrectionAccept = React.useCallback(
     (correctedTranscript: string) => {
       if (!patient) return;
-      generateSoap(correctedTranscript, `${patient.label} · ${patient.sublabel}`);
+      generateSoap(correctedTranscript, buildPatientHint());
     },
-    [patient, generateSoap],
+    [patient, generateSoap, buildPatientHint],
   );
 
   const handleCorrectionSkip = React.useCallback(() => {
     if (!patient) return;
     if (pipeline.kind === "correcting") {
-      generateSoap(pipeline.rawTranscript, `${patient.label} · ${patient.sublabel}`);
+      generateSoap(pipeline.rawTranscript, buildPatientHint());
     }
-  }, [patient, pipeline, generateSoap]);
+  }, [patient, pipeline, generateSoap, buildPatientHint]);
 
   // ── Step 2 → 3 transition ───────────────────────────────────────
   const continueFromRecord = React.useCallback(
@@ -218,9 +264,9 @@ export function SessionWizard({ initialPatient }: Props) {
         return;
       }
       setStep(3);
-      await runAIPipeline(audio, `${patient.label} · ${patient.sublabel}`);
+      await runAIPipeline(audio, buildPatientHint());
     },
-    [audio, patient, runAIPipeline],
+    [audio, patient, runAIPipeline, buildPatientHint],
   );
 
   // ── Save action ─────────────────────────────────────────────────
@@ -262,52 +308,68 @@ export function SessionWizard({ initialPatient }: Props) {
   );
 
   return (
-    <div className="space-y-6">
-      <Stepper current={step} onJump={(s) => s < step && setStep(s)} />
+    <OfflineSyncProvider>
+      <div className="space-y-6">
+        <Stepper current={step} onJump={(s) => s < step && setStep(s)} />
 
-      {step === 1 && (
-        <StepPatient
-          patient={patient}
-          onChange={setPatient}
-          onContinue={() => setStep(2)}
-          urlPatientId={search.get("patientId")}
-        />
-      )}
+        {step === 1 && (
+          <StepPatient
+            patient={patient}
+            onChange={setPatient}
+            encounterType={encounterType}
+            visitReason={visitReason}
+            onEncounterTypeChange={setEncounterType}
+            onVisitReasonChange={setVisitReason}
+            onContinue={() => setStep(2)}
+            urlPatientId={search.get("patientId")}
+          />
+        )}
 
-      {step === 2 && patient && (
-        <StepRecord
-          patient={patient}
-          audio={audio}
-          setAudio={setAudio}
-          onBack={() => setStep(1)}
-          onSkip={() => continueFromRecord(true)}
-          onContinue={() => continueFromRecord(false)}
-        />
-      )}
+        {step === 2 && patient && (
+          <StepRecord
+            patient={patient}
+            audio={audio}
+            setAudio={setAudio}
+            isRecording={isRecording}
+            setIsRecording={setIsRecording}
+            detectedLanguage={detectedLanguage}
+            onLanguageDetected={setDetectedLanguage}
+            liveTranscript={liveTranscript}
+            onLiveTranscriptUpdate={setLiveTranscript}
+            soapSections={soapSections}
+            onSoapSectionsChange={setSoapSections}
+            specialty={userSpecialty}
+            onBack={() => setStep(1)}
+            onSkip={() => continueFromRecord(true)}
+            onContinue={() => continueFromRecord(false)}
+          />
+        )}
 
-      {step === 3 && patient && (
-        <StepReview
-          patient={patient}
-          pipeline={pipeline}
-          onCorrectionAccept={handleCorrectionAccept}
-          onCorrectionSkip={handleCorrectionSkip}
-          onRetryAI={() => audio && runAIPipeline(audio, `${patient.label} · ${patient.sublabel}`)}
-          onBack={() => setStep(2)}
-          onSave={handleSave}
-          submitting={submitting}
-          formError={formError}
-          fieldErrors={fieldErrors}
-        />
-      )}
+        {step === 3 && patient && (
+          <StepReview
+            patient={patient}
+            pipeline={pipeline}
+            encounterType={encounterType}
+            onCorrectionAccept={handleCorrectionAccept}
+            onCorrectionSkip={handleCorrectionSkip}
+            onRetryAI={() => audio && runAIPipeline(audio, buildPatientHint())}
+            onBack={() => setStep(2)}
+            onSave={handleSave}
+            submitting={submitting}
+            formError={formError}
+            fieldErrors={fieldErrors}
+          />
+        )}
 
-      {step === 4 && patient && saveResult && (
-        <StepSuccess
-          patient={patient}
-          encounterId={saveResult.id}
-          signed={saveResult.signed}
-        />
-      )}
-    </div>
+        {step === 4 && patient && saveResult && (
+          <StepSuccess
+            patient={patient}
+            encounterId={saveResult.id}
+            signed={saveResult.signed}
+          />
+        )}
+      </div>
+    </OfflineSyncProvider>
   );
 }
 
@@ -376,16 +438,24 @@ function Stepper({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Step 1: Patient
+// Step 1: Patient + Encounter Type + Visit Reason
 // ─────────────────────────────────────────────────────────────────
 function StepPatient({
   patient,
   onChange,
+  encounterType,
+  visitReason,
+  onEncounterTypeChange,
+  onVisitReasonChange,
   onContinue,
   urlPatientId,
 }: {
   patient: PickedPatient | null;
   onChange: (p: PickedPatient | null) => void;
+  encounterType: EncounterTypeValue;
+  visitReason: VisitReasonValue;
+  onEncounterTypeChange: (v: EncounterTypeValue) => void;
+  onVisitReasonChange: (v: VisitReasonValue) => void;
   onContinue: () => void;
   urlPatientId: string | null;
 }) {
@@ -394,8 +464,8 @@ function StepPatient({
       <CardHeader>
         <CardTitle className="text-base">Who is this encounter for?</CardTitle>
         <CardDescription>
-          Start by selecting the patient. You can search by name, MS-XXXXXX
-          code, National ID, MRN, or phone.
+          Select the patient, encounter type, and visit reason. This context
+          helps Medical Intelligence generate more accurate documentation.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -406,6 +476,16 @@ function StepPatient({
             URL referenced patient id <code>{urlPatientId}</code> but no
             matching record was found. Please pick a patient manually.
           </p>
+        )}
+
+        {/* Encounter Type & Visit Reason Selector */}
+        {patient && (
+          <EncounterTypeSelector
+            encounterType={encounterType}
+            visitReason={visitReason}
+            onEncounterTypeChange={onEncounterTypeChange}
+            onVisitReasonChange={onVisitReasonChange}
+          />
         )}
 
         <div className="flex items-center justify-end gap-2">
@@ -429,12 +509,21 @@ function StepPatient({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Step 2: Record
+// Step 2: Record with Live Transcription + Language Detection
 // ─────────────────────────────────────────────────────────────────
 function StepRecord({
   patient,
   audio,
   setAudio,
+  isRecording,
+  setIsRecording,
+  detectedLanguage,
+  onLanguageDetected,
+  liveTranscript,
+  onLiveTranscriptUpdate,
+  soapSections,
+  onSoapSectionsChange,
+  specialty,
   onBack,
   onSkip,
   onContinue,
@@ -442,6 +531,15 @@ function StepRecord({
   patient: PickedPatient;
   audio: CapturedAudio | null;
   setAudio: (a: CapturedAudio | null) => void;
+  isRecording: boolean;
+  setIsRecording: (v: boolean) => void;
+  detectedLanguage: "ar" | "en" | null;
+  onLanguageDetected: (lang: "ar" | "en") => void;
+  liveTranscript: string;
+  onLiveTranscriptUpdate: (text: string) => void;
+  soapSections: SoapSectionConfig[];
+  onSoapSectionsChange: (sections: SoapSectionConfig[]) => void;
+  specialty: string | null;
   onBack: () => void;
   onSkip: () => void;
   onContinue: () => void;
@@ -457,9 +555,16 @@ function StepRecord({
               SOAP note in the next step.
             </CardDescription>
           </div>
-          <Badge variant="outline" className="text-[10px]">
-            Patient: {patient.label}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <SoapTemplateConfig
+              specialty={specialty}
+              sections={soapSections}
+              onSectionsChange={onSoapSectionsChange}
+            />
+            <Badge variant="outline" className="text-[10px]">
+              Patient: {patient.label}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -469,10 +574,20 @@ function StepRecord({
         <AudioRecorder
           onCapture={(blob, durationMs, mimeType) => {
             setAudio({ blob, durationMs, mimeType });
+            setIsRecording(false);
             toast.success("Recording captured", {
               description: `${(blob.size / 1024).toFixed(0)} KB · ${Math.round(durationMs / 1000)} s`,
             });
           }}
+          onRecordingStateChange={setIsRecording}
+        />
+
+        {/* Live Transcription Display */}
+        <LiveTranscript
+          isRecording={isRecording}
+          onLanguageDetected={onLanguageDetected}
+          onTranscriptUpdate={onLiveTranscriptUpdate}
+          preferredLanguage="auto"
         />
 
         <Alert variant="info">
@@ -482,6 +597,11 @@ function StepRecord({
             system: Clinical Speech Recognition (optimized for Arabic dialects)
             → Medical Terminology Engine → Advanced Speech Processing. The audio
             stays in your browser — only the transcript is saved.
+            {detectedLanguage && (
+              <span className="block mt-1 font-medium">
+                Detected language: {detectedLanguage === "ar" ? "Arabic (العربية)" : "English"}
+              </span>
+            )}
           </AlertDescription>
         </Alert>
 
@@ -520,6 +640,7 @@ function StepRecord({
 function StepReview({
   patient,
   pipeline,
+  encounterType,
   onCorrectionAccept,
   onCorrectionSkip,
   onRetryAI,
@@ -531,6 +652,7 @@ function StepReview({
 }: {
   patient: PickedPatient;
   pipeline: PipelineState;
+  encounterType: EncounterTypeValue;
   onCorrectionAccept: (correctedTranscript: string) => void;
   onCorrectionSkip: () => void;
   onRetryAI: () => void;
@@ -650,6 +772,7 @@ function StepReview({
           patientLabel={patient.label}
           rawTranscript={rawTranscript}
           initialSoap={initialSoap}
+          initialEncounterType={encounterType}
           onSave={onSave}
           onBack={onBack}
           submitting={submitting}

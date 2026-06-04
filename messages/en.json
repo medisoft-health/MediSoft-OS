@@ -246,7 +246,10 @@
     "openNavigation": "Open navigation",
     "toggleSidebar": "Toggle sidebar",
     "medi360": "Medi360",
-    "sectionMedi360": "Universal Patient Profile"
+    "sectionMedi360": "Universal Patient Profile",
+    "mediconnect": "MediConnect",
+    "sectionCommunication": "Communication & Alerts",
+    "telemedicine": "Telemedicine"
   },
   "Dashboard": {
     "title": "Dashboard",

@@ -67,6 +67,8 @@ interface Props {
   formError?: string | null;
   /** Per-field server errors (path.dotted form). */
   fieldErrors?: Record<string, string[]>;
+  /** Pre-selected encounter type from Step 1. */
+  initialEncounterType?: EncounterCreateInput["encounterType"];
 }
 
 export function SoapForm({
@@ -74,6 +76,7 @@ export function SoapForm({
   patientLabel,
   rawTranscript,
   initialSoap,
+  initialEncounterType,
   onSave,
   onBack,
   submitting,
@@ -85,7 +88,7 @@ export function SoapForm({
     mode: "onSubmit",
     defaultValues: {
       patientId,
-      encounterType: "outpatient",
+      encounterType: initialEncounterType ?? "outpatient",
       rawTranscript: rawTranscript ?? "",
       correctedTranscript: "",
       soapNote: initialSoap ?? emptySoapNote(),

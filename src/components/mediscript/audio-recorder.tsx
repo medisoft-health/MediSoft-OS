@@ -30,6 +30,8 @@ import { cn } from "@/lib/utils";
  */
 interface Props {
   onCapture: (blob: Blob, durationMs: number, mimeType: string) => void;
+  /** Called when recording state changes (true = recording, false = stopped/idle) */
+  onRecordingStateChange?: (isRecording: boolean) => void;
   disabled?: boolean;
   maxSeconds?: number;
 }
@@ -45,6 +47,7 @@ interface CapturedAudio {
 
 export function AudioRecorder({
   onCapture,
+  onRecordingStateChange,
   disabled = false,
   maxSeconds = 60 * 10, // 10 minutes
 }: Props) {
@@ -65,6 +68,11 @@ export function AudioRecorder({
   const audioCtxRef = React.useRef<AudioContext | null>(null);
   const analyserRef = React.useRef<AnalyserNode | null>(null);
   const drawRafRef = React.useRef<number | null>(null);
+
+  // Notify parent of recording state changes
+  React.useEffect(() => {
+    onRecordingStateChange?.(state === "recording");
+  }, [state, onRecordingStateChange]);
 
   // Cleanup on unmount.
   React.useEffect(() => {

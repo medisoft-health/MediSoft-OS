@@ -225,6 +225,52 @@ export const patients = pgTable(
     familyHistory: text("family_history"),
     socialHistory: text("social_history"),
 
+    // Extended demographics
+    middleName: varchar("middle_name", { length: 120 }),
+    middleNameAr: varchar("middle_name_ar", { length: 120 }),
+    nationality: varchar("nationality", { length: 80 }),
+    maritalStatus: varchar("marital_status", { length: 20 }),
+    occupation: varchar("occupation", { length: 120 }),
+    occupationAr: varchar("occupation_ar", { length: 120 }),
+    preferredLanguage: varchar("preferred_language", { length: 10 }).default("ar"),
+    secondaryPhone: varchar("secondary_phone", { length: 32 }),
+    // Flat address fields for search
+    city: varchar("city", { length: 120 }),
+    region: varchar("region", { length: 120 }),
+    country: varchar("country", { length: 80 }).default("SA"),
+    // Photo
+    photoUrl: text("photo_url"),
+    photoStorageKey: text("photo_storage_key"),
+    // Lifestyle
+    smokingStatus: varchar("smoking_status", { length: 20 }),
+    alcoholStatus: varchar("alcohol_status", { length: 20 }),
+    exerciseFrequency: varchar("exercise_frequency", { length: 20 }),
+    dietType: varchar("diet_type", { length: 40 }),
+    // Extended clinical
+    surgicalHistory: jsonb("surgical_history").$type<
+      Array<{ procedure: string; date?: string; hospital?: string; notes?: string }>
+    >(),
+    currentMedications: jsonb("current_medications").$type<
+      Array<{ name: string; dose?: string; frequency?: string; since?: string; prescribedBy?: string }>
+    >(),
+    immunizations: jsonb("immunizations").$type<
+      Array<{ vaccine: string; date?: string; dose?: string; provider?: string }>
+    >(),
+    // Special needs
+    disabilityNotes: text("disability_notes"),
+    specialNeeds: text("special_needs"),
+    // Profile & Health scores
+    profileCompleteness: integer("profile_completeness").default(0),
+    healthScore: integer("health_score"),
+    healthScoreUpdatedAt: timestamp("health_score_updated_at", { withTimezone: true }),
+    // Device integration
+    connectedDevices: jsonb("connected_devices").$type<
+      Array<{ type: string; name: string; lastSync?: string; deviceId?: string }>
+    >(),
+    // Patient portal
+    portalUserId: uuid("portal_user_id"),
+    portalEnabled: boolean("portal_enabled").default(false),
+    portalLastLogin: timestamp("portal_last_login", { withTimezone: true }),
     // FHIR raw stash for forward compatibility
     fhirResource: jsonb("fhir_resource"),
 
@@ -1156,3 +1202,584 @@ export const patientEvents = pgTable("patient_events", {
 
 export type PatientEvent = typeof patientEvents.$inferSelect;
 export type NewPatientEvent = typeof patientEvents.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT EMERGENCY CONTACTS (multiple contacts per patient)
+// ─────────────────────────────────────────────────────────────────
+export const patientEmergencyContacts = pgTable(
+  "patient_emergency_contacts",
+  {
+    id: serial("id").primaryKey(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 200 }).notNull(),
+    nameAr: varchar("name_ar", { length: 200 }),
+    relationship: varchar("relationship", { length: 80 }).notNull(),
+    phone: varchar("phone", { length: 32 }).notNull(),
+    secondaryPhone: varchar("secondary_phone", { length: 32 }),
+    email: varchar("email", { length: 320 }),
+    address: text("address"),
+    isPrimary: boolean("is_primary").default(false),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("emergency_contacts_patient_idx").on(t.patientId)]
+);
+
+export type PatientEmergencyContact = typeof patientEmergencyContacts.$inferSelect;
+export type NewPatientEmergencyContact = typeof patientEmergencyContacts.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT READINGS (vitals from devices, self-reported measurements)
+// ─────────────────────────────────────────────────────────────────
+export const patientReadings = pgTable(
+  "patient_readings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    recordedById: uuid("recorded_by_id").references(() => users.id, { onDelete: "set null" }),
+    // Reading type
+    readingType: varchar("reading_type", { length: 40 }).notNull(), // blood_pressure, blood_sugar, heart_rate, spo2, weight, temperature, steps, sleep
+    // Values
+    valuePrimary: decimal("value_primary", { precision: 10, scale: 2 }),
+    valueSecondary: decimal("value_secondary", { precision: 10, scale: 2 }),
+    unit: varchar("unit", { length: 20 }).notNull(),
+    // Context
+    context: varchar("context", { length: 40 }), // fasting, post_meal, resting, exercise, morning, evening
+    notes: text("notes"),
+    // Source
+    source: varchar("source", { length: 40 }).notNull().default("manual"), // manual, apple_health, google_fit, device_bluetooth, patient_portal
+    deviceName: varchar("device_name", { length: 120 }),
+    deviceId: varchar("device_id", { length: 120 }),
+    // Alert flags
+    isAbnormal: boolean("is_abnormal").default(false),
+    alertSent: boolean("alert_sent").default(false),
+    alertSentAt: timestamp("alert_sent_at", { withTimezone: true }),
+    // Timestamps
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("readings_patient_idx").on(t.patientId, t.recordedAt),
+    index("readings_type_idx").on(t.patientId, t.readingType, t.recordedAt),
+  ]
+);
+
+export type PatientReading = typeof patientReadings.$inferSelect;
+export type NewPatientReading = typeof patientReadings.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT DOCUMENTS (uploaded files: labs, scans, prescriptions)
+// ─────────────────────────────────────────────────────────────────
+export const patientDocuments = pgTable(
+  "patient_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    uploadedById: uuid("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),
+    // Document info
+    title: varchar("title", { length: 256 }).notNull(),
+    titleAr: varchar("title_ar", { length: 256 }),
+    documentType: varchar("document_type", { length: 40 }).notNull(), // lab_report, scan_image, prescription, medical_report, insurance_card, id_document, vaccination_card, other
+    category: varchar("category", { length: 40 }), // current, historical
+    // File storage
+    fileName: varchar("file_name", { length: 256 }).notNull(),
+    fileUrl: text("file_url").notNull(),
+    storageKey: text("storage_key"),
+    mimeType: varchar("mime_type", { length: 80 }),
+    fileSizeBytes: integer("file_size_bytes"),
+    thumbnailUrl: text("thumbnail_url"),
+    // AI Analysis
+    aiExtractedText: text("ai_extracted_text"),
+    aiSummary: text("ai_summary"),
+    aiStructuredData: jsonb("ai_structured_data").$type<Record<string, unknown>>(),
+    aiAnalyzedAt: timestamp("ai_analyzed_at", { withTimezone: true }),
+    // Metadata
+    documentDate: date("document_date"),
+    issuingFacility: varchar("issuing_facility", { length: 256 }),
+    physicianName: varchar("physician_name", { length: 200 }),
+    notes: text("notes"),
+    tags: jsonb("tags").$type<string[]>(),
+    // Source
+    source: varchar("source", { length: 40 }).default("upload"),
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("documents_patient_idx").on(t.patientId, t.createdAt),
+    index("documents_type_idx").on(t.patientId, t.documentType),
+  ]
+);
+
+export type PatientDocument = typeof patientDocuments.$inferSelect;
+export type NewPatientDocument = typeof patientDocuments.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT VOICE RECORDS (intake interviews, self-reports)
+// ─────────────────────────────────────────────────────────────────
+export const patientVoiceRecords = pgTable(
+  "patient_voice_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    recordedById: uuid("recorded_by_id").references(() => users.id, { onDelete: "set null" }),
+    // Recording info
+    purpose: varchar("purpose", { length: 40 }).notNull(), // intake, follow_up, self_report, symptom_report, history_update
+    title: varchar("title", { length: 256 }),
+    // Audio storage
+    audioUrl: text("audio_url"),
+    audioStorageKey: text("audio_storage_key"),
+    durationMs: integer("duration_ms"),
+    mimeType: varchar("mime_type", { length: 80 }).default("audio/webm"),
+    // Transcription
+    transcript: text("transcript"),
+    transcriptLanguage: varchar("transcript_language", { length: 10 }).default("ar"),
+    transcriptionModel: varchar("transcription_model", { length: 40 }),
+    transcriptionConfidence: decimal("transcription_confidence", { precision: 4, scale: 3 }),
+    // AI Extraction
+    aiExtractedData: jsonb("ai_extracted_data").$type<{
+      allergies?: Array<{ substance: string; reaction?: string; severity?: string }>;
+      conditions?: Array<{ description: string; icdCode?: string; onsetDate?: string }>;
+      medications?: Array<{ name: string; dose?: string; frequency?: string }>;
+      symptoms?: Array<{ description: string; severity?: string; duration?: string }>;
+      surgeries?: Array<{ procedure: string; date?: string }>;
+      familyHistory?: string;
+      socialHistory?: string;
+    }>(),
+    aiSummary: text("ai_summary"),
+    aiProcessedAt: timestamp("ai_processed_at", { withTimezone: true }),
+    // Status
+    status: varchar("status", { length: 20 }).default("pending"), // pending, transcribing, processing, completed, failed
+    appliedToProfile: boolean("applied_to_profile").default(false),
+    appliedAt: timestamp("applied_at", { withTimezone: true }),
+    // Timestamps
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("voice_records_patient_idx").on(t.patientId, t.recordedAt),
+    index("voice_records_status_idx").on(t.status),
+  ]
+);
+
+export type PatientVoiceRecord = typeof patientVoiceRecords.$inferSelect;
+export type NewPatientVoiceRecord = typeof patientVoiceRecords.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT ALERTS (smart notifications for patient + physician)
+// ─────────────────────────────────────────────────────────────────
+export const patientAlerts = pgTable(
+  "patient_alerts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id")
+      .notNull()
+      .references(() => patients.id, { onDelete: "cascade" }),
+    physicianId: uuid("physician_id").references(() => users.id, { onDelete: "set null" }),
+    // Alert info
+    alertType: varchar("alert_type", { length: 40 }).notNull(), // abnormal_reading, missed_medication, overdue_appointment, critical_lab, risk_change
+    severity: varchar("severity", { length: 20 }).notNull().default("info"), // critical, warning, info
+    title: text("title").notNull(),
+    titleAr: text("title_ar"),
+    message: text("message").notNull(),
+    messageAr: text("message_ar"),
+    // Action
+    actionUrl: text("action_url"),
+    actionLabel: varchar("action_label", { length: 120 }),
+    // Delivery
+    notifyPatient: boolean("notify_patient").default(false),
+    notifyPhysician: boolean("notify_physician").default(true),
+    emailSent: boolean("email_sent").default(false),
+    emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+    pushSent: boolean("push_sent").default(false),
+    pushSentAt: timestamp("push_sent_at", { withTimezone: true }),
+    smsSent: boolean("sms_sent").default(false),
+    smsSentAt: timestamp("sms_sent_at", { withTimezone: true }),
+    // Status
+    acknowledged: boolean("acknowledged").default(false),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+    acknowledgedBy: uuid("acknowledged_by").references(() => users.id),
+    resolved: boolean("resolved").default(false),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    // Context
+    readingId: uuid("reading_id").references(() => patientReadings.id),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("alerts_patient_idx").on(t.patientId, t.createdAt),
+    index("alerts_physician_idx").on(t.physicianId, t.acknowledged),
+    index("alerts_unresolved_idx").on(t.patientId),
+  ]
+);
+
+export type PatientAlert = typeof patientAlerts.$inferSelect;
+export type NewPatientAlert = typeof patientAlerts.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  RELATIONS for new UPP tables
+// ─────────────────────────────────────────────────────────────────
+export const patientEmergencyContactsRelations = relations(patientEmergencyContacts, ({ one }) => ({
+  patient: one(patients, { fields: [patientEmergencyContacts.patientId], references: [patients.id] }),
+}));
+
+export const patientReadingsRelations = relations(patientReadings, ({ one }) => ({
+  patient: one(patients, { fields: [patientReadings.patientId], references: [patients.id] }),
+  recordedBy: one(users, { fields: [patientReadings.recordedById], references: [users.id] }),
+}));
+
+export const patientDocumentsRelations = relations(patientDocuments, ({ one }) => ({
+  patient: one(patients, { fields: [patientDocuments.patientId], references: [patients.id] }),
+  uploadedBy: one(users, { fields: [patientDocuments.uploadedById], references: [users.id] }),
+}));
+
+export const patientVoiceRecordsRelations = relations(patientVoiceRecords, ({ one }) => ({
+  patient: one(patients, { fields: [patientVoiceRecords.patientId], references: [patients.id] }),
+  recordedBy: one(users, { fields: [patientVoiceRecords.recordedById], references: [users.id] }),
+}));
+
+export const patientAlertsRelations = relations(patientAlerts, ({ one }) => ({
+  patient: one(patients, { fields: [patientAlerts.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [patientAlerts.physicianId], references: [users.id] }),
+  reading: one(patientReadings, { fields: [patientAlerts.readingId], references: [patientReadings.id] }),
+}));
+
+// ═══════════════════════════════════════════════════════════════════
+//  MEDICONNECT — Communication & Notification System
+// ═══════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────
+//  CONVERSATIONS
+// ─────────────────────────────────────────────────────────────────
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id").references(() => patients.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 256 }),
+    type: varchar("type", { length: 32 }).notNull().default("direct"),
+    status: varchar("status", { length: 32 }).notNull().default("active"),
+    priority: varchar("priority", { length: 16 }).default("normal"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("conv_patient_idx").on(t.patientId),
+    index("conv_type_idx").on(t.type),
+    index("conv_status_idx").on(t.status),
+    index("conv_last_msg_idx").on(t.lastMessageAt),
+  ]
+);
+
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  CONVERSATION PARTICIPANTS
+// ─────────────────────────────────────────────────────────────────
+export const conversationParticipants = pgTable(
+  "conversation_participants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    patientId: integer("patient_id").references(() => patients.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 32 }).notNull().default("member"),
+    unreadCount: integer("unread_count").notNull().default(0),
+    lastReadAt: timestamp("last_read_at", { withTimezone: true }),
+    muted: boolean("muted").notNull().default(false),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("cp_conv_idx").on(t.conversationId),
+    index("cp_user_idx").on(t.userId),
+    index("cp_patient_idx").on(t.patientId),
+  ]
+);
+
+export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
+export type NewConversationParticipant = typeof conversationParticipants.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  MEDICONNECT MESSAGES
+// ─────────────────────────────────────────────────────────────────
+export const mediconnectMessages = pgTable(
+  "mediconnect_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+    senderUserId: uuid("sender_user_id").references(() => users.id),
+    senderPatientId: integer("sender_patient_id").references(() => patients.id),
+    senderType: varchar("sender_type", { length: 20 }).notNull(),
+    contentType: varchar("content_type", { length: 32 }).notNull().default("text"),
+    body: text("body"),
+    attachments: jsonb("attachments").$type<Array<{ name: string; url: string; type: string; size?: number }>>().default([]),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    replyToId: uuid("reply_to_id"),
+    isEdited: boolean("is_edited").notNull().default(false),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    isDeleted: boolean("is_deleted").notNull().default(false),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("mcm_conv_idx").on(t.conversationId, t.createdAt),
+    index("mcm_sender_user_idx").on(t.senderUserId),
+    index("mcm_sender_patient_idx").on(t.senderPatientId),
+    index("mcm_type_idx").on(t.contentType),
+  ]
+);
+
+export type MediconnectMessage = typeof mediconnectMessages.$inferSelect;
+export type NewMediconnectMessage = typeof mediconnectMessages.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  REMOTE PRESCRIPTIONS
+// ─────────────────────────────────────────────────────────────────
+export const remotePrescriptions = pgTable(
+  "remote_prescriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+    physicianId: uuid("physician_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    conversationId: uuid("conversation_id").references(() => conversations.id),
+    messageId: uuid("message_id"),
+    status: varchar("status", { length: 32 }).notNull().default("pending"),
+    medications: jsonb("medications").$type<Array<{
+      name: string;
+      dose: string;
+      frequency: string;
+      duration: string;
+      instructions?: string;
+      quantity?: number;
+    }>>().notNull().default([]),
+    diagnosis: varchar("diagnosis", { length: 512 }),
+    diagnosisCode: varchar("diagnosis_code", { length: 32 }),
+    notes: text("notes"),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    dispensedAt: timestamp("dispensed_at", { withTimezone: true }),
+    dispensedBy: varchar("dispensed_by", { length: 256 }),
+    pharmacyName: varchar("pharmacy_name", { length: 256 }),
+    qrCode: text("qr_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("rp_patient_idx").on(t.patientId),
+    index("rp_physician_idx").on(t.physicianId),
+    index("rp_status_idx").on(t.status),
+    index("rp_conv_idx").on(t.conversationId),
+  ]
+);
+
+export type RemotePrescription = typeof remotePrescriptions.$inferSelect;
+export type NewRemotePrescription = typeof remotePrescriptions.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT NOTIFICATIONS
+// ─────────────────────────────────────────────────────────────────
+export const patientNotifications = pgTable(
+  "patient_notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 64 }).notNull(),
+    severity: varchar("severity", { length: 16 }).notNull().default("info"),
+    title: varchar("title", { length: 256 }).notNull(),
+    titleAr: varchar("title_ar", { length: 256 }),
+    body: text("body").notNull(),
+    bodyAr: text("body_ar"),
+    actionUrl: varchar("action_url", { length: 512 }),
+    actionLabel: varchar("action_label", { length: 128 }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    channelsSent: jsonb("channels_sent").$type<string[]>().default([]),
+    isRead: boolean("is_read").notNull().default(false),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    isDismissed: boolean("is_dismissed").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("pn_patient_idx").on(t.patientId),
+    index("pn_type_idx").on(t.type),
+    index("pn_unread_idx").on(t.patientId, t.isRead),
+    index("pn_created_idx").on(t.createdAt),
+  ]
+);
+
+export type PatientNotification = typeof patientNotifications.$inferSelect;
+export type NewPatientNotification = typeof patientNotifications.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PUSH SUBSCRIPTIONS
+// ─────────────────────────────────────────────────────────────────
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    patientId: integer("patient_id").references(() => patients.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    authKey: text("auth_key"),
+    p256dhKey: text("p256dh_key"),
+    fcmToken: text("fcm_token"),
+    deviceType: varchar("device_type", { length: 32 }),
+    deviceName: varchar("device_name", { length: 128 }),
+    isActive: boolean("is_active").notNull().default(true),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("ps_user_idx").on(t.userId),
+    index("ps_patient_idx").on(t.patientId),
+  ]
+);
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  PATIENT DEVICE CONNECTIONS
+// ─────────────────────────────────────────────────────────────────
+export const patientDeviceConnections = pgTable(
+  "patient_device_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: integer("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+    deviceType: varchar("device_type", { length: 64 }).notNull(),
+    deviceName: varchar("device_name", { length: 256 }),
+    deviceModel: varchar("device_model", { length: 256 }),
+    connectionStatus: varchar("connection_status", { length: 32 }).notNull().default("pending"),
+    oauthToken: text("oauth_token"),
+    refreshToken: text("refresh_token"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    syncFrequencyMinutes: integer("sync_frequency_minutes").default(60),
+    dataTypes: jsonb("data_types").$type<string[]>().default([]),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("pdc_patient_idx").on(t.patientId),
+    index("pdc_type_idx").on(t.deviceType),
+    index("pdc_status_idx").on(t.connectionStatus),
+  ]
+);
+
+export type PatientDeviceConnection = typeof patientDeviceConnections.$inferSelect;
+export type NewPatientDeviceConnection = typeof patientDeviceConnections.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  NOTIFICATION PREFERENCES
+// ─────────────────────────────────────────────────────────────────
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    patientId: integer("patient_id").references(() => patients.id, { onDelete: "cascade" }),
+    channel: varchar("channel", { length: 32 }).notNull(),
+    notificationType: varchar("notification_type", { length: 64 }).notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    quietHoursStart: varchar("quiet_hours_start", { length: 8 }),
+    quietHoursEnd: varchar("quiet_hours_end", { length: 8 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("np_user_idx").on(t.userId),
+    index("np_patient_idx").on(t.patientId),
+  ]
+);
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type NewNotificationPreference = typeof notificationPreferences.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  VIDEO CALL SESSIONS (Telemedicine)
+// ─────────────────────────────────────────────────────────────────
+export const videoCallSessions = pgTable(
+  "video_call_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id").references(() => conversations.id),
+    patientId: integer("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+    physicianId: uuid("physician_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    status: varchar("status", { length: 32 }).notNull().default("scheduled"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+    roomId: varchar("room_id", { length: 256 }),
+    recordingUrl: text("recording_url"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("vcs_patient_idx").on(t.patientId),
+    index("vcs_physician_idx").on(t.physicianId),
+    index("vcs_status_idx").on(t.status),
+    index("vcs_scheduled_idx").on(t.scheduledAt),
+  ]
+);
+
+export type VideoCallSession = typeof videoCallSessions.$inferSelect;
+export type NewVideoCallSession = typeof videoCallSessions.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────
+//  MEDICONNECT RELATIONS
+// ─────────────────────────────────────────────────────────────────
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  patient: one(patients, { fields: [conversations.patientId], references: [patients.id] }),
+  createdByUser: one(users, { fields: [conversations.createdBy], references: [users.id] }),
+  participants: many(conversationParticipants),
+  messages: many(mediconnectMessages),
+}));
+
+export const conversationParticipantsRelations = relations(conversationParticipants, ({ one }) => ({
+  conversation: one(conversations, { fields: [conversationParticipants.conversationId], references: [conversations.id] }),
+  user: one(users, { fields: [conversationParticipants.userId], references: [users.id] }),
+  patient: one(patients, { fields: [conversationParticipants.patientId], references: [patients.id] }),
+}));
+
+export const mediconnectMessagesRelations = relations(mediconnectMessages, ({ one }) => ({
+  conversation: one(conversations, { fields: [mediconnectMessages.conversationId], references: [conversations.id] }),
+  senderUser: one(users, { fields: [mediconnectMessages.senderUserId], references: [users.id] }),
+  senderPatient: one(patients, { fields: [mediconnectMessages.senderPatientId], references: [patients.id] }),
+}));
+
+export const remotePrescriptionsRelations = relations(remotePrescriptions, ({ one }) => ({
+  patient: one(patients, { fields: [remotePrescriptions.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [remotePrescriptions.physicianId], references: [users.id] }),
+  conversation: one(conversations, { fields: [remotePrescriptions.conversationId], references: [conversations.id] }),
+}));
+
+export const patientNotificationsRelations = relations(patientNotifications, ({ one }) => ({
+  patient: one(patients, { fields: [patientNotifications.patientId], references: [patients.id] }),
+}));
+
+export const patientDeviceConnectionsRelations = relations(patientDeviceConnections, ({ one }) => ({
+  patient: one(patients, { fields: [patientDeviceConnections.patientId], references: [patients.id] }),
+}));
+
+export const videoCallSessionsRelations = relations(videoCallSessions, ({ one }) => ({
+  patient: one(patients, { fields: [videoCallSessions.patientId], references: [patients.id] }),
+  physician: one(users, { fields: [videoCallSessions.physicianId], references: [users.id] }),
+  conversation: one(conversations, { fields: [videoCallSessions.conversationId], references: [conversations.id] }),
+}));

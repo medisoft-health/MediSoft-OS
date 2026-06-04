@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Brain, FileText, HeartPulse, History, Mic, Stethoscope, UserCircle } from "lucide-react";
+import { Brain, FileText, HeartPulse, History, Mic, Stethoscope, UserCircle, Upload, ClipboardList, Activity, Target } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 
@@ -27,7 +27,12 @@ import { HealthDashboard } from "./_components/health-dashboard";
 import { PatientTimeline } from "./_components/patient-timeline";
 import { Patient360Wrapper } from "./_components/patient-360-wrapper";
 import { RiskAssessmentPanel } from "@/app/[locale]/(app)/medilab/[id]/_components/risk-assessment-panel";
-import { Patient360Record, PatientSelfReport } from "@/components/patient-context";
+import { Patient360Record, PatientSelfReport, HealthGoalsDashboard } from "@/components/patient-context";
+import { SmartPatientHeaderWrapper } from "./_components/smart-header-wrapper";
+import { PatientProfileTab } from "./_components/patient-profile-tab";
+import { PatientVoiceIntakeTab } from "./_components/patient-voice-intake-tab";
+import { PatientDocumentsTab } from "./_components/patient-documents-tab";
+import { PatientReadingsTab } from "./_components/patient-readings-tab";
 
 
 export const dynamic = "force-dynamic";
@@ -38,7 +43,11 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const VALID_TABS = ["overview", "encounters", "vitals", "documents", "timeline", "patient360", "self-report"] as const;
+const VALID_TABS = [
+  "overview", "profile", "encounters", "vitals", "readings",
+  "documents", "upload", "timeline", "voice-intake",
+  "patient360", "self-report"
+] as const;
 type TabId = (typeof VALID_TABS)[number];
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -126,14 +135,22 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-6 pb-12 lg:px-8">
+    <div className="mx-auto max-w-7xl space-y-4 px-6 pb-12 lg:px-8">
+      {/* Original Patient Header */}
       <PatientHeader patient={patient} />
 
+      {/* Smart Patient Header Bar — shows key vitals and alerts */}
+      <SmartPatientHeaderWrapper patientId={patient.id} patient={selectedPatient} />
+
       <Tabs defaultValue={activeTab}>
-        <TabsList className="overflow-x-auto">
+        <TabsList className="overflow-x-auto flex-wrap">
           <TabsTrigger value="overview">
             <Stethoscope className="size-3.5" />
             {t("overview")}
+          </TabsTrigger>
+          <TabsTrigger value="profile">
+            <ClipboardList className="size-3.5" />
+            الملف الشامل
           </TabsTrigger>
           <TabsTrigger value="encounters">
             <Mic className="size-3.5" />
@@ -145,9 +162,21 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
             {t("vitals")}
             <CountChip n={aggregates.vitals} />
           </TabsTrigger>
+          <TabsTrigger value="readings">
+            <Activity className="size-3.5" />
+            القراءات
+          </TabsTrigger>
           <TabsTrigger value="documents">
             <FileText className="size-3.5" />
             {t("documents")}
+          </TabsTrigger>
+          <TabsTrigger value="upload">
+            <Upload className="size-3.5" />
+            رفع مستندات
+          </TabsTrigger>
+          <TabsTrigger value="voice-intake">
+            <Mic className="size-3.5 text-red-500" />
+            تسجيل صوتي
           </TabsTrigger>
           <TabsTrigger value="timeline">
             <History className="size-3.5" />
@@ -160,6 +189,10 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
           <TabsTrigger value="self-report">
             <UserCircle className="size-3.5" />
             تسجيل ذاتي
+          </TabsTrigger>
+          <TabsTrigger value="health-goals">
+            <Target className="size-3.5" />
+            الأهداف الصحية
           </TabsTrigger>
         </TabsList>
 
@@ -175,6 +208,12 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
           </div>
         </TabsContent>
 
+        <TabsContent value="profile">
+          <Patient360Wrapper patient={selectedPatient}>
+            <PatientProfileTab patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} />
+          </Patient360Wrapper>
+        </TabsContent>
+
         <TabsContent value="encounters">
           <TabEncounters encounters={encounters} />
         </TabsContent>
@@ -183,8 +222,26 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
           <TabVitals patientId={patient.id} vitals={allVitals} />
         </TabsContent>
 
+        <TabsContent value="readings">
+          <Patient360Wrapper patient={selectedPatient}>
+            <PatientReadingsTab patientId={patient.id} />
+          </Patient360Wrapper>
+        </TabsContent>
+
         <TabsContent value="documents">
           <TabDocuments />
+        </TabsContent>
+
+        <TabsContent value="upload">
+          <Patient360Wrapper patient={selectedPatient}>
+            <PatientDocumentsTab patientId={patient.id} />
+          </Patient360Wrapper>
+        </TabsContent>
+
+        <TabsContent value="voice-intake">
+          <Patient360Wrapper patient={selectedPatient}>
+            <PatientVoiceIntakeTab patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} />
+          </Patient360Wrapper>
         </TabsContent>
 
         <TabsContent value="timeline">
@@ -200,6 +257,12 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
         <TabsContent value="self-report">
           <Patient360Wrapper patient={selectedPatient}>
             <PatientSelfReport />
+          </Patient360Wrapper>
+        </TabsContent>
+
+        <TabsContent value="health-goals">
+          <Patient360Wrapper patient={selectedPatient}>
+            <HealthGoalsDashboard />
           </Patient360Wrapper>
         </TabsContent>
       </Tabs>

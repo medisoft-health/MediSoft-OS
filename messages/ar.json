@@ -246,7 +246,10 @@
     "openNavigation": "فتح القائمة",
     "toggleSidebar": "طي/توسيع القائمة الجانبية",
     "medi360": "ميدي 360",
-    "sectionMedi360": "السجل الشامل"
+    "sectionMedi360": "السجل الشامل",
+    "mediconnect": "MediConnect",
+    "sectionCommunication": "التواصل والإشعارات",
+    "telemedicine": "الطب عن بُعد"
   },
   "Dashboard": {
     "title": "لوحة التحكم",
