@@ -13,9 +13,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
   Plus,
-  X,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,48 +23,67 @@ import { cn } from "@/lib/utils";
 import type { SoapNoteInput } from "@/lib/validations/encounter";
 
 // ─────────────────────────────────────────────────────────────────
-//  Types (mirror the server-side types)
+//  Types (mirror the server-side Saudi-compliant types)
 // ─────────────────────────────────────────────────────────────────
 
 interface SuggestedPrescription {
   drugName: string;
+  drugNameAr: string;
+  sfdaCode?: string;
   dose: string;
   frequency: string;
   route: string;
   duration: string;
   instructions: string;
+  instructionsAr: string;
   rationale: string;
+  rationaleAr: string;
   priority: "routine" | "urgent" | "stat";
+  requiresPriorAuth?: boolean;
 }
 
 interface SuggestedLabOrder {
   panelName: string;
+  panelNameAr: string;
   loincCode?: string;
+  mohCode?: string;
   rationale: string;
+  rationaleAr: string;
   priority: "routine" | "urgent" | "stat";
   fasting?: boolean;
 }
 
 interface SuggestedImagingOrder {
   scanType: string;
+  scanTypeAr: string;
   bodyPart: string;
+  bodyPartAr: string;
   modality: string;
   rationale: string;
+  rationaleAr: string;
   priority: "routine" | "urgent" | "stat";
   contrastRequired?: boolean;
+  mohApprovalRequired?: boolean;
 }
 
 interface SuggestedReferral {
   specialty: string;
+  specialtyAr: string;
   reason: string;
+  reasonAr: string;
   urgency: "routine" | "urgent" | "emergent";
   clinicalQuestion: string;
+  clinicalQuestionAr: string;
+  nphiesServiceType?: string;
 }
 
 interface SuggestedFollowUp {
   timeframe: string;
+  timeframeAr: string;
   reason: string;
+  reasonAr: string;
   instructions: string;
+  instructionsAr: string;
   appointmentType: "in_person" | "telemedicine" | "phone";
 }
 
@@ -76,6 +94,7 @@ interface OrderAutomationResult {
   referrals: SuggestedReferral[];
   followUps: SuggestedFollowUp[];
   clinicalSummary: string;
+  clinicalSummaryAr: string;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -105,9 +124,15 @@ function PriorityBadge({ priority }: { priority: string }) {
     emergent: "bg-red-100 text-red-800 border-red-200",
     routine: "bg-green-100 text-green-800 border-green-200",
   };
+  const labels: Record<string, string> = {
+    stat: "فوري",
+    urgent: "عاجل",
+    emergent: "طارئ",
+    routine: "روتيني",
+  };
   return (
     <Badge variant="outline" className={cn("text-[10px] uppercase font-semibold", colors[priority] || colors.routine)}>
-      {priority}
+      {labels[priority] || priority}
     </Badge>
   );
 }
@@ -136,7 +161,20 @@ function PrescriptionCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{rx.drugName}</span>
+            {rx.drugNameAr && rx.drugNameAr !== rx.drugName && (
+              <span className="text-xs text-[color:var(--color-muted-foreground)]" dir="rtl">({rx.drugNameAr})</span>
+            )}
             <PriorityBadge priority={rx.priority} />
+            {rx.requiresPriorAuth && (
+              <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
+                <Shield className="size-2.5 mr-0.5" /> موافقة مسبقة
+              </Badge>
+            )}
+            {rx.sfdaCode && (
+              <Badge variant="outline" className="text-[9px] font-mono">
+                SFDA: {rx.sfdaCode}
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5">
             {rx.dose} · {rx.frequency} · {rx.route}
@@ -160,7 +198,7 @@ function PrescriptionCard({
             disabled={accepted}
           >
             {accepted ? (
-              <><CheckCircle2 className="size-3 mr-1" /> Sent</>
+              <><CheckCircle2 className="size-3 mr-1" /> تم</>
             ) : (
               <><Plus className="size-3 mr-1" /> PharmaX</>
             )}
@@ -169,11 +207,11 @@ function PrescriptionCard({
       </div>
       {expanded && (
         <div className="mt-2 pt-2 border-t border-dashed text-xs space-y-1">
-          {rx.instructions && (
-            <p><span className="font-medium">Instructions:</span> {rx.instructions}</p>
+          {(rx.instructionsAr || rx.instructions) && (
+            <p dir="auto"><span className="font-medium">التعليمات:</span> {rx.instructionsAr || rx.instructions}</p>
           )}
-          <p className="text-[color:var(--color-muted-foreground)]">
-            <span className="font-medium">Rationale:</span> {rx.rationale}
+          <p className="text-[color:var(--color-muted-foreground)]" dir="auto">
+            <span className="font-medium">المبرر السريري:</span> {rx.rationaleAr || rx.rationale}
           </p>
         </div>
       )}
@@ -199,21 +237,31 @@ function LabOrderCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{lab.panelName}</span>
+            {lab.panelNameAr && lab.panelNameAr !== lab.panelName && (
+              <span className="text-xs text-[color:var(--color-muted-foreground)]" dir="rtl">({lab.panelNameAr})</span>
+            )}
             <PriorityBadge priority={lab.priority} />
             {lab.fasting && (
               <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-200">
-                Fasting
+                صائم
               </Badge>
             )}
           </div>
-          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5">
-            {lab.rationale}
+          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5" dir="auto">
+            {lab.rationaleAr || lab.rationale}
           </p>
-          {lab.loincCode && (
-            <p className="text-[10px] font-mono text-[color:var(--color-muted-foreground)] mt-0.5">
-              LOINC: {lab.loincCode}
-            </p>
-          )}
+          <div className="flex gap-2 mt-0.5">
+            {lab.loincCode && (
+              <span className="text-[10px] font-mono text-[color:var(--color-muted-foreground)]">
+                LOINC: {lab.loincCode}
+              </span>
+            )}
+            {lab.mohCode && (
+              <span className="text-[10px] font-mono text-[color:var(--color-muted-foreground)]">
+                MOH: {lab.mohCode}
+              </span>
+            )}
+          </div>
         </div>
         <Button
           variant={accepted ? "outline" : "default"}
@@ -223,7 +271,7 @@ function LabOrderCard({
           disabled={accepted}
         >
           {accepted ? (
-            <><CheckCircle2 className="size-3 mr-1" /> Sent</>
+            <><CheckCircle2 className="size-3 mr-1" /> تم</>
           ) : (
             <><Plus className="size-3 mr-1" /> MediLab</>
           )}
@@ -251,16 +299,24 @@ function ImagingOrderCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{img.scanType}</span>
+            {img.scanTypeAr && img.scanTypeAr !== img.scanType && (
+              <span className="text-xs text-[color:var(--color-muted-foreground)]" dir="rtl">({img.scanTypeAr})</span>
+            )}
             <Badge variant="outline" className="text-[10px]">{img.modality}</Badge>
             <PriorityBadge priority={img.priority} />
             {img.contrastRequired && (
               <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200">
-                + Contrast
+                + صبغة
+              </Badge>
+            )}
+            {img.mohApprovalRequired && (
+              <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
+                <Shield className="size-2.5 mr-0.5" /> موافقة وزارة الصحة
               </Badge>
             )}
           </div>
-          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5">
-            {img.bodyPart} — {img.rationale}
+          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5" dir="auto">
+            {img.bodyPartAr || img.bodyPart} — {img.rationaleAr || img.rationale}
           </p>
         </div>
         <Button
@@ -271,7 +327,7 @@ function ImagingOrderCard({
           disabled={accepted}
         >
           {accepted ? (
-            <><CheckCircle2 className="size-3 mr-1" /> Sent</>
+            <><CheckCircle2 className="size-3 mr-1" /> تم</>
           ) : (
             <><Plus className="size-3 mr-1" /> MediScan</>
           )}
@@ -299,13 +355,21 @@ function ReferralCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{referral.specialty}</span>
+            {referral.specialtyAr && referral.specialtyAr !== referral.specialty && (
+              <span className="text-xs text-[color:var(--color-muted-foreground)]" dir="rtl">({referral.specialtyAr})</span>
+            )}
             <PriorityBadge priority={referral.urgency} />
+            {referral.nphiesServiceType && (
+              <Badge variant="outline" className="text-[9px] bg-green-50 text-green-700 border-green-200">
+                NPHIES: {referral.nphiesServiceType}
+              </Badge>
+            )}
           </div>
-          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5">
-            {referral.reason}
+          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5" dir="auto">
+            {referral.reasonAr || referral.reason}
           </p>
-          <p className="text-[11px] text-[color:var(--color-muted-foreground)] mt-1 italic">
-            Clinical question: {referral.clinicalQuestion}
+          <p className="text-[11px] text-[color:var(--color-muted-foreground)] mt-1 italic" dir="auto">
+            السؤال السريري: {referral.clinicalQuestionAr || referral.clinicalQuestion}
           </p>
         </div>
         <Button
@@ -316,9 +380,9 @@ function ReferralCard({
           disabled={accepted}
         >
           {accepted ? (
-            <><CheckCircle2 className="size-3 mr-1" /> Created</>
+            <><CheckCircle2 className="size-3 mr-1" /> تم</>
           ) : (
-            <><Plus className="size-3 mr-1" /> Refer</>
+            <><Plus className="size-3 mr-1" /> إحالة</>
           )}
         </Button>
       </div>
@@ -336,9 +400,9 @@ function FollowUpCard({
   accepted: boolean;
 }) {
   const typeLabels: Record<string, string> = {
-    in_person: "In-Person",
-    telemedicine: "Telemedicine",
-    phone: "Phone",
+    in_person: "حضوري",
+    telemedicine: "عن بُعد",
+    phone: "هاتفي",
   };
 
   return (
@@ -349,17 +413,17 @@ function FollowUpCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm">{fu.timeframe}</span>
+            <span className="font-semibold text-sm">{fu.timeframeAr || fu.timeframe}</span>
             <Badge variant="outline" className="text-[10px]">
               {typeLabels[fu.appointmentType] || fu.appointmentType}
             </Badge>
           </div>
-          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5">
-            {fu.reason}
+          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-0.5" dir="auto">
+            {fu.reasonAr || fu.reason}
           </p>
-          {fu.instructions && (
-            <p className="text-[11px] text-[color:var(--color-muted-foreground)] mt-1">
-              Instructions: {fu.instructions}
+          {(fu.instructionsAr || fu.instructions) && (
+            <p className="text-[11px] text-[color:var(--color-muted-foreground)] mt-1" dir="auto">
+              التعليمات: {fu.instructionsAr || fu.instructions}
             </p>
           )}
         </div>
@@ -371,9 +435,9 @@ function FollowUpCard({
           disabled={accepted}
         >
           {accepted ? (
-            <><CheckCircle2 className="size-3 mr-1" /> Scheduled</>
+            <><CheckCircle2 className="size-3 mr-1" /> تم</>
           ) : (
-            <><Plus className="size-3 mr-1" /> Schedule</>
+            <><Plus className="size-3 mr-1" /> جدولة</>
           )}
         </Button>
       </div>
@@ -427,7 +491,7 @@ export function OrderSuggestionsPanel({
       const data = await res.json();
       setResult(data.orders);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate suggestions");
+      setError(err instanceof Error ? err.message : "فشل في إنشاء الاقتراحات");
     } finally {
       setLoading(false);
     }
@@ -478,20 +542,31 @@ export function OrderSuggestionsPanel({
             <Sparkles className="size-6 text-[color:var(--color-brand-magenta)]" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-semibold text-sm">Order Intelligence</h4>
-            <p className="text-xs text-[color:var(--color-muted-foreground)] max-w-sm">
-              Analyze this SOAP note to get intelligent suggestions for prescriptions,
-              lab orders, imaging, referrals, and follow-up appointments.
+            <h4 className="font-semibold text-sm">ذكاء الطلبات — Order Intelligence</h4>
+            <p className="text-xs text-[color:var(--color-muted-foreground)] max-w-sm" dir="auto">
+              تحليل تقرير SOAP واقتراح الوصفات والتحاليل والأشعة والإحالات ومواعيد المتابعة
+              وفق معايير وزارة الصحة وهيئة الغذاء والدواء (SFDA).
             </p>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <Badge variant="outline" className="text-[9px] bg-green-50 text-green-700 border-green-200">
+                <Shield className="size-2.5 mr-0.5" /> SFDA
+              </Badge>
+              <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-200">
+                MOH
+              </Badge>
+              <Badge variant="outline" className="text-[9px] bg-purple-50 text-purple-700 border-purple-200">
+                NPHIES
+              </Badge>
+            </div>
           </div>
           <Button
             variant="brand"
-            size="md"
+            size="sm"
             onClick={generateSuggestions}
             disabled={loading}
           >
             <Sparkles className="size-4 mr-1.5" />
-            Generate Order Suggestions
+            إنشاء اقتراحات الطلبات — Generate Orders
           </Button>
           {error && (
             <p className="text-xs text-red-600 flex items-center gap-1">
@@ -510,9 +585,9 @@ export function OrderSuggestionsPanel({
         <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
           <Loader2 className="size-8 animate-spin text-[color:var(--color-brand-magenta)]" />
           <div className="space-y-1">
-            <h4 className="font-semibold text-sm">Analyzing SOAP Note</h4>
-            <p className="text-xs text-[color:var(--color-muted-foreground)]">
-              Generating clinical order suggestions based on documented findings...
+            <h4 className="font-semibold text-sm">جارٍ تحليل التقرير — Analyzing SOAP Note</h4>
+            <p className="text-xs text-[color:var(--color-muted-foreground)]" dir="auto">
+              إنشاء اقتراحات الطلبات السريرية بناءً على النتائج الموثقة...
             </p>
           </div>
         </CardContent>
@@ -527,9 +602,9 @@ export function OrderSuggestionsPanel({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm">
             <Sparkles className="size-4 text-[color:var(--color-brand-magenta)]" />
-            Order Intelligence
+            ذكاء الطلبات — Order Intelligence
             <Badge variant="outline" className="text-[10px] font-normal">
-              {totalAccepted}/{totalSuggestions} accepted
+              {totalAccepted}/{totalSuggestions} معتمد
             </Badge>
           </CardTitle>
           <div className="flex items-center gap-1">
@@ -540,7 +615,7 @@ export function OrderSuggestionsPanel({
               onClick={generateSuggestions}
               disabled={loading}
             >
-              Regenerate
+              إعادة إنشاء
             </Button>
             <Button
               variant="ghost"
@@ -552,7 +627,12 @@ export function OrderSuggestionsPanel({
             </Button>
           </div>
         </div>
-        {result?.clinicalSummary && !collapsed && (
+        {result?.clinicalSummaryAr && !collapsed && (
+          <p className="text-xs text-[color:var(--color-muted-foreground)] mt-1" dir="auto">
+            {result.clinicalSummaryAr}
+          </p>
+        )}
+        {!result?.clinicalSummaryAr && result?.clinicalSummary && !collapsed && (
           <p className="text-xs text-[color:var(--color-muted-foreground)] mt-1">
             {result.clinicalSummary}
           </p>
@@ -566,7 +646,7 @@ export function OrderSuggestionsPanel({
             <div className="space-y-2">
               <h5 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
                 <Pill className="size-3.5 text-[color:var(--color-brand-magenta)]" />
-                Prescriptions → PharmaX
+                الوصفات → PharmaX
                 <Badge variant="outline" className="text-[10px] ml-auto">{result.prescriptions.length}</Badge>
               </h5>
               <div className="space-y-2">
@@ -587,7 +667,7 @@ export function OrderSuggestionsPanel({
             <div className="space-y-2">
               <h5 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
                 <TestTubes className="size-3.5 text-blue-600" />
-                Lab Orders → MediLab
+                التحاليل → MediLab
                 <Badge variant="outline" className="text-[10px] ml-auto">{result.labOrders.length}</Badge>
               </h5>
               <div className="space-y-2">
@@ -608,7 +688,7 @@ export function OrderSuggestionsPanel({
             <div className="space-y-2">
               <h5 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
                 <ScanLine className="size-3.5 text-purple-600" />
-                Imaging Orders → MediScan
+                الأشعة → MediScan
                 <Badge variant="outline" className="text-[10px] ml-auto">{result.imagingOrders.length}</Badge>
               </h5>
               <div className="space-y-2">
@@ -629,7 +709,7 @@ export function OrderSuggestionsPanel({
             <div className="space-y-2">
               <h5 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
                 <UserPlus className="size-3.5 text-teal-600" />
-                Referrals
+                الإحالات
                 <Badge variant="outline" className="text-[10px] ml-auto">{result.referrals.length}</Badge>
               </h5>
               <div className="space-y-2">
@@ -650,7 +730,7 @@ export function OrderSuggestionsPanel({
             <div className="space-y-2">
               <h5 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
                 <CalendarClock className="size-3.5 text-indigo-600" />
-                Follow-up Appointments
+                مواعيد المتابعة
                 <Badge variant="outline" className="text-[10px] ml-auto">{result.followUps.length}</Badge>
               </h5>
               <div className="space-y-2">
@@ -668,17 +748,17 @@ export function OrderSuggestionsPanel({
 
           {/* No suggestions */}
           {totalSuggestions === 0 && (
-            <p className="text-center text-xs text-[color:var(--color-muted-foreground)] py-4">
-              No clinical orders suggested for this encounter. The SOAP note may be
-              too brief or no actionable items were identified.
+            <p className="text-center text-xs text-[color:var(--color-muted-foreground)] py-4" dir="auto">
+              لا توجد طلبات سريرية مقترحة لهذه الزيارة. قد يكون تقرير SOAP مختصراً جداً
+              أو لم يتم تحديد إجراءات قابلة للتنفيذ.
             </p>
           )}
 
           {/* Disclaimer */}
-          <p className="flex items-start gap-1.5 text-[10px] text-[color:var(--color-muted-foreground)] border-t pt-2">
+          <p className="flex items-start gap-1.5 text-[10px] text-[color:var(--color-muted-foreground)] border-t pt-2" dir="auto">
             <AlertTriangle className="size-3 shrink-0 mt-0.5" />
-            These are suggestions only. The physician must review and approve all orders
-            before they are executed. Clinical judgment supersedes all automated suggestions.
+            هذه اقتراحات فقط. الطبيب مسؤول عن مراجعة واعتماد جميع الطلبات قبل تنفيذها.
+            الحكم السريري يتفوق على جميع الاقتراحات الآلية. متوافق مع معايير وزارة الصحة وهيئة الغذاء والدواء.
           </p>
         </CardContent>
       )}
