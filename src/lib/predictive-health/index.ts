@@ -546,7 +546,7 @@ function calculateLifestyleImpact(
         changeEn: "Walk 30 minutes daily",
         impact: "تقليل خطر القلب 25%",
         impactEn: "Reduce cardiac risk by 25%",
-        difficulty: "easy",
+        difficulty: "easy" as const,
         priority: 1,
       },
       {
@@ -554,7 +554,7 @@ function calculateLifestyleImpact(
         changeEn: "Sleep 7-8 hours",
         impact: "تحسين المناعة والتركيز",
         impactEn: "Improve immunity and focus",
-        difficulty: "moderate",
+        difficulty: "moderate" as const,
         priority: 2,
       },
       {
@@ -562,7 +562,7 @@ function calculateLifestyleImpact(
         changeEn: "Quit smoking",
         impact: "تقليل خطر السرطان 50%",
         impactEn: "Reduce cancer risk by 50%",
-        difficulty: "hard",
+        difficulty: "hard" as const,
         priority: lifestyle?.smokingStatus === "current" ? 1 : 99,
       },
     ].filter((c) => c.priority < 99),

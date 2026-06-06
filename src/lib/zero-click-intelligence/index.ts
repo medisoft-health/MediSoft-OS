@@ -470,8 +470,8 @@ export async function generateZeroClickInsights(
   }
 
   // ── 5. Insurance Expiry Alert ──
-  if (patient.insuranceExpiry) {
-    const expiryDate = new Date(patient.insuranceExpiry);
+  if ((patient as any).insuranceExpiry) {
+    const expiryDate = new Date((patient as any).insuranceExpiry);
     const daysUntilExpiry = Math.floor(
       (expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
     );

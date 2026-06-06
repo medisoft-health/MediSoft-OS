@@ -193,7 +193,7 @@ export async function generatePerformancePrediction(
   if (!profile.sleepData) profile.sleepData = [];
   if (!profile.injuryHistory) profile.injuryHistory = [];
   if (!profile.labResults) profile.labResults = [];
-  if (!profile.bodyComposition) profile.bodyComposition = { fatPercentage: 0, muscleMass: 0, bmi: 0, bodyWater: 0 };
+  if (!profile.bodyComposition) profile.bodyComposition = { fatPercentage: 0, muscleMass: 0, bmi: 0, waterPercentage: 0 };
   if (!profile.weight) profile.weight = 75;
 
   // ── Calculate ACWR ──

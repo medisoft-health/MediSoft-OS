@@ -80,7 +80,7 @@ export interface InsuranceCoverage {
 }
 
 export interface SmartPharmacyResult {
-  prescriptionId: number;
+  prescriptionId: string;
   patientName: string;
   medications: MedicationAvailability[];
   interactions: DrugInteractionAlert[];
