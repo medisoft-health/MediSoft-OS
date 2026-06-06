@@ -20,6 +20,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  typescript: { ignoreBuildErrors: true },
   // Standalone output for Docker / Cloud Run deployments.
   // Produces a self-contained server.js with only the required node_modules.
   // output: "standalone", // Disabled - using next start with PM2

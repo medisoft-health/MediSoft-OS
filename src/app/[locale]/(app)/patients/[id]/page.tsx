@@ -33,6 +33,7 @@ import { PatientProfileTab } from "./_components/patient-profile-tab";
 import { PatientVoiceIntakeTab } from "./_components/patient-voice-intake-tab";
 import { PatientDocumentsTab } from "./_components/patient-documents-tab";
 import { PatientReadingsTab } from "./_components/patient-readings-tab";
+import { ZeroClickWrapper } from "./_components/zero-click-wrapper";
 
 
 export const dynamic = "force-dynamic";
@@ -141,6 +142,9 @@ export default async function PatientDetailPage({ params, searchParams }: PagePr
 
       {/* Smart Patient Header Bar — shows key vitals and alerts */}
       <SmartPatientHeaderWrapper patientId={patient.id} patient={selectedPatient} />
+
+      {/* Zero-Click Clinical Intelligence — Proactive insights */}
+      <ZeroClickWrapper patientId={patient.id} />
 
       <Tabs defaultValue={activeTab}>
         <TabsList className="overflow-x-auto flex-wrap">

@@ -35,6 +35,7 @@ import {
   ChevronDown,
   MessageSquare,
   Video,
+  Rocket,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,8 @@ const NAV: NavItemDef[] = [
   { href: "/telemedicine", tKey: "telemedicine", icon: Video, badge: { text: "NEW", variant: "success" } },
   { href: "/health-connect", tKey: "healthConnect", icon: Cable },
   { href: "/patient-portal", tKey: "patientPortal", icon: UserCircle },
+  // ── INNOVATION ──
+  { href: "/innovation", tKey: "innovation", icon: Rocket, sectionTKey: "sectionInnovation", badge: { text: "NEW", variant: "success" } },
   // ── SYSTEM ──
   { href: "/analytics", tKey: "analytics", icon: BarChart3, sectionTKey: "sectionSystem" },
   { href: "/notifications", tKey: "notifications", icon: Bell },

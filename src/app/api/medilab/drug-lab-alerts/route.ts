@@ -37,14 +37,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Lab result not found." }, { status: 404 });
   }
 
-  const currentResults = (labRow.lab.results ?? []) as Array<{
-    testName: string;
-    value: number | string;
-    unit?: string;
-    referenceLow?: number | string;
-    referenceHigh?: number | string;
-    flag?: string;
-  }>;
+  // Normalize lab results: handle old format (test, reference_range, status) and new format (testName, referenceLow/referenceHigh, flag)
+  const rawResults = (labRow.lab.results ?? []) as Array<Record<string, unknown>>;
+  const currentResults = rawResults.map((r) => {
+    const testName = (r.testName ?? r.test ?? "") as string;
+    const value = r.value as number | string;
+    const unit = (r.unit ?? "") as string;
+    let referenceLow = r.referenceLow as number | string | undefined;
+    let referenceHigh = r.referenceHigh as number | string | undefined;
+    if (!referenceLow && !referenceHigh && r.reference_range) {
+      const rangeStr = String(r.reference_range);
+      const match = rangeStr.match(/([\d.]+)\s*[-\u2013]\s*([\d.]+)/);
+      if (match) { referenceLow = match[1]; referenceHigh = match[2]; }
+    }
+    const flag = (r.flag ?? r.status ?? "") as string;
+    return { testName, value, unit, referenceLow, referenceHigh, flag };
+  });
 
   // Fetch patient's active medications
   const ctx = await getPatientFullContext(labRow.patient.id);

@@ -62,6 +62,8 @@ import { MicroLessonsButton } from "@/components/medisport/micro-lessons";
 import { BioAgeButton } from "@/components/medisport/bio-age";
 import { SocialFeedButton } from "@/components/medisport/social";
 import { GpsTrackerButton } from "@/components/medisport/gps-tracker";
+import { BodyCompositionTracker } from "@/components/medisport/body-composition-tracker";
+import { LabComparison } from "@/components/medisport/lab-comparison";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -743,6 +745,17 @@ function ProfessionalDashboard({ profile }: { profile: AthleteProfile }) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Enhanced Sport Mode — Body Composition & Lab Comparison */}
+      <div className="mt-6 space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Activity className="h-5 w-5 text-blue-600" />
+          <h3 className="text-sm font-bold">وضع الرياضي المتقدم</h3>
+          <Badge className="bg-blue-600 text-[9px]">Sport Mode</Badge>
+        </div>
+        <BodyCompositionTracker category="professional" sex="male" />
+        <LabComparison sport={profile.sport} />
+      </div>
     </div>
   );
 }
@@ -866,6 +879,17 @@ function GymDashboard({ profile }: { profile: AthleteProfile }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Enhanced Sport Mode — Body Composition & Lab Comparison */}
+      <div className="mt-4 space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Dumbbell className="h-5 w-5 text-blue-600" />
+          <h3 className="text-sm font-bold">تتبع متقدم</h3>
+          <Badge className="bg-blue-600 text-[9px]">Sport Mode</Badge>
+        </div>
+        <BodyCompositionTracker category="gym" sex="male" />
+        <LabComparison sport="bodybuilding" />
+      </div>
     </div>
   );
 }
@@ -965,6 +989,9 @@ function AmateurDashboard({ profile }: { profile: AthleteProfile }) {
           <div className="flex items-center gap-2 p-2 rounded-lg border"><CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /><span>راحة يوم على الأقل بين التمارين المكثفة</span></div>
         </CardContent>
       </Card>
+
+      {/* Body Composition Tracking for Amateurs */}
+      <BodyCompositionTracker category="amateur" sex="male" />
     </div>
   );
 }

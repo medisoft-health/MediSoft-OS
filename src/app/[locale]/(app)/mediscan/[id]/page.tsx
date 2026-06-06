@@ -85,16 +85,25 @@ export default async function ScanDetailPage({ params }: PageProps) {
   if (typeof rawFindings === "string") {
     try { rawFindings = JSON.parse(rawFindings); } catch { rawFindings = null; }
   }
-
-  let allFindings =
-    (rawFindings as Array<{
-      location?: string;
-      description: string;
-      severity?: Severity;
-      characteristics?: string;
-    }> | null) ?? [];
-
-  if (!Array.isArray(allFindings)) { allFindings = []; }
+  // Handle wrapper format: {findings: [...]} → unwrap to the array
+  if (rawFindings && typeof rawFindings === "object" && !Array.isArray(rawFindings) && "findings" in (rawFindings as Record<string, unknown>)) {
+    rawFindings = (rawFindings as Record<string, unknown>).findings;
+  }
+  // Normalize: if items are plain strings, convert to {description: string} objects
+  let allFindings: Array<{
+    location?: string;
+    description: string;
+    severity?: Severity;
+    characteristics?: string;
+  }> = [];
+  if (Array.isArray(rawFindings)) {
+    allFindings = (rawFindings as unknown[]).map((item: unknown) => {
+      if (typeof item === "string") {
+        return { description: item, severity: "low" as Severity };
+      }
+      return item as { location?: string; description: string; severity?: Severity; characteristics?: string };
+    });
+  }
 
   let annotations: Annotation[] = [];
   let patientSummary: string | null = null;

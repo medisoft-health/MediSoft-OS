@@ -243,9 +243,9 @@ export function MediBotPanel() {
           </button>
         </div>
         <p className="mt-2 text-center text-[11px] text-[#94A3B8]">
-          {mode === "patient"
-            ? t("patientModeFooter")
-            : t("generalModeFooter")}
+          {isLoading
+            ? (mode === "patient" ? t("patientModeFooterLoading") : t("generalModeFooterLoading"))
+            : (mode === "patient" ? t("patientModeFooter") : t("generalModeFooter"))}
         </p>
       </div>
 

@@ -15,3 +15,4 @@ export { PatientVoiceIntake } from "./patient-voice-intake";
 export { PatientDocumentUpload } from "./patient-document-upload";
 export { PatientProfileEditor } from "./patient-profile-editor";
 export { HealthGoalsDashboard } from "./health-goals-dashboard";
+export { PatientHealthReportView } from "./patient-health-report";

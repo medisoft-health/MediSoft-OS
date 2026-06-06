@@ -85,16 +85,47 @@ export default async function LabDetailPage({ params }: PageProps) {
     });
   }
 
-  const results = (lab.results ?? []) as Array<{
-    testName: string;
-    loincCode?: string;
-    value: number | string;
-    unit?: string;
-    referenceLow?: number | string;
-    referenceHigh?: number | string;
-    flag?: LabFlag;
-    interpretation?: string;
-  }>;
+  // Normalize results: DB may store either {test, loinc, reference_range, status}
+  // or the canonical {testName, loincCode, referenceLow, referenceHigh, flag}.
+  const rawResults = (lab.results ?? []) as Array<Record<string, unknown>>;
+  const results = rawResults.map((r) => {
+    const testName = (r.testName ?? r.test ?? "") as string;
+    const loincCode = (r.loincCode ?? r.loinc ?? undefined) as string | undefined;
+    const unit = (r.unit ?? undefined) as string | undefined;
+    const value = (r.value ?? 0) as number | string;
+    const interpretation = (r.interpretation ?? undefined) as string | undefined;
+    // Parse reference range: could be "4.0-11.0", "<100", ">30", or explicit low/high
+    let referenceLow: number | string | undefined = r.referenceLow as number | string | undefined;
+    let referenceHigh: number | string | undefined = r.referenceHigh as number | string | undefined;
+    if (referenceLow == null && referenceHigh == null && typeof r.reference_range === "string") {
+      const rangeStr = r.reference_range as string;
+      const dashMatch = rangeStr.match(/([\d.]+)\s*[-\u2013]\s*([\d.]+)/);
+      if (dashMatch) {
+        referenceLow = parseFloat(dashMatch[1]);
+        referenceHigh = parseFloat(dashMatch[2]);
+      } else if (rangeStr.startsWith("<")) {
+        referenceLow = 0;
+        referenceHigh = parseFloat(rangeStr.slice(1));
+      } else if (rangeStr.startsWith(">")) {
+        referenceLow = parseFloat(rangeStr.slice(1));
+        referenceHigh = undefined;
+      }
+    }
+    // Map status to flag
+    let flag: LabFlag | undefined = r.flag as LabFlag | undefined;
+    if (!flag && typeof r.status === "string") {
+      const statusMap: Record<string, LabFlag> = {
+        normal: "normal",
+        high: "high",
+        low: "low",
+        critical_high: "critical_high",
+        critical_low: "critical_low",
+        critical: "critical_high",
+      };
+      flag = statusMap[(r.status as string).toLowerCase()];
+    }
+    return { testName, loincCode, value, unit, referenceLow, referenceHigh, flag, interpretation };
+  });
 
   const criticalCount = results.filter(
     (r) => r.flag === "critical_low" || r.flag === "critical_high",

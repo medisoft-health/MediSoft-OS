@@ -242,7 +242,7 @@ export function NarrativePanel({
   refHigh: cls.refHigh,
   status: cls.status,
   direction: cls.direction,
-  note: narrative?.highlights.find((h) => h.testName?.toLowerCase() === r.testName?.toLowerCase())?.note ?? "",
+  note: narrative?.highlights?.find((h) => h.testName?.toLowerCase() === r.testName?.toLowerCase())?.note ?? "",
   icon: getIcon(r.testName),
   } satisfies EnrichedHighlight;
   });
@@ -307,11 +307,11 @@ export function NarrativePanel({
  {narrative && audience === "physician" && (
  <>
  <p className="whitespace-pre-wrap text-sm leading-relaxed">{narrative.physicianSummary}</p>
- {narrative.highlights.length > 0 && (
+ {(narrative?.highlights?.length ?? 0) > 0 && (
  <div className="pt-1">
  <div className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">Highlights</div>
  <ul className="mt-2 space-y-2">
- {narrative.highlights.map((h, i) => (
+ {(narrative?.highlights ?? []).map((h, i) => (
  <li key={i} className="rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-muted)]/30 p-3">
  <div className="flex items-center justify-between gap-2">
  <div className="text-sm font-semibold">{h.testName}</div>
