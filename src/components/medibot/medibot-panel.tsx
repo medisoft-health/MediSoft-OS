@@ -1,5 +1,6 @@
 "use client";
 
+import DOMPurify from "isomorphic-dompurify";
 import * as React from "react";
 import Image from "next/image";
 import {
@@ -414,7 +415,7 @@ function MessageBubble({
           <div
             className="whitespace-pre-wrap"
             dangerouslySetInnerHTML={{
-              __html: formatBotMessage(message.content),
+              __html: DOMPurify.sanitize(formatBotMessage(message.content)),
             }}
           />
 

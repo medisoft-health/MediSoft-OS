@@ -4,12 +4,16 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { patientMessages, patients, users } from "@/db/schema";
 import { eq, and, desc, or } from "drizzle-orm";
 
 // GET /api/patient-portal/messages — List messages for a patient or physician
 export async function GET(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const { searchParams } = new URL(req.url);
     const patientId = searchParams.get("patientId");
@@ -53,6 +57,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/patient-portal/messages — Send a new message
 export async function POST(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { patientId, physicianId, senderType, subject, messageBody, parentMessageId, channel } = body;
@@ -85,6 +92,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/patient-portal/messages — Mark messages as read
 export async function PATCH(req: NextRequest) {
+  const auth = await requireSessionApi();
+  if ("response" in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { messageIds } = body;

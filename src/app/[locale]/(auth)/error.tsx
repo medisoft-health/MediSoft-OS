@@ -8,6 +8,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 /**
+ * Detect errors caused by stale Server Action IDs after a deployment.
+ */
+function isStaleServerActionError(error: Error & { digest?: string }): boolean {
+  return (
+    error.message?.includes("Server Action") ||
+    error.message?.includes("Failed to find Server Action") ||
+    !!error.digest?.includes("NEXT_NOT_FOUND")
+  );
+}
+
+/**
  * Auth-group error boundary. Catches uncaught render/data errors on
  * /login and /signup. Same recovery shape as the (app) boundary but
  * with a "Back to sign-in" affordance instead of "Go to dashboard".
@@ -20,10 +31,41 @@ export default function AuthError({
   reset: () => void;
 }) {
   const t = useTranslations("Auth");
+  const isStaleAction = isStaleServerActionError(error);
 
   React.useEffect(() => {
     console.error("[auth:error-boundary]", error);
   }, [error]);
+
+  if (isStaleAction) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <Card className="w-full max-w-md border-dashed">
+          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="grid size-16 place-items-center rounded-2xl bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]">
+              <RefreshCw className="size-7" />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-bold tracking-tight">
+                {t("appUpdated")}
+              </h2>
+              <p className="max-w-sm text-sm text-[color:var(--color-muted-foreground)]">
+                {t("pleaseRefresh")}
+              </p>
+            </div>
+            <Button
+              variant="brand"
+              size="md"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="size-4" />
+              {t("refreshPage")}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">

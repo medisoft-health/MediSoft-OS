@@ -85,22 +85,40 @@ const ConsoleDriver: EmailDriver = {
 //   };
 // };
 
+// ─────────────────────────────────────────────────────────────────
+// Startup warning — emitted once when the module first loads.
+// This makes it obvious in the PM2/server logs that email is not
+// production-ready without spamming a warning on every send.
+//
+// To configure Resend:
+//   1. npm install resend
+//   2. Add RESEND_API_KEY=re_xxx to your .env.local / GCE Secret Manager
+//   3. Uncomment the ResendDriver block above and return it from getEmailDriver()
+//   4. Set EMAIL_FROM=noreply@your-domain.com in env vars
+//   5. Flip requireEmailVerification: true in src/lib/auth.ts
+// ─────────────────────────────────────────────────────────────────
+const resendKeyAtStartup = (env as unknown as { RESEND_API_KEY?: string })
+  .RESEND_API_KEY;
+
+if (!resendKeyAtStartup) {
+
+  console.warn(
+    "[email] No RESEND_API_KEY found — using console fallback. " +
+      "Password-reset and email-verification emails will be printed to stdout only. " +
+      "See src/lib/email/index.ts for Resend setup instructions.",
+  );
+} else {
+
+  console.warn(
+    "[email] RESEND_API_KEY is set but Resend driver is not yet wired. " +
+      "Install `resend` and uncomment the ResendDriver in src/lib/email/index.ts.",
+  );
+}
+
 let cached: EmailDriver | null = null;
 
 export function getEmailDriver(): EmailDriver {
   if (cached) return cached;
-  // When RESEND_API_KEY is set we'd return the real driver here.
-  // For now we acknowledge it in the log and fall back to console so
-  // production deploys without the package install still don't crash.
-  const resendKey = (env as unknown as { RESEND_API_KEY?: string })
-    .RESEND_API_KEY;
-  if (resendKey) {
-     
-    console.warn(
-      "[email] RESEND_API_KEY set but Resend driver not yet wired. " +
-        "Install `resend` and uncomment the driver in src/lib/email/index.ts.",
-    );
-  }
   cached = ConsoleDriver;
   return cached;
 }
@@ -156,12 +174,16 @@ export function buildPasswordResetEmail(args: {
   };
 }
 
-export async function sendEmail(message: EmailMessage): Promise<void> {
+export async function sendEmail(
+  message: EmailMessage,
+): Promise<{ success: boolean; provider: string }> {
   const driver = getEmailDriver();
   try {
     await driver.send(message);
+    return { success: true, provider: driver.name };
   } catch (err) {
-    // Emails must not break user flows.
+    // Emails must not break user flows — log the failure and return gracefully.
     console.error(`[email/${driver.name}] send failed`, err);
+    return { success: false, provider: driver.name };
   }
 }

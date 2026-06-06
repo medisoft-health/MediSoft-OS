@@ -18,32 +18,37 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireSessionApi();
-  if ("response" in auth) return auth.response;
+  try {
+    const auth = await requireSessionApi();
+    if ("response" in auth) return auth.response;
 
-  const { id } = await context.params;
-  if (!UUID_RE.test(id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
-  }
+    const { id } = await context.params;
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
 
-  const row = await getScanById(id);
-  if (!row) {
-    return NextResponse.json({ error: "Scan not found" }, { status: 404 });
-  }
+    const row = await getScanById(id);
+    if (!row) {
+      return NextResponse.json({ error: "Scan not found" }, { status: 404 });
+    }
 
-  const url = await getSignedScanUrl(row.scan.imageStorageKey, 600);
-  if (!url) {
+    const url = await getSignedScanUrl(row.scan.imageStorageKey, 600);
+    if (!url) {
+      return NextResponse.json(
+        {
+          error: "Image not available — Storage may not be configured.",
+          reason: "not_configured",
+        },
+        { status: 503 },
+      );
+    }
+
     return NextResponse.json(
-      {
-        error: "Image not available — Storage may not be configured.",
-        reason: "not_configured",
-      },
-      { status: 503 },
+      { url, expiresIn: 600 },
+      { headers: { "Cache-Control": "private, no-store" } },
     );
+  } catch (error) {
+    console.error("[mediscan/image] Error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  return NextResponse.json(
-    { url, expiresIn: 600 },
-    { headers: { "Cache-Control": "private, no-store" } },
-  );
 }
