@@ -410,7 +410,7 @@ export function AthletePredictionPanel() {
       >
         <div className="space-y-3">
           {/* Macros */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <MacroCard label={isAr ? "سعرات" : "Calories"} value={prediction.nutritionRecommendations.dailyCalories} unit="kcal" color="orange" />
             <MacroCard label={isAr ? "بروتين" : "Protein"} value={prediction.nutritionRecommendations.proteinGrams} unit="g" color="red" />
             <MacroCard label={isAr ? "كربوهيدرات" : "Carbs"} value={prediction.nutritionRecommendations.carbsGrams} unit="g" color="blue" />

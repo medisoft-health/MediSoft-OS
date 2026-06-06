@@ -223,7 +223,7 @@ export function SmartPharmacyPanel({ prescriptionId }: { prescriptionId?: number
               <p className="text-xs text-gray-500">{med.strength} • {isAr ? med.form : med.formEn}</p>
             </div>
             {med.cheapestOption && (
-              <div className="text-right">
+              <div className="text-end">
                 <p className="text-lg font-bold text-teal-600">{med.cheapestOption.price} {med.cheapestOption.currency}</p>
                 <p className="text-[10px] text-gray-500">{isAr ? "أفضل سعر" : "Best price"}</p>
               </div>
@@ -254,7 +254,7 @@ export function SmartPharmacyPanel({ prescriptionId }: { prescriptionId?: number
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   {ph.available ? (
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{ph.price} {ph.currency}</p>
                   ) : (
@@ -290,7 +290,7 @@ export function SmartPharmacyPanel({ prescriptionId }: { prescriptionId?: number
                     <Clock className="h-3 w-3" /> {isAr ? opt.estimatedTime : opt.estimatedTimeEn}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   {opt.cost === 0 ? (
                     <span className="text-xs font-medium text-green-600">{isAr ? "مجاني" : "Free"}</span>
                   ) : (

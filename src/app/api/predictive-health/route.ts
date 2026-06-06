@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { generateHealthPrediction, type HealthPredictionInput } from "@/lib/predictive-health";
+import { apiCache, CACHE_TTL, cacheKey } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const key = cacheKey.predictiveHealth(input.patientId);
+
+    // Check cache first
+    const cached = apiCache.get(key);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "X-Cache": "HIT", "Cache-Control": "private, max-age=300" },
+      });
+    }
+
     const prediction = await generateHealthPrediction(input);
-    return NextResponse.json(prediction);
+    apiCache.set(key, prediction, CACHE_TTL.PREDICTIVE_HEALTH);
+    return NextResponse.json(prediction, {
+      headers: { "X-Cache": "MISS", "Cache-Control": "private, max-age=300" },
+    });
   } catch (error: unknown) {
     console.error("[Predictive Health] Error:", error);
     return NextResponse.json(

@@ -110,7 +110,7 @@ export function CollectiveIntelligenceDashboard() {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="h-32 rounded-xl bg-gray-100 dark:bg-gray-800" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="h-24 rounded-xl bg-gray-100 dark:bg-gray-800" />
           <div className="h-24 rounded-xl bg-gray-100 dark:bg-gray-800" />
           <div className="h-24 rounded-xl bg-gray-100 dark:bg-gray-800" />
@@ -319,7 +319,7 @@ export function CollectiveIntelligenceDashboard() {
             {report.populationInsights.map((insight) => (
               <div
                 key={insight.id}
-                className={`p-3 rounded-lg border-l-4 ${
+                className={`p-3 rounded-lg border-s-4 ${
                   insight.severity === "alert"
                     ? "border-red-500 bg-red-50 dark:bg-red-950/20"
                     : insight.severity === "warning"

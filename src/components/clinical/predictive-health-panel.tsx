@@ -258,7 +258,7 @@ export function PredictiveHealthPanel({ patientId }: { patientId?: number }) {
         <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">
           {isAr ? "أنت اليوم vs أنت المحسّن" : "You Today vs Optimized You"}
         </h4>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
             <p className="text-xs text-red-600 font-medium">{isAr ? "المسار الحالي (5 سنوات)" : "Current Path (5yr)"}</p>
             <p className="text-2xl font-bold text-red-700 dark:text-red-300">{prediction.lifestyleImpact.currentTrajectory.healthScoreIn5Years}</p>

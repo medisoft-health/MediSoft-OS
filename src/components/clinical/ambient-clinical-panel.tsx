@@ -283,7 +283,7 @@ export function AmbientClinicalPanel({ patientId }: { patientId?: number }) {
                 {suggestedActions.map((action, i) => (
                   <button
                     key={i}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors text-start"
                   >
                     {action.type === "prescription" && <Pill className="h-4 w-4 text-blue-500 shrink-0" />}
                     {action.type === "lab_order" && <FlaskConical className="h-4 w-4 text-purple-500 shrink-0" />}

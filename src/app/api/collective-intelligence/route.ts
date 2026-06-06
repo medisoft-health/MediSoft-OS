@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { generateCollectiveIntelligence } from "@/lib/collective-intelligence";
+import { apiCache, CACHE_TTL, cacheKey } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,22 @@ export async function GET(request: NextRequest) {
     return session.response;
   }
 
+  const key = cacheKey.collective();
+
+  // Check cache first (15 min TTL for population data)
+  const cached = apiCache.get(key);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: { "X-Cache": "HIT", "Cache-Control": "private, max-age=900" },
+    });
+  }
+
   try {
     const report = await generateCollectiveIntelligence();
-    return NextResponse.json(report);
+    apiCache.set(key, report, CACHE_TTL.COLLECTIVE);
+    return NextResponse.json(report, {
+      headers: { "X-Cache": "MISS", "Cache-Control": "private, max-age=900" },
+    });
   } catch (error: unknown) {
     console.error("[Collective Intelligence] Error:", error);
     return NextResponse.json(

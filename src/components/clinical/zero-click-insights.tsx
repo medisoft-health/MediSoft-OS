@@ -259,7 +259,7 @@ export function ZeroClickInsights({ patientId }: { patientId: number }) {
             {visibleInsights.slice(0, 6).map((insight) => (
               <div
                 key={insight.id}
-                className={`relative rounded-lg border-l-4 p-3 transition-all hover:shadow-sm ${getPriorityStyles(
+                className={`relative rounded-lg border-s-4 p-3 transition-all hover:shadow-sm ${getPriorityStyles(
                   insight.priority
                 )}`}
               >
