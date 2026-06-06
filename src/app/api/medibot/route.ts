@@ -7,22 +7,6 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * GET /api/medibot
- *
- * Status/health endpoint — returns MediBot availability and configuration.
- * No authentication required; safe to call as a pre-flight check.
- */
-export async function GET() {
-  const client = getGeminiClient();
-  return NextResponse.json({
-    available: !!client,
-    model: client ? GEMINI_MODEL : null,
-    features: ["patient-mode", "general-mode", "mediguard-safety"],
-    version: "2.0",
-  });
-}
-
-/**
  * POST /api/medibot
  *
  * MediBot AI endpoint — provides evidence-based medical assistance
@@ -147,12 +131,11 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/medibot
- * Returns MediBot status with MediGuard integration info
+ *
+ * Status/health endpoint — returns MediBot availability and configuration.
+ * No authentication required; safe to call as a pre-flight check from any context.
  */
 export async function GET() {
-  const auth = await requireSessionApi();
-  if ("response" in auth) return auth.response;
-
   const configured = !!getGeminiClient();
   return NextResponse.json({
     status: configured ? "active" : "unconfigured",
