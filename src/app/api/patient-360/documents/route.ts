@@ -246,7 +246,7 @@ function getAnalysisPrompt(type: string, title: string): string {
 \`\`\``;
 
     case "prescription":
-      return base + `هذه روشتة / وصفة طبية. استخرج:
+      return base + `هذه وصفة طبية. استخرج:
 - اسم كل دواء
 - الجرعة
 - التكرار

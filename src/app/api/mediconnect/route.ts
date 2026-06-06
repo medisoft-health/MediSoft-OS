@@ -372,7 +372,7 @@ export async function POST(req: NextRequest) {
             .insert(conversations)
             .values({
               patientId,
-              title: "روشتة طبية جديدة",
+              title: "وصفة طبية جديدة",
               type: "prescription",
               createdBy: auth.user.id,
               lastMessageAt: new Date(),
@@ -395,7 +395,7 @@ export async function POST(req: NextRequest) {
             senderUserId: auth.user.id,
             senderType: "physician",
             contentType: "prescription",
-            body: `روشتة طبية: ${medications.map((m: any) => m.name).join("، ")}`,
+            body: `وصفة طبية: ${medications.map((m: any) => m.name).join("، ")}`,
             metadata: { prescriptionId: rx.id, medications, diagnosis },
           })
           .returning();
@@ -412,9 +412,9 @@ export async function POST(req: NextRequest) {
           type: "prescription",
           severity: "info",
           title: "New Prescription",
-          titleAr: "روشتة جديدة من الطبيب",
+          titleAr: "وصفة جديدة من الطبيب",
           body: `Dr. ${auth.user.name || "Your Doctor"} has sent you a new prescription with ${medications.length} medication(s).`,
-          bodyAr: `أرسل لك الطبيب روشتة جديدة تحتوي على ${medications.length} دواء`,
+          bodyAr: `أرسل لك الطبيب وصفة جديدة تحتوي على ${medications.length} دواء`,
           actionUrl: `/patient-portal?tab=prescriptions&id=${rx.id}`,
           metadata: { prescriptionId: rx.id },
           channelsSent: ["in_app", "push"],

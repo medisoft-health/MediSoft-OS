@@ -63,7 +63,7 @@ const features = [
     color: "from-teal-500 to-emerald-500",
     titleAr: "شبكة الصيدليات الذكية",
     titleEn: "Smart Pharmacy",
-    descAr: "ربط الروشتة بأقرب صيدلية بأفضل سعر",
+    descAr: "ربط الوصفة الطبية بأقرب صيدلية بأفضل سعر",
     descEn: "Connect prescription to nearest pharmacy at best price",
   },
   {

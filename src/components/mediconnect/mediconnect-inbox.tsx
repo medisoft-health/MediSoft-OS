@@ -314,7 +314,7 @@ export function MediConnectInbox() {
                       )}
                     </div>
                     <div className="flex items-center gap-1 mt-1">
-                      {conv.type === "prescription" && <Badge variant="outline" className="text-[10px] px-1">روشتة</Badge>}
+                      {conv.type === "prescription" && <Badge variant="outline" className="text-[10px] px-1">وصفة</Badge>}
                       {conv.type === "lab_result" && <Badge variant="outline" className="text-[10px] px-1">تحاليل</Badge>}
                       {conv.priority === "urgent" && <Badge variant="destructive" className="text-[10px] px-1">عاجل</Badge>}
                     </div>
@@ -355,7 +355,7 @@ export function MediConnectInbox() {
                 <Button variant="ghost" size="sm" title="مكالمة فيديو">
                   <Video className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleSendPrescription} title="إرسال روشتة">
+                <Button variant="ghost" size="sm" onClick={handleSendPrescription} title="إرسال وصفة طبية">
                   <Pill className="h-4 w-4 text-green-600" />
                 </Button>
                 <Button variant="ghost" size="sm" title="المزيد">
@@ -393,7 +393,7 @@ export function MediConnectInbox() {
                       {isPrescription && (
                         <div className="flex items-center gap-1 mb-1">
                           <Pill className="h-3.5 w-3.5 text-green-600" />
-                          <span className="text-xs font-semibold text-green-700">روشتة طبية</span>
+                          <span className="text-xs font-semibold text-green-700">وصفة طبية</span>
                         </div>
                       )}
                       {isLabResult && (

@@ -138,7 +138,7 @@ export function SmartPharmacyPanel({ prescriptionId }: { prescriptionId?: number
               type="number"
               value={inputId}
               onChange={(e) => setInputId(e.target.value)}
-              placeholder={isAr ? "رقم الروشتة" : "Prescription ID"}
+              placeholder={isAr ? "رقم الوصفة الطبية" : "Prescription ID"}
               className="w-full px-4 py-2 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-gray-800 text-sm"
             />
           </div>

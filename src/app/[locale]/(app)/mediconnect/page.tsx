@@ -164,7 +164,7 @@ export default function MediConnectPage() {
                   { step: 1, icon: <Smartphone className="h-6 w-6" />, title: "المريض يسجل", desc: "قراءة من جهازه أو يدوياً" },
                   { step: 2, icon: <Activity className="h-6 w-6" />, title: "الذكاء يحلل", desc: "Medical Intelligence يقيّم القراءة" },
                   { step: 3, icon: <Bell className="h-6 w-6" />, title: "تنبيه فوري", desc: "إشعار للمريض والطبيب إذا لزم" },
-                  { step: 4, icon: <Stethoscope className="h-6 w-6" />, title: "الطبيب يتصرف", desc: "يراسل المريض أو يكتب روشتة" },
+                  { step: 4, icon: <Stethoscope className="h-6 w-6" />, title: "الطبيب يتصرف", desc: "يراسل المريض أو يكتب وصفة طبية" },
                 ].map((item) => (
                   <div key={item.step} className="text-center">
                     <div className="w-12 h-12 mx-auto rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 mb-2">
@@ -183,7 +183,7 @@ export default function MediConnectPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Pill className="h-5 w-5 text-purple-500" />
-                الروشتة عن بُعد
+                الوصفة الطبية عن بُعد
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -197,12 +197,12 @@ export default function MediConnectPage() {
                   <div>
                     <Stethoscope className="h-8 w-8 mx-auto text-green-500 mb-2" />
                     <p className="font-semibold text-sm">الطبيب يراجع</p>
-                    <p className="text-xs text-gray-500">يشوف النتائج ويكتب روشتة جديدة</p>
+                    <p className="text-xs text-gray-500">يراجع النتائج ويكتب وصفة طبية جديدة</p>
                   </div>
                   <div>
                     <Send className="h-8 w-8 mx-auto text-purple-500 mb-2" />
                     <p className="font-semibold text-sm">المريض يستلم</p>
-                    <p className="text-xs text-gray-500">إشعار + روشتة رقمية جاهزة للصرف</p>
+                    <p className="text-xs text-gray-500">إشعار + وصفة رقمية جاهزة للصرف</p>
                   </div>
                 </div>
               </div>
@@ -259,7 +259,7 @@ export default function MediConnectPage() {
                 <Pill className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                 <p className="text-gray-500 font-medium">لا توجد روشتات عن بُعد</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  عندما يكتب الطبيب روشتة للمريض عن بُعد ستظهر هنا
+                  عندما يكتب الطبيب وصفة طبية للمريض عن بُعد ستظهر هنا
                 </p>
               </CardContent>
             </Card>

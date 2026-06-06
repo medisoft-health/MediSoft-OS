@@ -1800,7 +1800,7 @@ export function MoodEnergyChart() {
                         {parseFloat(avgMood as string) >= 4 && parseFloat(avgEnergy as string) >= 4
                           ? " أداء ممتاز! استمر على الروتين ده — واضح إنه بيشتغل معاك. 💪"
                           : parseFloat(avgSleep as string) < 3
-                          ? " نومك محتاج تحسين — ده بيأثر على كل حاجة تانية. حاول تنام 7-8 ساعات. 😴"
+                          ? " نومك يحتاج تحسين — هذا يؤثر على كل شيء آخر. حاول النوم 7-8 ساعات. 😴"
                           : parseFloat(avgSoreness as string) >= 4
                           ? " الألم العضلي عالي — خد يوم أو اتنين راحة وركز على الـ stretching. 🧘"
                           : " حالتك مستقرة. حاول تزود الترطيب وتنام أبكر عشان تشوف تحسن أكبر. 💚"

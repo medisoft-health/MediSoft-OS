@@ -52,7 +52,7 @@ interface PatientDocumentUploadProps {
 const DOC_TYPES = [
   { value: "lab_result", label: "تحليل مخبري", icon: "🧪" },
   { value: "scan", label: "أشعة / صورة طبية", icon: "🩻" },
-  { value: "prescription", label: "روشتة / وصفة طبية", icon: "💊" },
+  { value: "prescription", label: "وصفة طبية", icon: "💊" },
   { value: "report", label: "تقرير طبي", icon: "📋" },
   { value: "insurance", label: "مستند تأمين", icon: "🛡️" },
   { value: "id_document", label: "هوية / إقامة", icon: "🪪" },

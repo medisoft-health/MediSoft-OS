@@ -1098,7 +1098,7 @@ function HealthyDashboard({ profile }: { profile: AthleteProfile }) {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Apple className="h-4 w-4 text-green-600" /> نصائح تغذية</CardTitle></CardHeader>
         <CardContent className="text-xs space-y-2">
-          <div className="flex items-start gap-2 p-2 rounded-lg bg-green-50"><span>🥗</span><span>كل خضار في كل وجبة — حتى لو حاجة بسيطة</span></div>
+          <div className="flex items-start gap-2 p-2 rounded-lg bg-green-50"><span>🥗</span><span>تناول الخضراوات في كل وجبة — حتى لو كمية بسيطة</span></div>
           <div className="flex items-start gap-2 p-2 rounded-lg bg-blue-50"><span>🥤</span><span>قلل المشروبات الغازية والعصائر المعلبة</span></div>
           <div className="flex items-start gap-2 p-2 rounded-lg bg-purple-50"><span>🍗</span><span>بروتين في كل وجبة (بيض، فراخ، سمك، بقوليات)</span></div>
           <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50"><span>⏰</span><span>حاول تاكل آخر وجبة قبل النوم بـ 3 ساعات</span></div>

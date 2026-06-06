@@ -398,9 +398,9 @@ export async function sendPrescriptionNotification(
     type: "prescription",
     severity: "info",
     title: `New Prescription from Dr. ${doctorName}`,
-    titleAr: `روشتة جديدة من د. ${doctorName}`,
+    titleAr: `وصفة جديدة من د. ${doctorName}`,
     body: `You have a new prescription with ${medicationCount} medication(s). Please review and collect from your pharmacy.`,
-    bodyAr: `لديك روشتة جديدة تحتوي على ${medicationCount} دواء. يرجى مراجعتها وصرفها من الصيدلية.`,
+    bodyAr: `لديك وصفة جديدة تحتوي على ${medicationCount} دواء. يرجى مراجعتها وصرفها من الصيدلية.`,
     actionUrl: `/patient-portal?tab=prescriptions`,
     channels: ["in_app", "push", "email", "whatsapp"],
   });
