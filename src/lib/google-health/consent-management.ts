@@ -36,43 +36,141 @@ import "server-only";
 
 import * as fs from "fs";
 import * as crypto from "crypto";
+import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Google Cloud Healthcare Consent API Integration ────────────────────────
 
 const USE_CLOUD_CONSENT = process.env.USE_CLOUD_CONSENT_API === "true";
-const GCP_PROJECT = process.env.GCP_PROJECT_ID || "gen-lang-client-0619493108";
-const GCP_LOCATION = process.env.GCP_LOCATION || "me-central1";
-const GCP_DATASET = process.env.GCP_DATASET || "medisoft-health";
-const CONSENT_STORE_ID = process.env.GCP_CONSENT_STORE || "medisoft-consent-store";
+const GCP_PROJECT = process.env.GCP_PROJECT_ID || "";
+const GCP_LOCATION = process.env.GCP_LOCATION || "";
+const GCP_DATASET = process.env.GCP_DATASET || "";
+const CONSENT_STORE_ID = process.env.GCP_CONSENT_STORE || "";
 
 const CONSENT_API_BASE = `https://healthcare.googleapis.com/v1/projects/${GCP_PROJECT}/locations/${GCP_LOCATION}/datasets/${GCP_DATASET}/consentStores/${CONSENT_STORE_ID}`;
 
-let consentTokenCache: { token: string; expiry: number } | null = null;
-
 async function getConsentApiToken(): Promise<string> {
-  if (consentTokenCache && Date.now() < consentTokenCache.expiry - 60000) {
-    return consentTokenCache.token;
+  if (!GCP_PROJECT || !GCP_LOCATION || !GCP_DATASET || !CONSENT_STORE_ID) {
+    throw new Error(
+      "Google Healthcare Consent API is not configured. Missing one of: GCP_PROJECT_ID, GCP_LOCATION, GCP_DATASET, GCP_CONSENT_STORE."
+    );
   }
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || "/home/ubuntu/medisoft-app/gcp-credentials.json";
-  if (!fs.existsSync(credPath)) throw new Error("Consent API: credentials not found");
-  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = { iss: creds.client_email, scope: "https://www.googleapis.com/auth/cloud-healthcare", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 };
-  const b64url = (d: Buffer) => d.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const h = b64url(Buffer.from(JSON.stringify(header)));
-  const p = b64url(Buffer.from(JSON.stringify(payload)));
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(`${h}.${p}`);
-  const sig = b64url(sign.sign(creds.private_key));
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${h}.${p}.${sig}` }),
-  });
-  if (!res.ok) throw new Error(`Consent API: Token error`);
-  const data = await res.json();
-  consentTokenCache = { token: data.access_token, expiry: Date.now() + 3500000 };
-  return data.access_token;
+  return getAccessTokenForScopes("https://www.googleapis.com/auth/cloud-healthcare");
+}
+
+interface FailedSyncItem {
+  record: ConsentRecord;
+  action: "create" | "revoke";
+  attempts: number;
+}
+
+const failedSyncQueue: FailedSyncItem[] = [];
+let retryIntervalStarted = false;
+
+function enqueueFailedSync(record: ConsentRecord, action: "create" | "revoke") {
+  if (failedSyncQueue.some(item => item.record.id === record.id && item.action === action)) {
+    return;
+  }
+  failedSyncQueue.push({ record, action, attempts: 0 });
+  
+  if (!retryIntervalStarted) {
+    retryIntervalStarted = true;
+    const interval = setInterval(async () => {
+      await processFailedQueue();
+    }, 60000);
+    if (interval && typeof interval.unref === "function") {
+      interval.unref();
+    }
+  }
+}
+
+async function processFailedQueue() {
+  if (failedSyncQueue.length === 0) return;
+  console.log(`[Consent Sync Recovery] Processing ${failedSyncQueue.length} failed consent syncs...`);
+  
+  const itemsToProcess = [...failedSyncQueue];
+  for (const item of itemsToProcess) {
+    item.attempts++;
+    try {
+      await executeSyncToCloud(item.record, item.action);
+      const idx = failedSyncQueue.findIndex(i => i.record.id === item.record.id && i.action === item.action);
+      if (idx > -1) failedSyncQueue.splice(idx, 1);
+      console.log(`[Consent Sync Recovery] Successfully recovered sync for record ${item.record.id} (${item.action})`);
+    } catch (err: any) {
+      console.warn(`[Consent Sync Recovery] Recovery attempt ${item.attempts} for ${item.record.id} failed: ${err.message}`);
+      if (item.attempts >= 5) {
+        const idx = failedSyncQueue.findIndex(i => i.record.id === item.record.id && i.action === item.action);
+        if (idx > -1) failedSyncQueue.splice(idx, 1);
+        console.error(`[Consent Sync Recovery] Dropping failed sync for record ${item.record.id} after 5 failed recovery attempts`);
+      }
+    }
+  }
+}
+
+async function executeSyncToCloud(record: ConsentRecord, action: "create" | "revoke"): Promise<void> {
+  const token = await getConsentApiToken();
+
+  if (action === "create") {
+    const consentResource = {
+      userId: record.patientId,
+      policies: [{ resourceAttributes: [{ attributeDefinitionId: "category", values: [record.category] }] }],
+      consentArtifact: `projects/${GCP_PROJECT}/locations/${GCP_LOCATION}/datasets/${GCP_DATASET}/consentStores/${CONSENT_STORE_ID}/consentArtifacts/${record.id}`,
+      state: "ACTIVE",
+      metadata: {
+        medisoft_consent_id: record.id,
+        policy_id: record.policyId,
+        policy_name: record.policyName,
+        regulation: record.regulation,
+        verification_method: record.verificationMethod,
+        created_by: record.createdBy,
+      },
+      expireTime: record.expirationDate || undefined,
+    };
+
+    const consentRes = await fetchWithRetry(`${CONSENT_API_BASE}/consents`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(consentResource),
+      timeoutMs: 15000,
+      maxRetries: 3,
+    });
+
+    if (!consentRes.ok) {
+      const errorText = await consentRes.text();
+      throw new Error(`Cloud Healthcare Consent store returned ${consentRes.status}: ${errorText}`);
+    }
+
+    const mappingRes = await fetchWithRetry(`${CONSENT_API_BASE}/userDataMappings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        userId: record.patientId,
+        dataId: record.id,
+        resourceAttributes: [
+          { attributeDefinitionId: "data_category", values: record.dataElements },
+        ],
+      }),
+      timeoutMs: 15000,
+      maxRetries: 3,
+    });
+
+    if (!mappingRes.ok) {
+      const errorText = await mappingRes.text();
+      throw new Error(`Cloud Healthcare UserDataMapping creation failed with ${mappingRes.status}: ${errorText}`);
+    }
+  } else if (action === "revoke") {
+    const revokeRes = await fetchWithRetry(`${CONSENT_API_BASE}/consents/${record.id}:revoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+      timeoutMs: 15000,
+      maxRetries: 3,
+    });
+
+    if (!revokeRes.ok) {
+      const errorText = await revokeRes.text();
+      throw new Error(`Cloud Healthcare Consent revoke returned ${revokeRes.status}: ${errorText}`);
+    }
+  }
 }
 
 /**
@@ -82,59 +180,13 @@ async function getConsentApiToken(): Promise<string> {
 function syncToCloudConsent(record: ConsentRecord, action: "create" | "revoke"): void {
   if (!USE_CLOUD_CONSENT) return;
 
-  // Fire-and-forget — don't await
   (async () => {
     try {
-      const token = await getConsentApiToken();
-
-      if (action === "create") {
-        // Create a Consent resource in the Cloud Healthcare Consent Store
-        const consentResource = {
-          userId: record.patientId,
-          policies: [{ resourceAttributes: [{ attributeDefinitionId: "category", values: [record.category] }] }],
-          consentArtifact: `projects/${GCP_PROJECT}/locations/${GCP_LOCATION}/datasets/${GCP_DATASET}/consentStores/${CONSENT_STORE_ID}/consentArtifacts/${record.id}`,
-          state: "ACTIVE",
-          metadata: {
-            medisoft_consent_id: record.id,
-            policy_id: record.policyId,
-            policy_name: record.policyName,
-            regulation: record.regulation,
-            verification_method: record.verificationMethod,
-            created_by: record.createdBy,
-          },
-          expireTime: record.expirationDate || undefined,
-        };
-
-        await fetch(`${CONSENT_API_BASE}/consents`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(consentResource),
-        });
-
-        // Also create a UserDataMapping for the patient
-        await fetch(`${CONSENT_API_BASE}/userDataMappings`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            userId: record.patientId,
-            dataId: record.id,
-            resourceAttributes: [
-              { attributeDefinitionId: "data_category", values: record.dataElements },
-            ],
-          }),
-        });
-      } else if (action === "revoke") {
-        // Revoke consent in Cloud Healthcare
-        await fetch(`${CONSENT_API_BASE}/consents/${record.id}:revoke`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({}),
-        });
-      }
-
+      await executeSyncToCloud(record, action);
       console.log(`[Consent] Cloud sync ${action} for ${record.id} succeeded`);
-    } catch (err) {
-      console.warn(`[Consent] Cloud sync ${action} for ${record.id} failed:`, err);
+    } catch (err: any) {
+      console.warn(`[Consent] Cloud sync ${action} for ${record.id} failed, enqueuing for retry: ${err.message}`);
+      enqueueFailedSync(record, action);
     }
   })();
 }
@@ -155,7 +207,7 @@ export async function checkAccessCloud(
 
   try {
     const token = await getConsentApiToken();
-    const res = await fetch(`${CONSENT_API_BASE}:checkDataAccess`, {
+    const res = await fetchWithRetry(`${CONSENT_API_BASE}:checkDataAccess`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
@@ -165,9 +217,11 @@ export async function checkAccessCloud(
           data_elements: requestedDataElements.join(","),
           requestor,
         },
-        consentList: { consents: [] }, // Let the API check all consents
+        consentList: { consents: [] },
         responseView: "FULL",
       }),
+      timeoutMs: 15000,
+      maxRetries: 3,
     });
 
     if (!res.ok) {

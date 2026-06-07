@@ -1,46 +1,40 @@
 import "server-only";
-import { writeFile, mkdir, access } from "fs/promises";
-import { join } from "path";
+import { getAccessTokenForScopes, fetchWithRetry, getCredentialsPath } from "@/lib/google-health/auth";
 
 /**
- * Local-filesystem Storage helper for scan images.
+ * Google Cloud Storage (GCS) helper for scan images using GCS REST API.
+ * Replaces the local-filesystem storage with GCS bucket uploads.
  *
- * Replaces the previous Supabase Storage implementation which was returning
- * 503 errors because no Supabase environment variables are configured.
- *
- * Files are stored under `<cwd>/uploads/scans/` and served through the
- * authenticated API route `/api/mediscan/image/[id]`, which never exposes
- * the storage path directly — the "signed URL" here is just a time-limited
+ * Files are stored under the configured GCS bucket and served through the
+ * authenticated API route `/api/mediscan/file`, which never exposes
+ * the storage bucket structure directly — the "signed URL" here is just a time-limited
  * token embedded in the API URL.
- *
- * TODO: Migrate to Google Cloud Storage (GCS) before scaling to production.
- *       Required env vars: GCS_BUCKET_NAME, GOOGLE_APPLICATION_CREDENTIALS
- *       Package to install: @google-cloud/storage
- *       Replace writeFile/readFile with Storage.bucket().file().save()/.getSignedUrl()
  */
 
-const UPLOADS_DIR = join(process.cwd(), "uploads", "scans");
+const GCS_SCOPE = "https://www.googleapis.com/auth/devstorage.read_write";
 
-/** Ensure the upload directory exists (runs at most once per cold-start). */
-async function ensureUploadsDir(): Promise<void> {
+function getBucketName(): string {
+  const bucketName = process.env.GCS_BUCKET_NAME;
+  if (!bucketName) {
+    throw new Error("GCS_BUCKET_NAME environment variable is not configured.");
+  }
+  return bucketName;
+}
+
+/**
+ * Returns true if GCS is configured (bucket name and credentials exist).
+ */
+export function isStorageConfigured(): boolean {
   try {
-    await access(UPLOADS_DIR);
+    return !!process.env.GCS_BUCKET_NAME && !!getCredentialsPath();
   } catch {
-    await mkdir(UPLOADS_DIR, { recursive: true });
+    return false;
   }
 }
 
-/**
- * Returns true — local filesystem is always available.
- * Kept as `isSupabaseStorageConfigured` so existing callers don't break.
- */
+/** Keep alias function for compatibility with existing callers. */
 export function isSupabaseStorageConfigured(): boolean {
-  return true;
-}
-
-/** Alias for callers that use the generic name. */
-export function isStorageConfigured(): boolean {
-  return true;
+  return isStorageConfigured();
 }
 
 export type UploadResult =
@@ -48,7 +42,7 @@ export type UploadResult =
   | { ok: false; error: string; reason: "not_configured" | "upload_failed" };
 
 /**
- * Upload a scan image to local storage.
+ * Upload a scan image to the GCS bucket.
  * Returns the storage key (e.g. `scans/<patientId>/2026/05/<uuid>.jpg`)
  * that is saved in `scans.imageStorageKey`.
  */
@@ -56,8 +50,17 @@ export async function uploadScanImage(input: {
   patientId: number;
   file: File;
 }): Promise<UploadResult> {
+  if (!isStorageConfigured()) {
+    return {
+      ok: false,
+      error: "Google Cloud Storage is not configured.",
+      reason: "not_configured",
+    };
+  }
+
   try {
-    await ensureUploadsDir();
+    const bucket = getBucketName();
+    const accessToken = await getAccessTokenForScopes(GCS_SCOPE);
 
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -71,18 +74,30 @@ export async function uploadScanImage(input: {
     const fileName = `${uuid}.${safeExt}`;
     const key = `scans/${input.patientId}/${yyyy}/${mm}/${fileName}`;
 
-    // Create subdirectory for the patient/date path
-    const subDir = join(UPLOADS_DIR, String(input.patientId), String(yyyy), mm);
-    await mkdir(subDir, { recursive: true });
-
+    const url = `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(key)}`;
     const bytes = await input.file.arrayBuffer();
-    await writeFile(join(subDir, fileName), Buffer.from(bytes));
+
+    const res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": input.file.type || "application/octet-stream",
+      },
+      body: Buffer.from(bytes),
+      timeoutMs: 30000, // 30s timeout
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`GCS upload request failed (${res.status}): ${errText}`);
+    }
 
     return { ok: true, storageKey: key, publicUrl: null };
   } catch (err: any) {
+    console.error("[storage.uploadScanImage] Error:", err);
     return {
       ok: false,
-      error: err?.message ?? "Unknown upload error",
+      error: err?.message ?? "Unknown GCS upload error",
       reason: "upload_failed",
     };
   }
@@ -91,9 +106,9 @@ export async function uploadScanImage(input: {
 /**
  * Generate a short-lived signed URL for displaying a stored scan image.
  *
- * Since images are stored locally, this returns an authenticated API URL
- * with a time-limited HMAC token so the image is never exposed directly.
- * Returns null when the storage key is empty or the file cannot be read.
+ * Since images are stored in GCS, this returns an authenticated API URL
+ * with a time-limited HMAC-like token so the GCS bucket is never exposed directly.
+ * Returns null when the storage key is empty.
  */
 export async function getSignedScanUrl(
   storageKey: string,
@@ -101,37 +116,38 @@ export async function getSignedScanUrl(
 ): Promise<string | null> {
   if (!storageKey) return null;
 
-  try {
-    // Derive local file path from the storage key
-    // Key format: `scans/<patientId>/<yyyy>/<mm>/<uuid>.<ext>`
-    const relativePath = storageKey.replace(/^scans\//, "");
-    const filePath = join(UPLOADS_DIR, relativePath);
-
-    // Check the file exists
-    await access(filePath);
-
-    // Build a simple time-limited token: base64(expires|storageKey)
-    // The image API route validates the token server-side before streaming.
-    const expires = Math.floor(Date.now() / 1000) + expiresSeconds;
-    const token = Buffer.from(`${expires}|${storageKey}`).toString("base64url");
-    return `/api/mediscan/file?token=${token}`;
-  } catch {
-    return null;
-  }
+  // Build a simple time-limited token: base64(expires|storageKey)
+  // The image API route validates the token server-side before streaming.
+  const expires = Math.floor(Date.now() / 1000) + expiresSeconds;
+  const token = Buffer.from(`${expires}|${storageKey}`).toString("base64url");
+  return `/api/mediscan/file?token=${token}`;
 }
 
 /**
- * Delete a scan image from local storage.
- * Silently succeeds if the file doesn't exist.
+ * Delete a scan image from GCS bucket.
+ * Silently succeeds if GCS is not configured or the file doesn't exist.
  */
 export async function deleteScanImage(storageKey: string): Promise<void> {
-  if (!storageKey) return;
+  if (!storageKey || !isStorageConfigured()) return;
+
   try {
-    const { unlink } = await import("fs/promises");
-    const relativePath = storageKey.replace(/^scans\//, "");
-    const filePath = join(UPLOADS_DIR, relativePath);
-    await unlink(filePath);
-  } catch {
-    // Ignore — file may already be gone
+    const bucket = getBucketName();
+    const accessToken = await getAccessTokenForScopes(GCS_SCOPE);
+    const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(storageKey)}`;
+
+    const res = await fetchWithRetry(url, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      timeoutMs: 15000,
+    });
+
+    if (!res.ok && res.status !== 404) {
+      const errText = await res.text();
+      console.warn(`[storage.deleteScanImage] Failed to delete object: ${errText}`);
+    }
+  } catch (err) {
+    console.error("[storage.deleteScanImage] Error:", err);
   }
 }

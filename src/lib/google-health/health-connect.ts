@@ -131,23 +131,59 @@ export interface PatientDeviceConnection {
 
 // ─── Google Fitness API Client ───────────────────────────────────────────────
 
+async function fetchFitnessWithRefresh(
+  url: string,
+  options: RequestInit,
+  refreshToken?: string,
+  maxRetries: number = 2
+): Promise<Response> {
+  let currentToken = options.headers ? (options.headers as any)["Authorization"]?.replace("Bearer ", "") : "";
+  let retries = 0;
+
+  while (true) {
+    const headers: Record<string, string> = { ...options.headers as Record<string, string> };
+    if (currentToken) {
+      headers["Authorization"] = `Bearer ${currentToken}`;
+    }
+    
+    const res = await fetch(url, {
+      ...options,
+      headers
+    });
+
+    if (res.status === 401 && refreshToken && retries < maxRetries) {
+      retries++;
+      console.warn(`[health-connect] Token expired, attempting automatic refresh (attempt ${retries}/${maxRetries})...`);
+      try {
+        const refreshResult = await refreshHealthConnectToken(refreshToken);
+        currentToken = refreshResult.accessToken;
+        continue;
+      } catch (refreshErr) {
+        console.error("[health-connect] Token refresh failed during retry:", refreshErr);
+        throw new Error("HEALTH_CONNECT_AUTH_EXPIRED");
+      }
+    }
+
+    if (!res.ok) {
+      if (res.status === 401) throw new Error("HEALTH_CONNECT_AUTH_EXPIRED");
+      throw new Error(`Fitness API error (${res.status}): ${await res.text()}`);
+    }
+
+    return res;
+  }
+}
+
 async function fetchFitnessData(
   accessToken: string,
   dataSourceId: string,
   startTimeNanos: string,
   endTimeNanos: string,
+  refreshToken?: string,
 ): Promise<unknown> {
   const url = `${GOOGLE_FITNESS_API}/dataSources/${dataSourceId}/datasets/${startTimeNanos}-${endTimeNanos}`;
-
-  const res = await fetch(url, {
+  const res = await fetchFitnessWithRefresh(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  if (!res.ok) {
-    if (res.status === 401) throw new Error("HEALTH_CONNECT_AUTH_EXPIRED");
-    throw new Error(`Fitness API error (${res.status}): ${await res.text()}`);
-  }
-
+  }, refreshToken);
   return res.json();
 }
 
@@ -157,10 +193,11 @@ async function aggregateFitnessData(
   startTimeMillis: number,
   endTimeMillis: number,
   bucketDurationMillis: number = 86400000, // 1 day
+  refreshToken?: string,
 ): Promise<unknown> {
   const url = `${GOOGLE_FITNESS_API}/dataset:aggregate`;
 
-  const res = await fetch(url, {
+  const res = await fetchFitnessWithRefresh(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -172,12 +209,7 @@ async function aggregateFitnessData(
       startTimeMillis,
       endTimeMillis,
     }),
-  });
-
-  if (!res.ok) {
-    if (res.status === 401) throw new Error("HEALTH_CONNECT_AUTH_EXPIRED");
-    throw new Error(`Fitness aggregate error (${res.status}): ${await res.text()}`);
-  }
+  }, refreshToken);
 
   return res.json();
 }
@@ -188,6 +220,7 @@ export async function getHeartRateData(
   accessToken: string,
   startDate: Date,
   endDate: Date,
+  refreshToken?: string,
 ): Promise<VitalReading[]> {
   try {
     const data = await aggregateFitnessData(
@@ -196,6 +229,7 @@ export async function getHeartRateData(
       startDate.getTime(),
       endDate.getTime(),
       3600000, // 1 hour buckets
+      refreshToken,
     ) as { bucket?: Array<{ startTimeMillis: string; dataset: Array<{ point: Array<{ value: Array<{ fpVal: number }> }> }> }> };
 
     const readings: VitalReading[] = [];
@@ -224,6 +258,7 @@ export async function getBloodPressureData(
   accessToken: string,
   startDate: Date,
   endDate: Date,
+  refreshToken?: string,
 ): Promise<BloodPressureReading[]> {
   try {
     const data = await aggregateFitnessData(
@@ -231,6 +266,8 @@ export async function getBloodPressureData(
       "com.google.blood_pressure",
       startDate.getTime(),
       endDate.getTime(),
+      86400000,
+      refreshToken,
     ) as { bucket?: Array<{ startTimeMillis: string; dataset: Array<{ point: Array<{ value: Array<{ fpVal: number }> }> }> }> };
 
     const readings: BloodPressureReading[] = [];
@@ -260,6 +297,7 @@ export async function getOxygenSaturationData(
   accessToken: string,
   startDate: Date,
   endDate: Date,
+  refreshToken?: string,
 ): Promise<VitalReading[]> {
   try {
     const data = await aggregateFitnessData(
@@ -268,6 +306,7 @@ export async function getOxygenSaturationData(
       startDate.getTime(),
       endDate.getTime(),
       3600000,
+      refreshToken,
     ) as { bucket?: Array<{ startTimeMillis: string; dataset: Array<{ point: Array<{ value: Array<{ fpVal: number }> }> }> }> };
 
     const readings: VitalReading[] = [];
@@ -296,6 +335,7 @@ export async function getStepsData(
   accessToken: string,
   startDate: Date,
   endDate: Date,
+  refreshToken?: string,
 ): Promise<ActivityReading[]> {
   try {
     const data = await aggregateFitnessData(
@@ -303,6 +343,8 @@ export async function getStepsData(
       "com.google.step_count.delta",
       startDate.getTime(),
       endDate.getTime(),
+      86400000,
+      refreshToken,
     ) as { bucket?: Array<{ startTimeMillis: string; dataset: Array<{ point: Array<{ value: Array<{ intVal: number }> }> }> }> };
 
     const readings: ActivityReading[] = [];
@@ -335,6 +377,7 @@ export async function getSleepData(
   accessToken: string,
   startDate: Date,
   endDate: Date,
+  refreshToken?: string,
 ): Promise<SleepReading[]> {
   try {
     const data = await aggregateFitnessData(
@@ -342,6 +385,8 @@ export async function getSleepData(
       "com.google.sleep.segment",
       startDate.getTime(),
       endDate.getTime(),
+      86400000,
+      refreshToken,
     ) as { bucket?: Array<{ startTimeMillis: string; endTimeMillis: string; dataset: Array<{ point: Array<{ value: Array<{ intVal: number }> }> }> }> };
 
     const readings: SleepReading[] = [];
@@ -378,16 +423,17 @@ export async function generateHealthSummary(
   accessToken: string,
   patientId: string,
   days: number = 7,
+  refreshToken?: string,
 ): Promise<HealthSummary> {
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
 
   const [heartRate, bloodPressure, oxygenSat, steps, sleep] = await Promise.all([
-    getHeartRateData(accessToken, startDate, endDate),
-    getBloodPressureData(accessToken, startDate, endDate),
-    getOxygenSaturationData(accessToken, startDate, endDate),
-    getStepsData(accessToken, startDate, endDate),
-    getSleepData(accessToken, startDate, endDate),
+    getHeartRateData(accessToken, startDate, endDate, refreshToken),
+    getBloodPressureData(accessToken, startDate, endDate, refreshToken),
+    getOxygenSaturationData(accessToken, startDate, endDate, refreshToken),
+    getStepsData(accessToken, startDate, endDate, refreshToken),
+    getSleepData(accessToken, startDate, endDate, refreshToken),
   ]);
 
   // Calculate averages
@@ -588,16 +634,12 @@ export async function revokeHealthConnectAccess(accessToken: string): Promise<vo
  */
 export async function getConnectedDataSources(
   accessToken: string,
+  refreshToken?: string,
 ): Promise<Array<{ dataStreamId: string; name: string; type: string; device?: { manufacturer: string; model: string; type: string } }>> {
   try {
-    const res = await fetch(`${GOOGLE_FITNESS_API}/dataSources`, {
+    const res = await fetchFitnessWithRefresh(`${GOOGLE_FITNESS_API}/dataSources`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!res.ok) {
-      if (res.status === 401) throw new Error("HEALTH_CONNECT_AUTH_EXPIRED");
-      throw new Error(`DataSources error (${res.status}): ${await res.text()}`);
-    }
+    }, refreshToken);
 
     const data = await res.json() as { dataSource?: Array<{ dataStreamId: string; dataStreamName?: string; type: string; device?: { manufacturer: string; model: string; type: string } }> };
 

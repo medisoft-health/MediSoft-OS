@@ -23,6 +23,7 @@ import "server-only";
 import * as fs from "fs";
 import * as crypto from "crypto";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
+import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -95,67 +96,10 @@ export interface DeidentificationBatchResult {
 
 // ─── Authentication ─────────────────────────────────────────────────────────
 
-let cachedToken: { token: string; expiry: number } | null = null;
-
-function base64url(data: Buffer): string {
-  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 async function getAccessToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiry - 60000) {
-    return cachedToken.token;
-  }
-
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
-    || "/etc/medisoft/credentials/gcp-credentials.json";
-
-  if (!fs.existsSync(credPath)) {
-    throw new Error(`De-identification: Credentials not found at ${credPath}`);
-  }
-
-  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-  const now = Math.floor(Date.now() / 1000);
-
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: creds.client_email,
-    scope: "https://www.googleapis.com/auth/cloud-healthcare https://www.googleapis.com/auth/cloud-platform",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
-  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
-  const signInput = `${headerB64}.${payloadB64}`;
-
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(signInput);
-  const signature = base64url(sign.sign(creds.private_key));
-
-  const jwt = `${signInput}.${signature}`;
-
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    const err = await tokenRes.text();
-    throw new Error(`De-identification: Failed to get access token: ${err}`);
-  }
-
-  const tokenData = await tokenRes.json();
-  cachedToken = {
-    token: tokenData.access_token,
-    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
-  };
-
-  return cachedToken.token;
+  return getAccessTokenForScopes(
+    "https://www.googleapis.com/auth/cloud-healthcare https://www.googleapis.com/auth/cloud-platform"
+  );
 }
 
 // ─── De-identification Profiles (Google Healthcare API format) ───────────────
@@ -323,13 +267,14 @@ export async function deidentifyFHIRStore(
     config: deidentifyConfig,
   };
 
-  const response = await fetch(`${sourceStore}:deidentify`, {
+  const response = await fetchWithRetry(`${sourceStore}:deidentify`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(requestBody),
+    timeoutMs: 30000,
   });
 
   if (!response.ok) {
@@ -389,13 +334,14 @@ export async function deidentifyDICOMStore(
     },
   };
 
-  const response = await fetch(`${sourceStore}:deidentify`, {
+  const response = await fetchWithRetry(`${sourceStore}:deidentify`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(requestBody),
+    timeoutMs: 30000,
   });
 
   if (!response.ok) {
@@ -423,12 +369,13 @@ export async function checkDeidentifyOperation(
 ): Promise<DeidentificationBatchResult> {
   const token = await getAccessToken();
 
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `https://healthcare.googleapis.com/v1/${operationId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      timeoutMs: 15000,
     },
   );
 
@@ -450,6 +397,36 @@ export async function checkDeidentifyOperation(
     endTime: operation.metadata?.endTime || undefined,
     profile: "unknown",
   };
+}
+
+/**
+ * Polls a de-identification operation until complete, up to 5 minutes (60 iterations of 5 seconds).
+ */
+export async function pollDeidentifyOperation(
+  operationId: string,
+  intervalMs = 5000,
+  maxAttempts = 60,
+): Promise<DeidentificationBatchResult> {
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    try {
+      const result = await checkDeidentifyOperation(operationId);
+      if (result.status === "completed") {
+        return result;
+      }
+      if (result.status === "failed") {
+        throw new Error(`De-identification operation failed at GCP.`);
+      }
+    } catch (err: any) {
+      console.warn(`[deidentification.poll] Attempt ${attempt + 1}/${maxAttempts} failed: ${err.message}`);
+      // If check fails, we still continue polling unless we hit max attempts
+    }
+    attempt++;
+    if (attempt < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
+  throw new Error(`De-identification operation timed out after ${maxAttempts} attempts (${(maxAttempts * intervalMs) / 1000} seconds)`);
 }
 
 // ─── Free-Text De-identification (AI-powered) ───────────────────────────────

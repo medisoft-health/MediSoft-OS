@@ -30,13 +30,14 @@ import "server-only";
 
 import * as fs from "fs";
 import * as crypto from "crypto";
+import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const GCP_PROJECT = process.env.GCP_PROJECT_ID || "gen-lang-client-0619493108";
-const GCP_LOCATION = process.env.GCP_HEALTHCARE_LOCATION || process.env.GCP_LOCATION || "me-central1";
-const GCP_DATASET = process.env.GCP_HEALTHCARE_DATASET || "medisoft-health";
-const DICOM_STORE = process.env.GCP_DICOM_STORE || "medisoft-dicom-store";
+const GCP_PROJECT = process.env.GCP_PROJECT_ID || "";
+const GCP_LOCATION = process.env.GCP_HEALTHCARE_LOCATION || process.env.GCP_LOCATION || "";
+const GCP_DATASET = process.env.GCP_HEALTHCARE_DATASET || "";
+const DICOM_STORE = process.env.GCP_DICOM_STORE || "";
 
 const BASE_URL = `https://healthcare.googleapis.com/v1/projects/${GCP_PROJECT}/locations/${GCP_LOCATION}/datasets/${GCP_DATASET}/dicomStores/${DICOM_STORE}`;
 const DICOMWEB_URL = `${BASE_URL}/dicomWeb`;
@@ -97,67 +98,33 @@ export interface SearchParams {
 
 // ─── Authentication ─────────────────────────────────────────────────────────
 
-let cachedToken: { token: string; expiry: number } | null = null;
-
-function base64url(data: Buffer): string {
-  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+async function getAccessToken(): Promise<string> {
+  if (!GCP_PROJECT || !GCP_LOCATION || !GCP_DATASET || !DICOM_STORE) {
+    throw new Error(
+      "Google Healthcare DICOM store is not configured. Missing one of: GCP_PROJECT_ID, GCP_HEALTHCARE_LOCATION, GCP_HEALTHCARE_DATASET, GCP_DICOM_STORE."
+    );
+  }
+  return getAccessTokenForScopes(
+    "https://www.googleapis.com/auth/cloud-healthcare https://www.googleapis.com/auth/cloud-platform"
+  );
 }
 
-async function getAccessToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiry - 60000) {
-    return cachedToken.token;
-  }
+async function dicomFetch(
+  url: string,
+  options: RequestInit & { timeoutMs?: number; maxRetries?: number } = {},
+): Promise<Response> {
+  const token = await getAccessToken();
+  const { timeoutMs = 30000, maxRetries = 3, ...fetchInit } = options;
 
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
-    || "/etc/medisoft/credentials/gcp-credentials.json";
-
-  if (!fs.existsSync(credPath)) {
-    throw new Error(`DICOM Store: Credentials not found at ${credPath}`);
-  }
-
-  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-  const now = Math.floor(Date.now() / 1000);
-
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: creds.client_email,
-    scope: "https://www.googleapis.com/auth/cloud-healthcare https://www.googleapis.com/auth/cloud-platform",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
-  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
-  const signInput = `${headerB64}.${payloadB64}`;
-
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(signInput);
-  const signature = base64url(sign.sign(creds.private_key));
-
-  const jwt = `${signInput}.${signature}`;
-
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
+  return fetchWithRetry(url, {
+    ...fetchInit,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...fetchInit.headers,
+    },
+    timeoutMs,
+    maxRetries,
   });
-
-  if (!tokenRes.ok) {
-    const err = await tokenRes.text();
-    throw new Error(`DICOM Store: Failed to get access token: ${err}`);
-  }
-
-  const tokenData = await tokenRes.json();
-  cachedToken = {
-    token: tokenData.access_token,
-    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
-  };
-
-  return cachedToken.token;
 }
 
 // ─── STOW-RS: Store DICOM Instances ─────────────────────────────────────────
@@ -167,7 +134,6 @@ async function getAccessToken(): Promise<string> {
  * Accepts raw DICOM binary data (application/dicom).
  */
 export async function storeDICOMInstance(dicomBuffer: Buffer): Promise<StoreResult> {
-  const token = await getAccessToken();
   const stowUrl = `${DICOMWEB_URL}/studies`;
 
   const boundary = `----MediSoftDICOM${Date.now()}`;
@@ -181,14 +147,14 @@ export async function storeDICOMInstance(dicomBuffer: Buffer): Promise<StoreResu
 
   const body = Buffer.concat(parts);
 
-  const response = await fetch(stowUrl, {
+  const response = await dicomFetch(stowUrl, {
     method: "POST",
     headers: {
       "Content-Type": `multipart/related; type="application/dicom"; boundary="${boundary}"`,
-      Authorization: `Bearer ${token}`,
       Accept: "application/dicom+json",
     },
     body: new Uint8Array(body),
+    timeoutMs: 60000,
   });
 
   if (!response.ok) {
@@ -222,7 +188,6 @@ export async function storeDICOMInstance(dicomBuffer: Buffer): Promise<StoreResu
  * Store multiple DICOM instances in a single STOW-RS request.
  */
 export async function storeDICOMInstances(dicomBuffers: Buffer[]): Promise<StoreResult> {
-  const token = await getAccessToken();
   const stowUrl = `${DICOMWEB_URL}/studies`;
 
   const boundary = `----MediSoftDICOMBatch${Date.now()}`;
@@ -239,14 +204,14 @@ export async function storeDICOMInstances(dicomBuffers: Buffer[]): Promise<Store
 
   const body = Buffer.concat(parts);
 
-  const response = await fetch(stowUrl, {
+  const response = await dicomFetch(stowUrl, {
     method: "POST",
     headers: {
       "Content-Type": `multipart/related; type="application/dicom"; boundary="${boundary}"`,
-      Authorization: `Bearer ${token}`,
       Accept: "application/dicom+json",
     },
     body: new Uint8Array(body),
+    timeoutMs: 60000,
   });
 
   if (!response.ok) {
@@ -278,14 +243,13 @@ export async function storeDICOMInstances(dicomBuffers: Buffer[]): Promise<Store
  * Retrieve a complete DICOM study (all series and instances).
  */
 export async function retrieveStudy(studyInstanceUID: string): Promise<ArrayBuffer> {
-  const token = await getAccessToken();
   const wadoUrl = `${DICOMWEB_URL}/studies/${studyInstanceUID}`;
 
-  const response = await fetch(wadoUrl, {
+  const response = await dicomFetch(wadoUrl, {
     headers: {
       Accept: "multipart/related; type=\"application/dicom\"; transfer-syntax=*",
-      Authorization: `Bearer ${token}`,
     },
+    timeoutMs: 60000,
   });
 
   if (!response.ok) {
@@ -303,14 +267,13 @@ export async function retrieveSeries(
   studyInstanceUID: string,
   seriesInstanceUID: string,
 ): Promise<ArrayBuffer> {
-  const token = await getAccessToken();
   const wadoUrl = `${DICOMWEB_URL}/studies/${studyInstanceUID}/series/${seriesInstanceUID}`;
 
-  const response = await fetch(wadoUrl, {
+  const response = await dicomFetch(wadoUrl, {
     headers: {
       Accept: "multipart/related; type=\"application/dicom\"; transfer-syntax=*",
-      Authorization: `Bearer ${token}`,
     },
+    timeoutMs: 60000,
   });
 
   if (!response.ok) {
@@ -329,14 +292,13 @@ export async function retrieveInstance(
   seriesInstanceUID: string,
   sopInstanceUID: string,
 ): Promise<ArrayBuffer> {
-  const token = await getAccessToken();
   const wadoUrl = `${DICOMWEB_URL}/studies/${studyInstanceUID}/series/${seriesInstanceUID}/instances/${sopInstanceUID}`;
 
-  const response = await fetch(wadoUrl, {
+  const response = await dicomFetch(wadoUrl, {
     headers: {
       Accept: "application/dicom; transfer-syntax=*",
-      Authorization: `Bearer ${token}`,
     },
+    timeoutMs: 60000,
   });
 
   if (!response.ok) {
@@ -358,14 +320,13 @@ export async function retrieveRenderedInstance(
   format: "image/png" | "image/jpeg" = "image/png",
   frame = 1,
 ): Promise<ArrayBuffer> {
-  const token = await getAccessToken();
   const wadoUrl = `${DICOMWEB_URL}/studies/${studyInstanceUID}/series/${seriesInstanceUID}/instances/${sopInstanceUID}/frames/${frame}/rendered`;
 
-  const response = await fetch(wadoUrl, {
+  const response = await dicomFetch(wadoUrl, {
     headers: {
       Accept: format,
-      Authorization: `Bearer ${token}`,
     },
+    timeoutMs: 30000,
   });
 
   if (!response.ok) {
@@ -382,8 +343,6 @@ export async function retrieveRenderedInstance(
  * Search for DICOM studies matching the given parameters.
  */
 export async function searchStudies(params: SearchParams = {}): Promise<DICOMStudy[]> {
-  const token = await getAccessToken();
-
   const queryParams = new URLSearchParams();
   if (params.PatientName) queryParams.set("PatientName", params.PatientName);
   if (params.PatientID) queryParams.set("PatientID", params.PatientID);
@@ -411,10 +370,9 @@ export async function searchStudies(params: SearchParams = {}): Promise<DICOMStu
 
   const qidoUrl = `${DICOMWEB_URL}/studies?${queryParams.toString()}`;
 
-  const response = await fetch(qidoUrl, {
+  const response = await dicomFetch(qidoUrl, {
     headers: {
       Accept: "application/dicom+json",
-      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -440,8 +398,6 @@ export async function searchSeries(
   studyInstanceUID: string,
   modality?: string,
 ): Promise<DICOMSeries[]> {
-  const token = await getAccessToken();
-
   const queryParams = new URLSearchParams();
   if (modality) queryParams.set("Modality", modality);
   queryParams.set("includefield", [
@@ -456,10 +412,9 @@ export async function searchSeries(
 
   const qidoUrl = `${DICOMWEB_URL}/studies/${studyInstanceUID}/series?${queryParams.toString()}`;
 
-  const response = await fetch(qidoUrl, {
+  const response = await dicomFetch(qidoUrl, {
     headers: {
       Accept: "application/dicom+json",
-      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -483,13 +438,11 @@ export async function searchSeries(
  * Retrieve DICOM JSON metadata for a study (without pixel data).
  */
 export async function getStudyMetadata(studyInstanceUID: string): Promise<unknown[]> {
-  const token = await getAccessToken();
   const metadataUrl = `${DICOMWEB_URL}/studies/${studyInstanceUID}/metadata`;
 
-  const response = await fetch(metadataUrl, {
+  const response = await dicomFetch(metadataUrl, {
     headers: {
       Accept: "application/dicom+json",
-      Authorization: `Bearer ${token}`,
     },
   });
 
@@ -507,14 +460,10 @@ export async function getStudyMetadata(studyInstanceUID: string): Promise<unknow
  * Delete an entire DICOM study and all its series/instances.
  */
 export async function deleteStudy(studyInstanceUID: string): Promise<void> {
-  const token = await getAccessToken();
   const deleteUrl = `${DICOMWEB_URL}/studies/${studyInstanceUID}`;
 
-  const response = await fetch(deleteUrl, {
+  const response = await dicomFetch(deleteUrl, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
   });
 
   if (!response.ok && response.status !== 404) {
@@ -536,16 +485,10 @@ export async function getDICOMStoreStatus(): Promise<{
   message?: string;
 }> {
   try {
-    const token = await getAccessToken();
-
     // Check store exists by getting its metadata
     const storeUrl = `https://healthcare.googleapis.com/v1/projects/${GCP_PROJECT}/locations/${GCP_LOCATION}/datasets/${GCP_DATASET}/dicomStores/${DICOM_STORE}`;
 
-    const response = await fetch(storeUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await dicomFetch(storeUrl);
 
     if (!response.ok) {
       return {

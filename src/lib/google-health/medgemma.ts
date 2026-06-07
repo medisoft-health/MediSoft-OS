@@ -22,13 +22,14 @@ import "server-only";
 import * as fs from "fs";
 import * as crypto from "crypto";
 import { getGeminiClient, GEMINI_MODEL, isGeminiConfigured } from "@/lib/ai/gemini";
+import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 const USE_VERTEX = process.env.USE_VERTEX_MEDGEMMA === "true";
 const VERTEX_ENDPOINT = process.env.VERTEX_MEDGEMMA_ENDPOINT || "";
 const VERTEX_REGION = process.env.VERTEX_MEDGEMMA_REGION || process.env.GCP_LOCATION || "me-central1";
-const GCP_PROJECT = process.env.GCP_PROJECT_ID || "gen-lang-client-0619493108";
+const GCP_PROJECT = process.env.GCP_PROJECT_ID || "";
 
 // Fallback model names (used when Vertex is disabled)
 const FALLBACK_MODEL = process.env.MEDGEMMA_MODEL || "gemini-2.5-pro";
@@ -73,67 +74,8 @@ export interface ClinicalQuestionInput {
 
 // ─── Vertex AI Authentication ───────────────────────────────────────────────
 
-let cachedVertexToken: { token: string; expiry: number } | null = null;
-
-function base64url(data: Buffer): string {
-  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 async function getVertexAccessToken(): Promise<string> {
-  if (cachedVertexToken && Date.now() < cachedVertexToken.expiry - 60000) {
-    return cachedVertexToken.token;
-  }
-
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
-    || "/etc/medisoft/credentials/gcp-credentials.json";
-
-  if (!fs.existsSync(credPath)) {
-    throw new Error(`Credentials not found at ${credPath}`);
-  }
-
-  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-  const now = Math.floor(Date.now() / 1000);
-
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: creds.client_email,
-    scope: "https://www.googleapis.com/auth/cloud-platform",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
-  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
-  const signInput = `${headerB64}.${payloadB64}`;
-
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(signInput);
-  const signature = base64url(sign.sign(creds.private_key));
-
-  const jwt = `${signInput}.${signature}`;
-
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    const err = await tokenRes.text();
-    throw new Error(`Failed to get Vertex AI access token: ${err}`);
-  }
-
-  const tokenData = await tokenRes.json();
-  cachedVertexToken = {
-    token: tokenData.access_token,
-    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
-  };
-
-  return cachedVertexToken.token;
+  return getAccessTokenForScopes("https://www.googleapis.com/auth/cloud-platform");
 }
 
 // ─── Vertex AI MedGemma Inference ───────────────────────────────────────────
@@ -171,13 +113,15 @@ async function callVertexMedGemma(
     temperature,
   };
 
-  const response = await fetch(endpointUrl, {
+  const response = await fetchWithRetry(endpointUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(requestBody),
+    timeoutMs: 60000,
+    maxRetries: 3,
   });
 
   if (!response.ok) {

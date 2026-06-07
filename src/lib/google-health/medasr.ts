@@ -24,53 +24,32 @@ import "server-only";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 import * as fs from "fs";
 import * as crypto from "crypto";
+import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Vertex AI Configuration ──────────────────────────────────────────────────────
 
 const USE_VERTEX = process.env.USE_VERTEX_ENDPOINTS === "true";
 const VERTEX_MEDASR_ENDPOINT = process.env.VERTEX_MEDASR_ENDPOINT || "";
-const GCP_PROJECT = process.env.GCP_PROJECT_ID || "gen-lang-client-0619493108";
-const GCP_LOCATION = process.env.GCP_LOCATION || "me-central1";
-
-let vertexTokenCache: { token: string; expiry: number } | null = null;
+const GCP_PROJECT = process.env.GCP_PROJECT_ID || "";
+const GCP_LOCATION = process.env.GCP_LOCATION || "";
 
 async function getVertexToken(): Promise<string> {
-  if (vertexTokenCache && Date.now() < vertexTokenCache.expiry - 60000) {
-    return vertexTokenCache.token;
-  }
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || "/etc/medisoft/credentials/gcp-credentials.json";
-  if (!fs.existsSync(credPath)) throw new Error("MedASR: Vertex credentials not found");
-  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = { iss: creds.client_email, scope: "https://www.googleapis.com/auth/cloud-platform", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 };
-  const b64url = (d: Buffer) => d.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const h = b64url(Buffer.from(JSON.stringify(header)));
-  const p = b64url(Buffer.from(JSON.stringify(payload)));
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(`${h}.${p}`);
-  const sig = b64url(sign.sign(creds.private_key));
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${h}.${p}.${sig}` }),
-  });
-  if (!res.ok) throw new Error(`MedASR: Token error: ${await res.text()}`);
-  const data = await res.json();
-  vertexTokenCache = { token: data.access_token, expiry: Date.now() + 3500000 };
-  return data.access_token;
+  return getAccessTokenForScopes("https://www.googleapis.com/auth/cloud-platform");
 }
 
 async function callVertexMedASR(audioBase64: string, mimeType: string, prompt: string): Promise<string | null> {
   if (!USE_VERTEX || !VERTEX_MEDASR_ENDPOINT) return null;
   try {
     const token = await getVertexToken();
-    const res = await fetch(VERTEX_MEDASR_ENDPOINT, {
+    const res = await fetchWithRetry(VERTEX_MEDASR_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         instances: [{ audio: { b64_content: audioBase64, mime_type: mimeType }, prompt }],
         parameters: { temperature: 0.1 },
       }),
+      timeoutMs: 60000,
+      maxRetries: 3,
     });
     if (!res.ok) { console.warn("[MedASR] Vertex endpoint error, falling back to Gemini"); return null; }
     const data = await res.json();

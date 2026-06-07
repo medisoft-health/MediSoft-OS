@@ -17,14 +17,15 @@ import "server-only";
 
 import * as fs from "fs";
 import * as crypto from "crypto";
+import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const GCP_PROJECT = process.env.GCP_PROJECT_ID || "gen-lang-client-0619493108";
-const GCP_LOCATION = process.env.GCP_HEALTHCARE_LOCATION || process.env.GCP_LOCATION || "me-central1";
-const GCP_DATASET = process.env.GCP_HEALTHCARE_DATASET || "medisoft-health";
-const FHIR_STORE = process.env.GCP_FHIR_STORE || "medisoft-fhir-store";
-const DICOM_STORE = process.env.GCP_DICOM_STORE || "medisoft-dicom-store";
+const GCP_PROJECT = process.env.GCP_PROJECT_ID || "";
+const GCP_LOCATION = process.env.GCP_HEALTHCARE_LOCATION || process.env.GCP_LOCATION || "";
+const GCP_DATASET = process.env.GCP_HEALTHCARE_DATASET || "";
+const FHIR_STORE = process.env.GCP_FHIR_STORE || "";
+const DICOM_STORE = process.env.GCP_DICOM_STORE || "";
 
 const BASE_URL = `https://healthcare.googleapis.com/v1/projects/${GCP_PROJECT}/locations/${GCP_LOCATION}/datasets/${GCP_DATASET}`;
 const FHIR_URL = `${BASE_URL}/fhirStores/${FHIR_STORE}/fhir`;
@@ -134,86 +135,34 @@ type FHIRResource =
 
 // ─── Service Account Auth ───────────────────────────────────────────────────
 
-let cachedToken: { token: string; expiry: number } | null = null;
-
-function base64url(data: Buffer): string {
-  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 async function getAccessToken(): Promise<string> {
-  // Check cached token
-  if (cachedToken && Date.now() < cachedToken.expiry - 60000) {
-    return cachedToken.token;
-  }
-
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (!credPath || !fs.existsSync(credPath)) {
-    throw new Error(
-      "GOOGLE_APPLICATION_CREDENTIALS not set or file not found. Cannot authenticate with Healthcare API.",
-    );
-  }
-
-  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-  const now = Math.floor(Date.now() / 1000);
-
-  // Create JWT
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: creds.client_email,
-    scope: "https://www.googleapis.com/auth/cloud-healthcare https://www.googleapis.com/auth/cloud-platform",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
-  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
-  const signInput = `${headerB64}.${payloadB64}`;
-
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(signInput);
-  const signature = base64url(sign.sign(creds.private_key));
-
-  const jwt = `${signInput}.${signature}`;
-
-  // Exchange JWT for access token
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    const err = await tokenRes.text();
-    throw new Error(`Failed to get access token: ${err}`);
-  }
-
-  const tokenData = await tokenRes.json();
-  cachedToken = {
-    token: tokenData.access_token,
-    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
-  };
-
-  return cachedToken.token;
+  return getAccessTokenForScopes(
+    "https://www.googleapis.com/auth/cloud-healthcare https://www.googleapis.com/auth/cloud-platform"
+  );
 }
 
 async function fhirFetch(
   path: string,
   options: RequestInit = {},
 ): Promise<Response> {
+  if (!GCP_PROJECT || !GCP_LOCATION || !GCP_DATASET || !FHIR_STORE) {
+    throw new Error(
+      "Google Healthcare API is not configured. Missing one of: GCP_PROJECT_ID, GCP_HEALTHCARE_LOCATION, GCP_HEALTHCARE_DATASET, GCP_FHIR_STORE."
+    );
+  }
+
   const token = await getAccessToken();
   const url = path.startsWith("http") ? path : `${FHIR_URL}/${path}`;
 
-  return fetch(url, {
+  return fetchWithRetry(url, {
     ...options,
     headers: {
       "Content-Type": "application/fhir+json",
       Authorization: `Bearer ${token}`,
       ...options.headers,
     },
+    timeoutMs: 30000, // 30s timeout
+    maxRetries: 3,    // 3 retries
   });
 }
 
@@ -299,11 +248,13 @@ export async function getFHIRStoreMetadata(): Promise<{ status: string; version:
   try {
     const token = await getAccessToken();
     const metadataUrl = `${FHIR_URL}/metadata`;
-    const res = await fetch(metadataUrl, {
+    const res = await fetchWithRetry(metadataUrl, {
       headers: {
         Accept: "application/fhir+json",
         Authorization: `Bearer ${token}`,
       },
+      timeoutMs: 30000,
+      maxRetries: 3,
     });
 
     if (!res.ok) {
@@ -330,13 +281,15 @@ export async function storeDICOMInstance(
   const token = await getAccessToken();
   const stowUrl = `${DICOM_URL}/dicomWeb/studies`;
 
-  const res = await fetch(stowUrl, {
+  const res = await fetchWithRetry(stowUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/dicom",
       Authorization: `Bearer ${token}`,
     },
     body: new Uint8Array(dicomBuffer),
+    timeoutMs: 60000,
+    maxRetries: 3,
   });
 
   if (!res.ok) {
@@ -354,11 +307,13 @@ export async function retrieveDICOMStudy(
   const token = await getAccessToken();
   const wadoUrl = `${DICOM_URL}/dicomWeb/studies/${studyInstanceUID}`;
 
-  const res = await fetch(wadoUrl, {
+  const res = await fetchWithRetry(wadoUrl, {
     headers: {
       Accept: "multipart/related; type=application/dicom",
       Authorization: `Bearer ${token}`,
     },
+    timeoutMs: 60000,
+    maxRetries: 3,
   });
 
   if (!res.ok) {
@@ -376,11 +331,13 @@ export async function searchDICOMStudies(
   const query = new URLSearchParams(params).toString();
   const qidoUrl = `${DICOM_URL}/dicomWeb/studies${query ? `?${query}` : ""}`;
 
-  const res = await fetch(qidoUrl, {
+  const res = await fetchWithRetry(qidoUrl, {
     headers: {
       Accept: "application/dicom+json",
       Authorization: `Bearer ${token}`,
     },
+    timeoutMs: 30000,
+    maxRetries: 3,
   });
 
   if (!res.ok) {
