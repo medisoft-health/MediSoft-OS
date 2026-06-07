@@ -213,6 +213,21 @@ npx playwright test
 
 ---
 
+## End-of-Day Sync Protocol
+
+> **Every day must end with all 3 locations in sync: VM → GitHub → Local Mac**
+
+```
+VM (Source of Truth) → GitHub (Central Mirror) → Local Mac (Your machine)
+```
+
+- The **VM holds the canonical version** — the CTO decides what's official
+- The CTO pushes to GitHub, then tells you to pull
+- Your local copy should always start fresh from latest `main` each day
+- If you have unpushed branches at end of day, push them so nothing is lost
+
+---
+
 ## Before You Start Any Task
 
 1. `git pull origin main` — always start from latest
