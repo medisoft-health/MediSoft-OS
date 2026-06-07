@@ -23,6 +23,7 @@ import "server-only";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 import * as fs from "fs";
 import * as crypto from "crypto";
+import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Vertex AI Toggle ────────────────────────────────────────────────────────
 
@@ -30,66 +31,8 @@ const USE_VERTEX_ENDPOINTS = process.env.USE_VERTEX_ENDPOINTS === "true";
 const VERTEX_PATH_FOUNDATION_ENDPOINT = process.env.VERTEX_PATH_FOUNDATION_ENDPOINT || "";
 const GCP_LOCATION = process.env.GCP_LOCATION || "me-central1";
 
-let cachedVertexToken: { token: string; expiry: number } | null = null;
-
-function base64url(data: Buffer): string {
-  return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 async function getVertexAccessToken(): Promise<string> {
-  if (cachedVertexToken && Date.now() < cachedVertexToken.expiry - 60000) {
-    return cachedVertexToken.token;
-  }
-
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
-    || "/etc/medisoft/credentials/gcp-credentials.json";
-
-  if (!fs.existsSync(credPath)) {
-    throw new Error(`Path Foundation Vertex: Credentials not found at ${credPath}`);
-  }
-
-  const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-  const now = Math.floor(Date.now() / 1000);
-
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: creds.client_email,
-    scope: "https://www.googleapis.com/auth/cloud-platform",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const headerB64 = base64url(Buffer.from(JSON.stringify(header)));
-  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
-  const signInput = `${headerB64}.${payloadB64}`;
-
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(signInput);
-  const signature = base64url(sign.sign(creds.private_key));
-
-  const jwt = `${signInput}.${signature}`;
-
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    throw new Error(`Path Foundation Vertex: Token error: ${await tokenRes.text()}`);
-  }
-
-  const tokenData = await tokenRes.json();
-  cachedVertexToken = {
-    token: tokenData.access_token,
-    expiry: Date.now() + (tokenData.expires_in || 3600) * 1000,
-  };
-
-  return cachedVertexToken.token;
+  return getAccessTokenForScopes("https://www.googleapis.com/auth/cloud-platform");
 }
 
 /**
@@ -109,7 +52,7 @@ async function callVertexPathFoundation(
       ? VERTEX_PATH_FOUNDATION_ENDPOINT
       : `https://${GCP_LOCATION}-aiplatform.googleapis.com/v1/${VERTEX_PATH_FOUNDATION_ENDPOINT}:predict`;
 
-    const response = await fetch(endpointUrl, {
+    const response = await fetchWithRetry(endpointUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -123,6 +66,8 @@ async function callVertexPathFoundation(
         }],
         parameters: { temperature: 0.1 },
       }),
+      timeoutMs: 60000,
+      maxRetries: 3,
     });
 
     if (!response.ok) {
