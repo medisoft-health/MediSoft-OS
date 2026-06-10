@@ -62,6 +62,7 @@
     "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.38.0",
+    "heic2any": "^0.0.4",
     "html2canvas": "^1.4.1",
     "isomorphic-dompurify": "^3.16.0",
     "jspdf": "^4.2.1",

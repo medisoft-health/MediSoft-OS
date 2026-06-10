@@ -11,7 +11,7 @@ export const fetchCache = "force-no-store";
 /**
  * Auth route group layout — wraps /login and /signup.
  *
- * - No sidebar; full-bleed clinical gradient background.
+ * - No sidebar; warm paper editorial background (Design System).
  * - If user is already signed in, bounce them to the dashboard.
  */
 export default async function AuthLayout({
@@ -25,27 +25,26 @@ export default async function AuthLayout({
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[color:var(--color-background)] p-4">
-      {/* Soft radial brand glow */}
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4" style={{ background: '#F8F7F4' }}>
+      {/* Soft radial brand glow — navy + pink, subtle */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-60"
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           background:
-            "radial-gradient(circle at 25% 20%, rgba(232,74,138,0.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(30,58,140,0.18), transparent 55%)",
+            "radial-gradient(circle at 25% 20%, rgba(27,79,124,0.12), transparent 55%), radial-gradient(circle at 80% 80%, rgba(232,76,138,0.10), transparent 55%)",
         }}
       />
-      {/* Subtle grid */}
+      {/* Subtle dot grid — editorial feel */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        className="pointer-events-none absolute inset-0 opacity-[0.25]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
+            "radial-gradient(circle, rgba(27,79,124,0.08) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
         }}
       />
-
       <main className="relative z-10 w-full max-w-md">{children}</main>
     </div>
   );

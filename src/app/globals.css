@@ -2,63 +2,74 @@
 
 /* ============================================
    MediSoft C-OS — Global Theme
-   Brand-aligned tokens (OKLCH for Tailwind 4)
+   Brand-aligned tokens from MediSoft Design System
+   Validated by Claude Design + CTO Review (June 2026)
    ============================================ */
 
 @theme {
-  /* --- Brand colors (from MediSoft brand guide) --- */
-  --color-brand-pink: #e84a8a;
-  --color-brand-magenta: #d63384;
-  --color-brand-navy: #1e3a8c;
-  --color-brand-blue: #2d52a8;
-  --color-brand-cyan: #3fc4d9;
-  --color-brand-purple: #8b3fb8;
-  --color-brand-orange: #f5a04a;
-  --color-brand-ink: #0f172a;
-  --color-brand-mute: #64748b;
-  --color-brand-line: #e5e7eb;
-  --color-brand-cream: #fafafc;
+  /* --- Brand colors (MediSoft Design System — validated) --- */
+  --color-brand-pink: #E84C8A;
+  --color-brand-magenta: #D43F7A;
+  --color-brand-navy: #1B4F7C;
+  --color-brand-blue: #1565C0;
+  --color-brand-cyan: #00BCD4;
+  --color-brand-purple: #7B2D8B;
+  --color-brand-orange: #F5A623;
+  --color-brand-coral: #E85D3A;
+  --color-brand-deep-rose: #8B2252;
+  --color-brand-ink: #0F1419;
+  --color-brand-mute: #6B7280;
+  --color-brand-line: #E5E7EB;
+  --color-brand-cream: #F8F7F4;
 
-  /* --- Semantic tokens (OKLCH for medical UI) --- */
-  --color-primary: oklch(0.55 0.15 230);
-  --color-primary-foreground: oklch(0.98 0.01 230);
-  --color-secondary: oklch(0.75 0.08 175);
-  --color-secondary-foreground: oklch(0.2 0.05 175);
-  --color-background: oklch(0.99 0.003 240);
-  --color-foreground: oklch(0.15 0.02 250);
+  /* --- Semantic tokens (warm paper editorial theme) --- */
+  --color-primary: oklch(0.42 0.10 230);
+  --color-primary-foreground: oklch(0.98 0.005 90);
+  --color-secondary: oklch(0.60 0.10 185);
+  --color-secondary-foreground: oklch(0.15 0.03 185);
+  --color-background: oklch(0.98 0.005 85);
+  --color-foreground: oklch(0.13 0.02 250);
   --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.15 0.02 250);
-  --color-muted: oklch(0.96 0.005 240);
-  --color-muted-foreground: oklch(0.5 0.015 240);
-  --color-border: oklch(0.91 0.008 240);
-  --color-input: oklch(0.91 0.008 240);
-  --color-ring: oklch(0.55 0.15 230);
+  --color-card-foreground: oklch(0.13 0.02 250);
+  --color-muted: oklch(0.96 0.006 80);
+  --color-muted-foreground: oklch(0.50 0.015 250);
+  --color-border: oklch(0.91 0.008 80);
+  --color-input: oklch(0.91 0.008 80);
+  --color-ring: oklch(0.42 0.10 230);
   --color-accent: oklch(0.95 0.02 320);
-  --color-accent-foreground: oklch(0.25 0.1 320);
+  --color-accent-foreground: oklch(0.25 0.10 320);
 
   /* --- Clinical status colors --- */
-  --color-success: oklch(0.65 0.15 145);
-  --color-warning: oklch(0.75 0.15 70);
-  --color-destructive: oklch(0.6 0.22 25);
+  --color-success: oklch(0.60 0.16 145);
+  --color-warning: oklch(0.72 0.15 75);
+  --color-destructive: oklch(0.55 0.22 25);
   --color-destructive-foreground: oklch(0.98 0.01 25);
-  --color-critical: oklch(0.55 0.25 15);
+  --color-critical: oklch(0.50 0.25 15);
 
-  /* --- Sidebar tokens --- */
-  --color-sidebar: oklch(1 0 0);
-  --color-sidebar-foreground: oklch(0.2 0.02 250);
-  --color-sidebar-accent: oklch(0.96 0.005 240);
-  --color-sidebar-border: oklch(0.91 0.008 240);
+  /* --- Sidebar tokens (warm off-white) --- */
+  --color-sidebar: oklch(0.99 0.004 85);
+  --color-sidebar-foreground: oklch(0.15 0.02 250);
+  --color-sidebar-accent: oklch(0.96 0.006 80);
+  --color-sidebar-border: oklch(0.92 0.008 80);
 
-  /* --- Radii --- */
+  /* --- Radii (Design System: 8px default cards) --- */
   --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 
   /* --- Fonts --- */
   --font-sans: var(--font-inter), var(--font-arabic), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-playfair), 'Georgia', serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-script: var(--font-pacifico), cursive;
+
+  /* --- Shadows (Design System: subtle, calm, medical) --- */
+  --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px oklch(0% 0 0 / 0.06), 0 1px 2px oklch(0% 0 0 / 0.04);
+  --shadow-md: 0 4px 6px oklch(0% 0 0 / 0.05), 0 2px 4px oklch(0% 0 0 / 0.04);
+  --shadow-lg: 0 10px 15px oklch(0% 0 0 / 0.06), 0 4px 6px oklch(0% 0 0 / 0.03);
+  --shadow-xl: 0 20px 25px oklch(0% 0 0 / 0.08), 0 8px 10px oklch(0% 0 0 / 0.03);
 }
 
 /* ============================================
@@ -77,18 +88,54 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 /* ============================================
+   Editorial Typography (Design System)
+   Headings use Playfair Display serif for English
+   ============================================ */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--color-brand-navy);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3 {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+/* Editorial italic accent — for key phrases */
+.accent-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-brand-navy);
+}
+
+/* Monospace labels — Design System pattern */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+/* ============================================
    Dark mode — overrides for the .dark class
-   toggled by AdaptiveProvider
+   toggled by AdaptiveProvider (Radiology context)
    ============================================ */
 .dark {
-  --color-primary: oklch(0.7 0.12 230);
+  --color-primary: oklch(0.65 0.10 230);
   --color-primary-foreground: oklch(0.12 0.02 230);
-  --color-secondary: oklch(0.45 0.06 175);
-  --color-secondary-foreground: oklch(0.92 0.03 175);
+  --color-secondary: oklch(0.45 0.06 185);
+  --color-secondary-foreground: oklch(0.92 0.03 185);
   --color-background: oklch(0.13 0.015 250);
   --color-foreground: oklch(0.93 0.01 240);
   --color-card: oklch(0.17 0.015 250);
@@ -155,8 +202,9 @@ a:focus-visible,
 }
 
 .grad-soft {
-  background: linear-gradient(135deg, oklch(0.97 0.01 340) 0%, oklch(0.97 0.01 240) 100%);
+  background: linear-gradient(135deg, oklch(0.97 0.008 40) 0%, oklch(0.97 0.008 240) 100%);
 }
+
 .dark .grad-soft {
   background: linear-gradient(135deg, oklch(0.2 0.02 340) 0%, oklch(0.2 0.02 240) 100%);
 }
@@ -167,6 +215,7 @@ a:focus-visible,
 .pulse-dot {
   position: relative;
 }
+
 .pulse-dot::before {
   content: "";
   position: absolute;
@@ -176,6 +225,7 @@ a:focus-visible,
   opacity: 0.3;
   animation: medisoft-pulse 2s infinite;
 }
+
 @keyframes medisoft-pulse {
   0%,
   100% {
@@ -195,13 +245,16 @@ a:focus-visible,
   width: 10px;
   height: 10px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-muted-foreground);
 }
@@ -214,52 +267,62 @@ a:focus-visible,
 
 /* ============================================
    Radix / cmdk animation utilities
-   (small subset of tailwindcss-animate, inlined)
    ============================================ */
 @keyframes ms-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
 @keyframes ms-fade-out {
   from { opacity: 1; }
   to { opacity: 0; }
 }
+
 @keyframes ms-zoom-in {
   from { transform: translate(-50%, -50%) scale(0.95); }
   to { transform: translate(-50%, -50%) scale(1); }
 }
+
 @keyframes ms-zoom-out {
   from { transform: translate(-50%, -50%) scale(1); }
   to { transform: translate(-50%, -50%) scale(0.95); }
 }
+
 @keyframes ms-slide-in-right {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+
 @keyframes ms-slide-out-right {
   from { transform: translateX(0); }
   to { transform: translateX(100%); }
 }
+
 @keyframes ms-slide-in-left {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
+
 @keyframes ms-slide-out-left {
   from { transform: translateX(0); }
   to { transform: translateX(-100%); }
 }
+
 @keyframes ms-slide-in-top {
   from { transform: translateY(-100%); }
   to { transform: translateY(0); }
 }
+
 @keyframes ms-slide-out-top {
   from { transform: translateY(0); }
   to { transform: translateY(-100%); }
 }
+
 @keyframes ms-slide-in-bottom {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
 @keyframes ms-slide-out-bottom {
   from { transform: translateY(0); }
   to { transform: translateY(100%); }
@@ -270,11 +333,13 @@ a:focus-visible,
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;
 }
+
 .animate-out {
   animation-duration: 150ms;
   animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
   animation-fill-mode: both;
 }
+
 .fade-in-0   { animation-name: ms-fade-in; }
 .fade-out-0  { animation-name: ms-fade-out; }
 .zoom-in-95  { animation-name: ms-zoom-in; }
@@ -288,9 +353,6 @@ a:focus-visible,
 .slide-in-from-bottom { animation-name: ms-slide-in-bottom; }
 .slide-out-to-bottom  { animation-name: ms-slide-out-bottom; }
 
-/* Dialog content uses translate(-50%, -50%) for centering — the zoom
-   animation keyframes already account for that, so no extra rules. */
-
 /* Respect user preferences */
 @media (prefers-reduced-motion: reduce) {
   .animate-in,
@@ -301,7 +363,6 @@ a:focus-visible,
 
 /* ── Print styles for Infographic Report ────────────────────── */
 @media print {
-  /* General print: hide sidebar, header, and navigation chrome */
   aside,
   header,
   nav,
@@ -329,7 +390,6 @@ a:focus-visible,
     text-shadow: none !important;
   }
 
-  /* Force color printing for status indicators */
   .infographic-report .bg-emerald-500,
   .infographic-report .bg-emerald-50 {
     print-color-adjust: exact;
@@ -348,13 +408,11 @@ a:focus-visible,
     -webkit-print-color-adjust: exact;
   }
 
-  /* Ensure gauge colors print */
   .infographic-report svg circle {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
-  /* Avoid page breaks inside cards */
   .infographic-report .rounded-xl,
   .infographic-report .rounded-2xl {
     break-inside: avoid;

@@ -53,6 +53,7 @@ import {
 import { createScan } from "@/lib/actions/scans";
 import type { VisionOutput } from "@/lib/mediscan/vision";
 import { cn } from "@/lib/utils";
+import heic2any from "heic2any";
 
 interface InitialPatient {
   id: number;
@@ -96,6 +97,7 @@ export function ScanBuilder({ initialPatient }: Props) {
 
   const [saving, setSaving] = React.useState(false);
   const [storageNotConfigured, setStorageNotConfigured] = React.useState(false);
+  const [converting, setConverting] = React.useState(false);
 
   // Cleanup preview URL on unmount / new file.
   React.useEffect(() => {
@@ -105,14 +107,50 @@ export function ScanBuilder({ initialPatient }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function pickFile(f: File | null) {
+  async function pickFile(f: File | null) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setFile(f);
-    setPreviewUrl(f ? URL.createObjectURL(f) : null);
     setAnnotations([]);
     setAnalysis(null);
     setAnalysisError(null);
     setAnalysisNotConfigured(false);
+
+    if (!f) {
+      setFile(null);
+      setPreviewUrl(null);
+      return;
+    }
+
+    // Convert HEIC/HEIF to JPEG for browser compatibility
+    const isHeic = f.type === "image/heic" || f.type === "image/heif" ||
+      f.name.toLowerCase().endsWith(".heic") || f.name.toLowerCase().endsWith(".heif");
+
+    if (isHeic) {
+      setConverting(true);
+      try {
+        const blob = await heic2any({ blob: f, toType: "image/jpeg", quality: 0.92 }) as Blob;
+        const converted = new File(
+          [blob],
+          f.name.replace(/\.heic$|\.heif$/i, ".jpg"),
+          { type: "image/jpeg" }
+        );
+        setFile(converted);
+        setPreviewUrl(URL.createObjectURL(converted));
+        toast.success("\u062a\u0645 \u062a\u062d\u0648\u064a\u0644 \u0635\u0648\u0631\u0629 HEIC \u0625\u0644\u0649 JPEG \u0628\u0646\u062c\u0627\u062d");
+      } catch (err) {
+        console.error("[scan-builder] HEIC conversion failed:", err);
+        toast.error("\u0641\u0634\u0644 \u062a\u062d\u0648\u064a\u0644 \u0635\u0648\u0631\u0629 HEIC", {
+          description: "\u064a\u0631\u062c\u0649 \u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0635\u0648\u0631\u0629 \u0625\u0644\u0649 JPEG \u0623\u0648 PNG \u0642\u0628\u0644 \u0627\u0644\u0631\u0641\u0639.",
+        });
+        setFile(null);
+        setPreviewUrl(null);
+      } finally {
+        setConverting(false);
+      }
+      return;
+    }
+
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
   }
 
   async function runAnalysis() {
@@ -289,12 +327,18 @@ export function ScanBuilder({ initialPatient }: Props) {
               Image
             </CardTitle>
             <CardDescription>
-              JPEG, PNG, or WebP. Up to 15 MB. Image stays in-browser until you
+              JPEG, PNG, WebP, or HEIC. Up to 15 MB. Image stays in-browser until you
               click Save.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!previewUrl ? (
+            {converting ? (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[color:var(--color-brand-pink)]/50 p-10 text-center">
+                <Loader2 className="size-8 animate-spin text-[color:var(--color-brand-magenta)]" />
+                <div className="text-sm font-medium">\u062c\u0627\u0631\u064d \u062a\u062d\u0648\u064a\u0644 \u0635\u0648\u0631\u0629 HEIC...</div>
+                <div className="text-xs text-[color:var(--color-muted-foreground)]">\u0642\u062f \u064a\u0633\u062a\u063a\u0631\u0642 \u0628\u0636\u0639 \u062b\u0648\u0627\u0646\u064d</div>
+              </div>
+            ) : !previewUrl ? (
               <UploadDropZone onPick={pickFile} />
             ) : (
               <>
@@ -512,7 +556,7 @@ function UploadDropZone({ onPick }: { onPick: (f: File) => void }) {
       <div>
         <div className="text-sm font-semibold">Upload an image</div>
         <div className="text-xs text-[color:var(--color-muted-foreground)]">
-          Drag & drop or click to browse. JPEG / PNG / WebP. Max 15 MB.
+          Drag & drop or click to browse. JPEG / PNG / WebP / HEIC. Max 15 MB.
         </div>
       </div>
       <input

@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
   // Strict mode catches state-related bugs in dev.
   reactStrictMode: true,
 
+
   // Trust the brand assets we copied into public/brand at the appropriate size.
   images: {
     formats: ["image/avif", "image/webp"],

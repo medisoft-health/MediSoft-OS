@@ -40,14 +40,14 @@ const AdaptiveContext = React.createContext<AdaptiveContextValue>({
   setContext: () => {},
   isDarkMode: false,
   toggleDarkMode: () => {},
-  autoNightMode: true,
+  autoNightMode: false,
   setAutoNightMode: () => {},
 });
 
 export function AdaptiveProvider({ children }: { children: React.ReactNode }) {
   const [context, setContext] = React.useState<ClinicalContext>("default");
   const [isDarkMode, setIsDarkMode] = React.useState(false);
-  const [autoNightMode, setAutoNightMode] = React.useState(true);
+  const [autoNightMode, setAutoNightMode] = React.useState(false);
   const [radiologyForced, setRadiologyForced] = React.useState(false);
   const prevDarkRef = React.useRef(false);
 
