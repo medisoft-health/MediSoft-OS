@@ -80,6 +80,13 @@ export function ScanImageViewer({
   // Track image natural dimensions for normalized coord conversion.
   const [natural, setNatural] = React.useState<{ w: number; h: number } | null>(null);
   const [imgLoaded, setImgLoaded] = React.useState(false);
+  const [imgError, setImgError] = React.useState(false);
+
+  // Reset loaded/error state when imageUrl changes (new file picked).
+  React.useEffect(() => {
+    setImgLoaded(false);
+    setImgError(false);
+  }, [imageUrl]);
 
   // Layout: container width drives canvas size; aspect ratio from image.
   const [containerW, setContainerW] = React.useState(800);
@@ -364,7 +371,7 @@ export function ScanImageViewer({
               className="absolute inset-0 z-0 flex items-center justify-center text-sm text-[color:var(--color-muted-foreground)]"
               style={{ width: displayW, height: displayH }}
             >
-              Loading image…
+              {imgError ? "Failed to load image. Try re-uploading." : "Loading image\u2026"}
             </div>
           )}
           {/*
@@ -390,6 +397,7 @@ export function ScanImageViewer({
             }}
             onError={() => {
               console.error("[scan-viewer] Image failed to load:", imageUrl?.slice(0, 80));
+              setImgError(true);
             }}
             className="relative z-0 block select-none object-contain"
             style={{ width: displayW, height: displayH, maxWidth: "100%", maxHeight: "100%" }}

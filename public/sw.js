@@ -1,9 +1,12 @@
 /**
  * MediSoft Service Worker
  * Provides offline caching and PWA functionality.
+ *
+ * IMPORTANT: blob: and data: URLs must NOT be intercepted — they are used
+ * for in-browser image previews (MediScan, MediLab, Patient Documents).
  */
 
-const CACHE_NAME = "medisoft-v1";
+const CACHE_NAME = "medisoft-v2";
 const OFFLINE_URL = "/offline.html";
 
 // Cache core static assets on install
@@ -40,8 +43,16 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET requests
   if (request.method !== "GET") return;
 
+  // Skip blob: and data: URLs — these are local browser resources
+  // (e.g. image previews from URL.createObjectURL) and MUST NOT be
+  // intercepted by the service worker.
+  if (url.protocol === "blob:" || url.protocol === "data:") return;
+
   // Skip API routes — always go to network
   if (url.pathname.startsWith("/api/")) return;
+
+  // Skip Next.js HMR / dev resources
+  if (url.pathname.startsWith("/_next/webpack-hmr")) return;
 
   // For navigation requests — network first, fallback to offline page
   if (request.mode === "navigate") {
