@@ -81,7 +81,7 @@ export default function BioAgePage() {
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 pb-24 md:pb-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/${locale}/sport/trainee`}>
+        <Link href={`/${locale}/trainee`}>
           <Button variant="ghost" size="icon" className="rounded-lg">
             <ArrowLeft className={`h-5 w-5 ${isRtl ? "rotate-180" : ""}`} />
           </Button>

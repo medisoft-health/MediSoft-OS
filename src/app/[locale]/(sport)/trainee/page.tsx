@@ -115,56 +115,56 @@ export default function TraineeDashboardPage() {
           label={t("foodLogger")}
           description={t("foodLoggerDesc")}
           color="green"
-          href={`/${locale}/sport/trainee/food`}
+          href={`/${locale}/trainee/food`}
         />
         <FeatureButton
           icon={MapPin}
           label={t("gpsTracker")}
           description={t("gpsTrackerDesc")}
           color="blue"
-          href={`/${locale}/sport/trainee/activity`}
+          href={`/${locale}/trainee/activity`}
         />
         <FeatureButton
           icon={Heart}
           label={t("bioAge")}
           description={t("bioAgeDesc")}
           color="rose"
-          href={`/${locale}/sport/trainee/bio-age`}
+          href={`/${locale}/trainee/bio-age`}
         />
         <FeatureButton
           icon={BookOpen}
           label={t("microLessons")}
           description={t("microLessonsDesc")}
           color="purple"
-          href={`/${locale}/sport/trainee/lessons`}
+          href={`/${locale}/trainee/lessons`}
         />
         <FeatureButton
           icon={Users}
           label={t("community")}
           description={t("communityDesc")}
           color="green"
-          href={`/${locale}/sport/trainee/community`}
+          href={`/${locale}/trainee/community`}
         />
         <FeatureButton
           icon={Scale}
           label={t("bodyComposition")}
           description={t("bodyCompositionDesc")}
           color="blue"
-          href={`/${locale}/sport/trainee/body`}
+          href={`/${locale}/trainee/body`}
         />
         <FeatureButton
           icon={FlaskConical}
           label={t("labResults")}
           description={t("labResultsDesc")}
           color="green"
-          href={`/${locale}/sport/trainee/labs`}
+          href={`/${locale}/trainee/labs`}
         />
         <FeatureButton
           icon={ShieldCheck}
           label={t("findCoach")}
           description={t("findCoachDesc")}
           color="blue"
-          href={`/${locale}/sport/trainee/coaches`}
+          href={`/${locale}/trainee/coaches`}
         />
       </div>
 
@@ -176,7 +176,7 @@ export default function TraineeDashboardPage() {
               <Scale className="h-4 w-4 text-blue-500" />
               {t("bodyComposition")}
             </span>
-            <Link href={`/${locale}/sport/trainee/body`} className="text-xs font-normal text-emerald-600 hover:underline">
+            <Link href={`/${locale}/trainee/body`} className="text-xs font-normal text-emerald-600 hover:underline">
               {t("viewHistory")}
             </Link>
           </CardTitle>

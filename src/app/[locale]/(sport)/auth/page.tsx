@@ -77,7 +77,7 @@ export default function SportAuthPage() {
             email,
             password,
             // Store role in metadata for MediSport
-            callbackURL: `/${locale}/sport/${role}`,
+            callbackURL: `/${locale}/${role}`,
           }),
         });
 
@@ -89,7 +89,7 @@ export default function SportAuthPage() {
         toast.success(t("registerSuccess"));
         // Store sport role in localStorage
         localStorage.setItem("medisport-role", role);
-        router.push(`/${locale}/sport/onboarding?role=${role}`);
+        router.push(`/${locale}/onboarding?role=${role}`);
       } else {
         // Login via Better-Auth
         const res = await fetch("/api/auth/sign-in/email", {
@@ -98,7 +98,7 @@ export default function SportAuthPage() {
           body: JSON.stringify({
             email,
             password,
-            callbackURL: `/${locale}/sport/trainee`,
+            callbackURL: `/${locale}/trainee`,
           }),
         });
 
@@ -109,7 +109,7 @@ export default function SportAuthPage() {
 
         toast.success(t("loginSuccess"));
         const savedRole = localStorage.getItem("medisport-role") || "trainee";
-        router.push(`/${locale}/sport/${savedRole}`);
+        router.push(`/${locale}/${savedRole}`);
       }
     } catch (err: any) {
       toast.error(err.message || t("authError"));

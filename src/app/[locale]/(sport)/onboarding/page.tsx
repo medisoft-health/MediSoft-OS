@@ -100,7 +100,7 @@ export default function SportOnboardingPage() {
 
       // Redirect after a short delay
       setTimeout(() => {
-        router.push(`/${locale}/sport/${role}`);
+        router.push(`/${locale}/${role}`);
       }, 2000);
     } catch (err) {
       toast.error(t("authError"));

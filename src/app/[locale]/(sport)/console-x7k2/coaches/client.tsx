@@ -16,7 +16,7 @@ export function AdminCoachesClient({ locale }: { locale: "ar" | "en" }) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <div className="mb-6 flex items-center gap-3">
-        <Link href={`/${locale}/sport/coach`}>
+        <Link href={`/${locale}/coach`}>
           <Button variant="ghost" size="icon" className="rounded-full">
             <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
           </Button>

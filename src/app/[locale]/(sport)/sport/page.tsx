@@ -55,13 +55,13 @@ export default function SportLandingPage() {
           </p>
 
           <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href={`/${locale}/sport/auth?mode=register&role=trainee`}>
+            <Link href={`/${locale}/auth?mode=register&role=trainee`}>
               <Button size="lg" className="ms-glide ms-grad-brand text-white shadow-lg shadow-[var(--color-sport-500)]/30 rounded-xl px-8 hover:brightness-105">
                 <Activity className="h-5 w-5 me-2" />
                 {t("joinAsTrainee")}
               </Button>
             </Link>
-            <Link href={`/${locale}/sport/auth?mode=register&role=coach`}>
+            <Link href={`/${locale}/auth?mode=register&role=coach`}>
               <Button size="lg" variant="outline" className="ms-glide rounded-xl px-8 border-white/25 bg-white/5 text-white hover:bg-white/10">
                 <Users className="h-5 w-5 me-2" />
                 {t("joinAsCoach")}
@@ -71,7 +71,7 @@ export default function SportLandingPage() {
 
           <p className="mt-5 text-sm text-slate-400">
             {t("alreadyHaveAccount")}{" "}
-            <Link href={`/${locale}/sport/auth`} className="font-semibold text-[var(--color-sport-400)] hover:underline">
+            <Link href={`/${locale}/auth`} className="font-semibold text-[var(--color-sport-400)] hover:underline">
               {t("loginHere")}
             </Link>
           </p>
@@ -171,7 +171,7 @@ export default function SportLandingPage() {
                     {t("traineeFeature4")}
                   </li>
                 </ul>
-                <Link href={`/${locale}/sport/auth?mode=register&role=trainee`}>
+                <Link href={`/${locale}/auth?mode=register&role=trainee`}>
                   <Button className="ms-glide w-full bg-[var(--color-sport-600)] hover:bg-[var(--color-sport-700)] text-white rounded-lg">
                     {t("startAsTrainee")}
                     <ArrowRight className={`h-4 w-4 ms-2 ${isRtl ? "rotate-180" : ""}`} />
@@ -207,7 +207,7 @@ export default function SportLandingPage() {
                     {t("coachFeature4")}
                   </li>
                 </ul>
-                <Link href={`/${locale}/sport/auth?mode=register&role=coach`}>
+                <Link href={`/${locale}/auth?mode=register&role=coach`}>
                   <Button className="ms-glide w-full bg-[var(--color-coach-500)] hover:bg-[var(--color-coach-600)] text-white rounded-lg">
                     {t("startAsCoach")}
                     <ArrowRight className={`h-4 w-4 ms-2 ${isRtl ? "rotate-180" : ""}`} />

@@ -201,7 +201,7 @@ async function applyCoachDecision(opts: {
           score: scored?.total ?? null,
           tier: scored?.tier ?? null,
           note,
-          ctaUrl: `${base}/ar/sport/coach`,
+          ctaUrl: `${base}/ar/coach`,
         })
       );
     }
