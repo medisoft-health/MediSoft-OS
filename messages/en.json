@@ -2376,7 +2376,15 @@
     "active": "Active",
     "remove": "Remove",
     "yourCoach": "Your Coach",
-    "coach": "Coach"
+    "coach": "Coach",
+    "progress": "Progress",
+    "noProgress": "No data yet.",
+    "weight": "Weight (kg)",
+    "bodyFat": "Body fat",
+    "bioAge": "Bio-age",
+    "activities7d": "Activities (7d)",
+    "meals7d": "Meals (7d)",
+    "noLab": "No lab reports yet."
   },
   "SportBody": {
     "title": "Body Composition",
@@ -2392,5 +2400,30 @@
     "muscleMassKg": "Muscle (kg)",
     "waterPct": "Water (%)",
     "waistCm": "Waist (cm)"
+  },
+  "SportLab": {
+    "title": "Lab Results History",
+    "addReport": "Add Report",
+    "reportTitle": "Report title",
+    "date": "Date",
+    "seasonPhase": "Season phase",
+    "phase_pre_season": "Pre-season",
+    "phase_in_season": "In-season",
+    "phase_off_season": "Off-season",
+    "phase_recovery": "Recovery",
+    "value": "Value",
+    "save": "Save report",
+    "compareTitle": "Comparison: first vs latest report",
+    "marker": "Biomarker",
+    "first": "First",
+    "latest": "Latest",
+    "change": "Change",
+    "range": "Athlete range",
+    "inRange": "In range",
+    "outOfRange": "Out of range",
+    "needTwo": "Add at least two reports to compare.",
+    "history": "Reports History",
+    "empty": "No lab reports yet.",
+    "markersCount": "markers"
   }
 }

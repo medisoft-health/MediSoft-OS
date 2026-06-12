@@ -2098,3 +2098,38 @@ export const sportBodyMeasurements = pgTable(
     index("sport_body_user_date_idx").on(t.userId, t.measuredAt),
   ]
 );
+
+
+/**
+ * MediSport — athlete lab results (Phase 6).
+ * One row per lab report; markers stored as JSONB for flexible biomarker sets,
+ * enabling historical comparison of athlete biomarkers over time.
+ */
+export type SportLabMarker = {
+  name: string;
+  category: string;
+  value: number;
+  unit: string;
+  athleteMin?: number;
+  athleteMax?: number;
+};
+
+export const sportLabResults = pgTable(
+  "sport_lab_results",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    reportDate: date("report_date").notNull().defaultNow(),
+    seasonPhase: text("season_phase"),
+    markers: jsonb("markers").$type<SportLabMarker[]>().notNull().default([]),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_lab_user_idx").on(t.userId),
+    index("sport_lab_user_date_idx").on(t.userId, t.reportDate),
+  ]
+);

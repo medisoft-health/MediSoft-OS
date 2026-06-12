@@ -162,6 +162,13 @@ export default function TraineeDashboardPage() {
           color="blue"
           href={`/${locale}/sport/trainee/body`}
         />
+        <FeatureButton
+          icon={FlaskConical}
+          label={t("labResults")}
+          description={t("labResultsDesc")}
+          color="green"
+          href={`/${locale}/sport/trainee/labs`}
+        />
       </div>
 
       {/* Body Composition Tracker (snapshot — full history at /trainee/body) */}

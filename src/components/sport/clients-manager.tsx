@@ -8,7 +8,19 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Loader2, Mail, Trash2, UserPlus, Users } from "lucide-react";
+import {
+  Activity as ActivityIcon,
+  Apple,
+  ChevronDown,
+  FlaskConical,
+  Loader2,
+  Mail,
+  Scale,
+  Timer,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +34,67 @@ type Client = {
   status: string;
 };
 
+type ClientProgress = {
+  latestBody: { weightKg: string | null; bodyFatPct: string | null; muscleMassKg: string | null; measuredAt: string } | null;
+  latestBioAge: { biologicalAge: string; ageDelta: string } | null;
+  activities7d: number;
+  foodLogs7d: number;
+  latestLab: { title: string; reportDate: string } | null;
+};
+
+function ClientProgressPanel({ traineeId }: { traineeId: string }) {
+  const t = useTranslations("SportClients");
+  const [data, setData] = React.useState<ClientProgress | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/sport?action=client-progress&traineeId=${traineeId}`);
+        const json = await res.json();
+        if (json.success) setData(json.data);
+      } catch {
+        /* ignore */
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [traineeId]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-4 text-slate-400">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </div>
+    );
+  }
+  if (!data) return <p className="py-3 text-center text-xs text-slate-400">{t("noProgress")}</p>;
+
+  const stat = (icon: React.ReactNode, label: string, value: string) => (
+    <div className="rounded-lg border border-slate-100 bg-white p-2 text-center">
+      <div className="mx-auto mb-1 flex h-6 w-6 items-center justify-center text-emerald-600">{icon}</div>
+      <p className="text-[10px] text-slate-400">{label}</p>
+      <p className="text-sm font-bold text-slate-800">{value}</p>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-3 gap-2 pt-1 sm:grid-cols-5">
+      {stat(<Scale className="h-4 w-4" />, t("weight"), data.latestBody?.weightKg ? `${data.latestBody.weightKg}` : "—")}
+      {stat(<Scale className="h-4 w-4" />, t("bodyFat"), data.latestBody?.bodyFatPct ? `${data.latestBody.bodyFatPct}%` : "—")}
+      {stat(<Timer className="h-4 w-4" />, t("bioAge"), data.latestBioAge?.biologicalAge ? `${data.latestBioAge.biologicalAge}` : "—")}
+      {stat(<ActivityIcon className="h-4 w-4" />, t("activities7d"), String(data.activities7d))}
+      {stat(<Apple className="h-4 w-4" />, t("meals7d"), String(data.foodLogs7d))}
+      <div className="col-span-3 rounded-lg border border-slate-100 bg-white p-2 sm:col-span-5">
+        <p className="flex items-center gap-1 text-[11px] text-slate-500">
+          <FlaskConical className="h-3.5 w-3.5 text-emerald-600" />
+          {data.latestLab ? `${data.latestLab.title} · ${new Date(data.latestLab.reportDate).toLocaleDateString()}` : t("noLab")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function ClientsManager() {
   const t = useTranslations("SportClients");
   const [clients, setClients] = React.useState<Client[]>([]);
@@ -29,6 +102,7 @@ export function ClientsManager() {
   const [email, setEmail] = React.useState("");
   const [adding, setAdding] = React.useState(false);
   const [msg, setMsg] = React.useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [expanded, setExpanded] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -133,23 +207,36 @@ export function ClientsManager() {
             {clients.map((c) => (
               <div
                 key={c.linkId}
-                className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3"
+                className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-bold text-white">
-                  {(c.traineeName || "?").charAt(0)}
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-bold text-white">
+                    {(c.traineeName || "?").charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{c.traineeName || t("athlete")}</p>
+                    <p className="truncate text-xs text-slate-400">{c.traineeEmail}</p>
+                  </div>
+                  <button
+                    onClick={() => setExpanded((p) => (p === c.traineeId ? null : c.traineeId))}
+                    className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700 transition hover:bg-emerald-100"
+                  >
+                    {t("progress")}
+                    <ChevronDown className={`h-3.5 w-3.5 transition ${expanded === c.traineeId ? "rotate-180" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => removeClient(c.traineeId)}
+                    className="text-slate-300 transition hover:text-rose-500"
+                    aria-label={t("remove")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-900">{c.traineeName || t("athlete")}</p>
-                  <p className="truncate text-xs text-slate-400">{c.traineeEmail}</p>
-                </div>
-                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700">{t("active")}</Badge>
-                <button
-                  onClick={() => removeClient(c.traineeId)}
-                  className="text-slate-300 transition hover:text-rose-500"
-                  aria-label={t("remove")}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {expanded === c.traineeId && (
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <ClientProgressPanel traineeId={c.traineeId} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

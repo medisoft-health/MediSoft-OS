@@ -9,6 +9,7 @@ import {
   sportCoachClients,
   sportProfiles,
   sportBodyMeasurements,
+  sportLabResults,
   users,
 } from "@/db/schema";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
@@ -202,6 +203,72 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: rows });
       }
 
+      // --- Coach views ONE trainee's real progress snapshot (Phase 6) ---
+      case "client-progress": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const traineeId = searchParams.get("traineeId") || "";
+        if (!traineeId) {
+          return NextResponse.json({ success: false, error: "Missing traineeId" }, { status: 400 });
+        }
+        // Authorization: ensure this coach is actively linked to the trainee.
+        const [link] = await db
+          .select({ id: sportCoachClients.id })
+          .from(sportCoachClients)
+          .where(
+            and(
+              eq(sportCoachClients.coachId, auth.user.id),
+              eq(sportCoachClients.traineeId, traineeId),
+              eq(sportCoachClients.status, "active")
+            )
+          )
+          .limit(1);
+        if (!link) {
+          return NextResponse.json({ success: false, error: "not_linked" }, { status: 403 });
+        }
+        // Latest body measurement
+        const [body0] = await db
+          .select()
+          .from(sportBodyMeasurements)
+          .where(eq(sportBodyMeasurements.userId, traineeId))
+          .orderBy(desc(sportBodyMeasurements.measuredAt))
+          .limit(1);
+        // Latest bio-age record
+        const [bio0] = await db
+          .select()
+          .from(sportBioAgeRecords)
+          .where(eq(sportBioAgeRecords.userId, traineeId))
+          .orderBy(desc(sportBioAgeRecords.createdAt))
+          .limit(1);
+        // Activity + food counts (last 7 days)
+        const sinceDate = new Date(Date.now() - 7 * 86400000);
+        const sinceStr = sinceDate.toISOString().slice(0, 10);
+        const activities = await db
+          .select({ id: sportActivities.id })
+          .from(sportActivities)
+          .where(and(eq(sportActivities.userId, traineeId), gte(sportActivities.startedAt, sinceDate)));
+        const foods = await db
+          .select({ id: sportFoodLogs.id })
+          .from(sportFoodLogs)
+          .where(and(eq(sportFoodLogs.userId, traineeId), gte(sportFoodLogs.logDate, sinceStr)));
+        const [lastLab] = await db
+          .select({ id: sportLabResults.id, title: sportLabResults.title, reportDate: sportLabResults.reportDate })
+          .from(sportLabResults)
+          .where(eq(sportLabResults.userId, traineeId))
+          .orderBy(desc(sportLabResults.reportDate))
+          .limit(1);
+        return NextResponse.json({
+          success: true,
+          data: {
+            latestBody: body0 || null,
+            latestBioAge: bio0 || null,
+            activities7d: activities.length,
+            foodLogs7d: foods.length,
+            latestLab: lastLab || null,
+          },
+        });
+      }
+
       // --- Body composition history + first/last comparison ---
       case "my-body-measurements": {
         const auth = await requireSessionApi();
@@ -230,6 +297,45 @@ export async function GET(request: NextRequest) {
             muscleMassKg: delta(first.muscleMassKg, last.muscleMassKg),
             waistCm: delta(first.waistCm, last.waistCm),
           };
+        }
+        return NextResponse.json({ success: true, data: rows, comparison });
+      }
+
+      // --- Athlete lab results history + comparison (Phase 6) ---
+      case "my-lab-results": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const rows = await db
+          .select()
+          .from(sportLabResults)
+          .where(eq(sportLabResults.userId, auth.user.id))
+          .orderBy(sportLabResults.reportDate);
+
+        // Build per-marker comparison between the first and latest report.
+        type Marker = { name: string; category: string; value: number; unit: string; athleteMin?: number; athleteMax?: number };
+        let comparison: Array<{ name: string; category: string; unit: string; from: number; to: number; delta: number; inRange: boolean | null }> | null = null;
+        if (rows.length >= 2) {
+          const first = rows[0].markers as Marker[];
+          const last = rows[rows.length - 1].markers as Marker[];
+          const lastByName = new Map(last.map((m) => [m.name, m]));
+          comparison = first
+            .filter((m) => lastByName.has(m.name))
+            .map((m) => {
+              const l = lastByName.get(m.name)!;
+              const inRange =
+                l.athleteMin !== undefined && l.athleteMax !== undefined
+                  ? l.value >= l.athleteMin && l.value <= l.athleteMax
+                  : null;
+              return {
+                name: m.name,
+                category: m.category,
+                unit: m.unit,
+                from: m.value,
+                to: l.value,
+                delta: Math.round((l.value - m.value) * 100) / 100,
+                inRange,
+              };
+            });
         }
         return NextResponse.json({ success: true, data: rows, comparison });
       }
@@ -264,7 +370,7 @@ export async function GET(request: NextRequest) {
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results",
           },
           { status: 400 }
         );
@@ -560,6 +666,30 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // --- Save an athlete lab report (Phase 6) ---
+      case "lab-result": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const r = body.report || body;
+        const title = String(r.title || "").trim();
+        if (!title) {
+          return NextResponse.json({ success: false, error: "Missing report title" }, { status: 400 });
+        }
+        const markers = Array.isArray(r.markers) ? r.markers : [];
+        const [saved] = await db
+          .insert(sportLabResults)
+          .values({
+            userId: auth.user.id,
+            title,
+            reportDate: r.reportDate ? String(r.reportDate) : todayStr(),
+            seasonPhase: r.seasonPhase ? String(r.seasonPhase) : null,
+            markers,
+            note: r.note ? String(r.note) : null,
+          })
+          .returning({ id: sportLabResults.id });
+        return NextResponse.json({ success: true, data: { id: saved?.id }, persisted: true });
+      }
+
       // --- Coach ends a trainee relationship ---
       case "coach-remove-client": {
         const auth = await requireSessionApi();
@@ -585,7 +715,7 @@ export async function POST(request: NextRequest) {
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result",
           },
           { status: 400 }
         );

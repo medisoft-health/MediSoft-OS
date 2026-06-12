@@ -35,6 +35,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LabResultsHistory } from "@/components/sport/lab-results-history";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -287,9 +288,10 @@ export function LabComparison({ sport = "football" }: { sport?: string }) {
         {/* Tabs */}
         {reports.length > 0 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="reports" className="text-[11px]">التقارير</TabsTrigger>
               <TabsTrigger value="compare" className="text-[11px]">مقارنة</TabsTrigger>
+              <TabsTrigger value="saved" className="text-[11px]">السجل المحفوظ</TabsTrigger>
             </TabsList>
 
             {/* Reports List Tab */}
@@ -379,6 +381,11 @@ export function LabComparison({ sport = "football" }: { sport?: string }) {
                   أضف تقريرين على الأقل لإجراء المقارنة
                 </div>
               )}
+            </TabsContent>
+
+            {/* DB-backed saved history (Phase 6) — mirrored with standalone */}
+            <TabsContent value="saved" className="mt-3">
+              <LabResultsHistory />
             </TabsContent>
           </Tabs>
         )}
