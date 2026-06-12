@@ -28,6 +28,8 @@ import {
   getMarkerDef,
   SEASON_PHASES,
 } from "@/lib/sport/lab-markers";
+import { TrendChart, type TrendPoint } from "@/components/sport/trend-chart";
+import { TrendingUp } from "lucide-react";
 
 type SavedMarker = {
   name: string;
@@ -138,6 +140,32 @@ export function LabResultsHistory() {
       setSaving(false);
     }
   };
+
+  // Per-marker trend across all saved reports (chronological).
+  const [chartMarker, setChartMarker] = React.useState<string>("");
+  const markersAvailable = React.useMemo(() => {
+    const set = new Set<string>();
+    reports.forEach((r) => r.markers.forEach((m) => set.add(m.name)));
+    return Array.from(set);
+  }, [reports]);
+  React.useEffect(() => {
+    if (!chartMarker && markersAvailable.length > 0) setChartMarker(markersAvailable[0]);
+  }, [markersAvailable, chartMarker]);
+  const chartData: TrendPoint[] = React.useMemo(() => {
+    if (!chartMarker) return [];
+    return [...reports]
+      .sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime())
+      .map((r) => {
+        const mk = r.markers.find((m) => m.name === chartMarker);
+        return {
+          label: new Date(r.reportDate).toLocaleDateString(locale === "ar" ? "ar" : "en", {
+            month: "short",
+            day: "numeric",
+          }),
+          value: mk ? mk.value : null,
+        };
+      });
+  }, [reports, chartMarker, locale]);
 
   const catName = (id: string) => {
     const c = LAB_MARKER_CATEGORIES.find((x) => x.id === id);
@@ -291,6 +319,35 @@ export function LabResultsHistory() {
           )}
         </CardContent>
       </Card>
+
+      {/* Per-marker trend chart */}
+      {markersAvailable.length > 0 && chartData.filter((d) => d.value != null).length >= 2 && (
+        <Card className="border-slate-100">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-600">
+              <TrendingUp className="h-4 w-4 text-emerald-600" /> {t("trends")}
+            </CardTitle>
+            <select
+              value={chartMarker}
+              onChange={(e) => setChartMarker(e.target.value)}
+              className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
+            >
+              {markersAvailable.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </CardHeader>
+          <CardContent>
+            <TrendChart
+              data={chartData}
+              series={[{ key: "value", label: chartMarker, color: "#059669" }]}
+              rtl={locale === "ar"}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Report history list */}
       <Card className="border-slate-100">

@@ -10,6 +10,7 @@ import {
   sportProfiles,
   sportBodyMeasurements,
   sportLabResults,
+  sportNotifications,
   users,
 } from "@/db/schema";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
@@ -365,12 +366,30 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: rows[0] || null });
       }
 
+      // --- Coach notifications feed ---
+      case "my-notifications": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const onlyUnread = searchParams.get("unread") === "1";
+        const where = onlyUnread
+          ? and(eq(sportNotifications.userId, auth.user.id), eq(sportNotifications.isRead, false))
+          : eq(sportNotifications.userId, auth.user.id);
+        const rows = await db
+          .select()
+          .from(sportNotifications)
+          .where(where)
+          .orderBy(desc(sportNotifications.createdAt))
+          .limit(50);
+        const unreadCount = rows.filter((r) => !r.isRead).length;
+        return NextResponse.json({ success: true, data: rows, unreadCount });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications",
           },
           { status: 400 }
         );
@@ -378,6 +397,43 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[MediSport API] GET error:", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
+ * Create a notification for the active coach of a trainee, if any.
+ * Looks up the trainee's coach via sport_coach_clients and inserts a row.
+ * Best-effort: never throws into the request flow.
+ */
+async function notifyCoach(
+  traineeId: string,
+  type: string,
+  title: string,
+  bodyText: string,
+  link: string
+) {
+  try {
+    const link_ = await db
+      .select({ coachId: sportCoachClients.coachId })
+      .from(sportCoachClients)
+      .where(
+        and(
+          eq(sportCoachClients.traineeId, traineeId),
+          eq(sportCoachClients.status, "active")
+        )
+      )
+      .limit(1);
+    if (!link_[0]?.coachId) return;
+    await db.insert(sportNotifications).values({
+      userId: link_[0].coachId,
+      actorId: traineeId,
+      type,
+      title,
+      body: bodyText,
+      link,
+    });
+  } catch (e) {
+    console.error("[MediSport API] notifyCoach failed:", e);
   }
 }
 
@@ -619,6 +675,13 @@ export async function POST(request: NextRequest) {
             note: m.note ? String(m.note) : null,
           })
           .returning({ id: sportBodyMeasurements.id });
+        await notifyCoach(
+          auth.user.id,
+          "body-measurement",
+          auth.user.name || "Trainee",
+          m.weightKg ? `Weight: ${m.weightKg} kg` : "New body measurement logged",
+          "/coach"
+        );
         return NextResponse.json({ success: true, data: { id: saved?.id }, persisted: true });
       }
 
@@ -687,6 +750,13 @@ export async function POST(request: NextRequest) {
             note: r.note ? String(r.note) : null,
           })
           .returning({ id: sportLabResults.id });
+        await notifyCoach(
+          auth.user.id,
+          "lab-result",
+          auth.user.name || "Trainee",
+          `New lab report: ${title}`,
+          "/coach"
+        );
         return NextResponse.json({ success: true, data: { id: saved?.id }, persisted: true });
       }
 
@@ -710,12 +780,31 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      // --- Coach marks notification(s) read ---
+      case "mark-notifications-read": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const id = body.id ? String(body.id) : null;
+        if (id) {
+          await db
+            .update(sportNotifications)
+            .set({ isRead: true })
+            .where(and(eq(sportNotifications.id, id), eq(sportNotifications.userId, auth.user.id)));
+        } else {
+          await db
+            .update(sportNotifications)
+            .set({ isRead: true })
+            .where(eq(sportNotifications.userId, auth.user.id));
+        }
+        return NextResponse.json({ success: true });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read",
           },
           { status: 400 }
         );

@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   BarChart3,
-  Bell,
   Calendar,
   ChevronDown,
   ClipboardList,
@@ -34,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ClientsManager } from "@/components/sport/clients-manager";
+import { CoachNotificationBell } from "@/components/sport/coach-notification-bell";
 
 /**
  * MediSport Standalone — Coach Dashboard
@@ -98,11 +98,7 @@ export default function CoachDashboardPage() {
           <p className="text-sm text-slate-500 mt-1">{t("coachDashboardDesc")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="rounded-lg">
-            <Bell className="h-4 w-4 me-1.5" />
-            <span className="hidden sm:inline">{t("notifications")}</span>
-            <Badge className="ms-1.5 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] p-0 flex items-center justify-center">3</Badge>
-          </Button>
+          <CoachNotificationBell locale={locale as "ar" | "en"} />
           <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
             <UserPlus className="h-4 w-4 me-1.5" />
             {t("addClient")}

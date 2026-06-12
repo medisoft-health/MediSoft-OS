@@ -24,8 +24,8 @@ export const metadata: Metadata = {
     title: "MediSport",
   },
   icons: {
-    icon: "/images/medi360-icon.png",
-    apple: "/images/medi360-icon.png",
+    icon: "/images/medisport-icon-192.png",
+    apple: "/images/medisport-apple-touch.png",
   },
 };
 

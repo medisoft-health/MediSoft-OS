@@ -2133,3 +2133,23 @@ export const sportLabResults = pgTable(
     index("sport_lab_user_date_idx").on(t.userId, t.reportDate),
   ]
 );
+
+
+// MediSport Phase 7 — coach notifications when a linked trainee logs new data
+export const sportNotifications = pgTable(
+  "sport_notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    link: text("link"),
+    isRead: boolean("is_read").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_sport_notifications_user").on(t.userId, t.isRead, t.createdAt)]
+);

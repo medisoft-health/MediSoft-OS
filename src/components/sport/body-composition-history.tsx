@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TrendChart, type TrendPoint, type TrendSeries } from "@/components/sport/trend-chart";
 
 type Measurement = {
   id: string;
@@ -99,6 +100,29 @@ export function BodyCompositionHistory() {
     }
   };
 
+  // Build chart data (chronological) for weight / body fat / muscle trends.
+  const chartData: TrendPoint[] = React.useMemo(
+    () =>
+      rows.map((r) => ({
+        label: new Date(r.measuredAt).toLocaleDateString(locale === "ar" ? "ar" : "en", {
+          month: "short",
+          day: "numeric",
+        }),
+        weightKg: r.weightKg != null ? Number(r.weightKg) : null,
+        bodyFatPct: r.bodyFatPct != null ? Number(r.bodyFatPct) : null,
+        muscleMassKg: r.muscleMassKg != null ? Number(r.muscleMassKg) : null,
+      })),
+    [rows, locale],
+  );
+  const chartSeries: TrendSeries[] = React.useMemo(
+    () => [
+      { key: "weightKg", label: t("weightKg"), color: "#059669" },
+      { key: "bodyFatPct", label: t("bodyFatPct"), color: "#ec4899" },
+      { key: "muscleMassKg", label: t("muscleMassKg"), color: "#6366f1" },
+    ],
+    [t],
+  );
+
   // For body fat & waist, a decrease is "good" (green); for muscle/weight context-dependent.
   const trendColor = (key: string, delta: number) => {
     const lowerIsBetter = key === "bodyFatPct" || key === "waistCm";
@@ -169,6 +193,20 @@ export function BodyCompositionHistory() {
           )}
         </CardContent>
       </Card>
+
+      {/* Trend chart */}
+      {chartData.length >= 2 && (
+        <Card className="border-slate-100">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-600">
+              <TrendingUp className="h-4 w-4 text-emerald-600" /> {t("trends")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TrendChart data={chartData} series={chartSeries} rtl={locale === "ar"} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* History table */}
       <Card className="border-slate-100">
