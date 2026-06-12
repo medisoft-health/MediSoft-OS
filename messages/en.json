@@ -2401,7 +2401,8 @@
     "bodyFatPct": "Body Fat (%)",
     "muscleMassKg": "Muscle (kg)",
     "waterPct": "Water (%)",
-    "waistCm": "Waist (cm)"
+    "waistCm": "Waist (cm)",
+    "trends": "Trends Over Time"
   },
   "SportLab": {
     "title": "Lab Results History",
@@ -2426,6 +2427,8 @@
     "needTwo": "Add at least two reports to compare.",
     "history": "Reports History",
     "empty": "No lab reports yet.",
-    "markersCount": "markers"
+    "markersCount": "markers",
+    "subtitle": "Your full record of lab results and comparison over time",
+    "trends": "Trends Over Time"
   }
 }

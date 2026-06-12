@@ -12,11 +12,22 @@ import { eq } from "drizzle-orm";
 // POST /api/twilio/status — Twilio sends status updates here
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const messageSid = formData.get("MessageSid") as string;
-    const messageStatus = formData.get("MessageStatus") as string; // queued, sent, delivered, read, failed, undelivered
-    const errorCode = formData.get("ErrorCode") as string;
-    const errorMessage = formData.get("ErrorMessage") as string;
+    // Twilio sends application/x-www-form-urlencoded. Parse defensively so a
+    // malformed/unexpected body never returns 5xx (which would make Twilio retry).
+    let messageSid = "";
+    let messageStatus = "";
+    let errorCode = "";
+    let errorMessage = "";
+    try {
+      const formData = await req.formData();
+      messageSid = (formData.get("MessageSid") as string) || "";
+      messageStatus = (formData.get("MessageStatus") as string) || "";
+      errorCode = (formData.get("ErrorCode") as string) || "";
+      errorMessage = (formData.get("ErrorMessage") as string) || "";
+    } catch {
+      // Non-form body (e.g. health probe / unexpected content-type) — acknowledge and exit.
+      return new NextResponse("OK", { status: 200 });
+    }
 
     console.log(`[Twilio Status] SID: ${messageSid}, Status: ${messageStatus}`);
 
@@ -28,7 +39,8 @@ export async function POST(req: NextRequest) {
     return new NextResponse("OK", { status: 200 });
   } catch (error: any) {
     console.error("Twilio status callback error:", error);
-    return new NextResponse("Error", { status: 500 });
+    // Webhooks should not return 5xx for transient parse issues; acknowledge.
+    return new NextResponse("OK", { status: 200 });
   }
 }
 
