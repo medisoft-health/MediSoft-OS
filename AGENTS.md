@@ -19,6 +19,15 @@ MediSport is mirrored across the standalone `(sport)` route group and the integr
   live `CoachNotificationBell`, and shared `AthleteProgressPdf` export (jsPDF + html2canvas) on the trainee
   body & labs pages. API additions: `my-notifications` (GET), `mark-notifications-read` (POST), and a
   `notifyCoach()` helper that auto-fires on body-measurement and lab-result saves.
+- **Phase 8** (405662b): Coach Verification & Rating System. Migration `scripts/0008_coach_verification.sql` (**applied to Cloud SQL**) expanded `sport_profiles` (education, experience, verification + scoring columns) and added 3 tables: `sport_coach_certifications`, `sport_coach_reviews` (column is `stars`, not `rating`), `sport_coach_requests` (mutual trainee↔coach linking with `initiator` + `status`).
+  - **Scoring engine** `src/lib/sport/coach-scoring.ts` — 100-point rubric: education(20) + certs(25) + experience(15) + profile(10) + admin_discretionary(15) + performance(15); `RECOGNIZED_ISSUERS` catalog (NASM/ISSA/ACE/ACSM/REPs + Gulf/local); tier thresholds bronze/silver/gold/elite. New coaches cap at 85 until performance accrues. 17 unit tests (`src/lib/sport/__tests__/coach-scoring.test.ts`).
+  - **14 new `/api/sport` actions** — GET: `my-coach-profile`, `admin-verification-queue`, `coach-directory` (public), `coach-public-profile`, `my-coach-requests`, `my-trainee-requests`; POST: `coach-profile-save`, `coach-cert-add`, `coach-cert-remove`, `coach-submit-verification`, `admin-verify-decision`, `request-coach`, `respond-coach-request`, `coach-review`.
+  - **Coach document upload** — `src/lib/storage/coach-docs.ts` (GCS + local fallback), `/api/sport/upload` (POST), `/api/sport/coach-doc` (token-based serving).
+  - **4 shared components** — `coach-verification-form.tsx`, `admin-coach-verification.tsx`, `coach-directory.tsx`, `coach-requests-panel.tsx` (all in `src/components/sport/`, mirrored to both surfaces).
+  - **2 new pages** — `(sport)/admin/coaches/page.tsx` (admin console, admin role only), `(sport)/trainee/coaches/page.tsx` (coach directory). Updated: coach dashboard (verification tab + requests panel), trainee dashboard (Find Coach button), `sport-layout-shell.tsx` (conditional admin link).
+  - **i18n** — `findCoach`/`findCoachDesc` in `SportStandalone` (AR + EN).
+  - **Verified** — 178 routes, 0 TS errors, 388/388 unit tests; live HTTPS routes 200, auth-gated APIs 401, public `coach-directory` 200; full E2E DB lifecycle (create→approve→directory→request→accept→link→review→cleanup) passed.
+  - **Admin role**: set a user's `role` to `admin` in `users` table to expose the admin console (`/ar/admin/coaches`). New coaches require admin approval via `admin-verify-decision` before appearing in the public directory.
 
 ### System notes
 - DB: PostgreSQL on Google Cloud SQL; apply new `sport_*` migrations from `scripts/000N_*.sql` via `psql "$DATABASE_URL"`.
