@@ -2104,7 +2104,9 @@
     "social": "Community",
     "newPosts": "New posts",
     "wadaCheck": "WADA Check",
-    "wadaCheckDesc": "Verify supplement compliance"
+    "wadaCheckDesc": "Verify supplement compliance",
+    "community": "Community",
+    "communityDesc": "Challenges & feed"
   },
   "SportFood": {
     "title": "Food Logger",
@@ -2345,5 +2347,18 @@
     "cat_medicalHistory_desc": "Conditions, allergies, medications",
     "cat_clinicalNotes": "Clinical Notes",
     "cat_clinicalNotes_desc": "Physician notes and recommendations"
+  },
+  "SportCommunity": {
+    "title": "Community",
+    "subtitle": "Share your progress and join challenges",
+    "tabFeed": "Feed",
+    "tabChallenges": "Challenges",
+    "composerPlaceholder": "Share an update with the community...",
+    "loading": "Loading...",
+    "emptyFeed": "No posts yet. Be the first to share!",
+    "emptyChallenges": "No active challenges right now.",
+    "athlete": "Athlete",
+    "joinChallenge": "Join Challenge",
+    "completed": "Completed"
   }
 }

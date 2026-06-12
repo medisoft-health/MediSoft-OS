@@ -142,6 +142,13 @@ export default function TraineeDashboardPage() {
           color="purple"
           href={`/${locale}/sport/trainee/lessons`}
         />
+        <FeatureButton
+          icon={Users}
+          label={t("community")}
+          description={t("communityDesc")}
+          color="green"
+          href={`/${locale}/sport/trainee/community`}
+        />
       </div>
 
       {/* Body Composition Tracker */}

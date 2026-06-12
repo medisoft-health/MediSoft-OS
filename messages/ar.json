@@ -2104,7 +2104,9 @@
     "social": "المجتمع",
     "newPosts": "منشورات جديدة",
     "wadaCheck": "فحص وادا",
-    "wadaCheckDesc": "تحقق من توافق المكملات"
+    "wadaCheckDesc": "تحقق من توافق المكملات",
+    "community": "المجتمع",
+    "communityDesc": "التحديات والمنشورات"
   },
   "SportFood": {
     "title": "سجل الطعام",
@@ -2345,5 +2347,18 @@
     "cat_medicalHistory_desc": "الحالات والحساسية والأدوية",
     "cat_clinicalNotes": "الملاحظات السريرية",
     "cat_clinicalNotes_desc": "ملاحظات وتوصيات الطبيب"
+  },
+  "SportCommunity": {
+    "title": "المجتمع",
+    "subtitle": "شارك تقدمك وانضم إلى التحديات",
+    "tabFeed": "آخر المنشورات",
+    "tabChallenges": "التحديات",
+    "composerPlaceholder": "شارك تحديثاً مع المجتمع...",
+    "loading": "جارٍ التحميل...",
+    "emptyFeed": "لا توجد منشورات بعد. كن أول من يشارك!",
+    "emptyChallenges": "لا توجد تحديات نشطة حالياً.",
+    "athlete": "رياضي",
+    "joinChallenge": "انضم إلى التحدي",
+    "completed": "مكتمل"
   }
 }

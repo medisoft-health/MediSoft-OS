@@ -1783,3 +1783,286 @@ export const videoCallSessionsRelations = relations(videoCallSessions, ({ one })
   physician: one(users, { fields: [videoCallSessions.physicianId], references: [users.id] }),
   conversation: one(conversations, { fields: [videoCallSessions.conversationId], references: [conversations.id] }),
 }));
+
+
+// ═════════════════════════════════════════════════════════════════
+//  MEDISPORT — Standalone Fitness Platform (Phase 4 Persistence)
+// ═════════════════════════════════════════════════════════════════
+// All MediSport tables are namespaced with `sport_` to keep them
+// clearly separated from the clinical schema. User identity is shared
+// via the existing `users` table (userId UUID FK).
+
+// --- Sport user profile (role + onboarding data) ---
+export const sportProfiles = pgTable(
+  "sport_profiles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 16 }).notNull().default("trainee"), // 'coach' | 'trainee'
+    displayName: varchar("display_name", { length: 200 }),
+    sex: varchar("sex", { length: 16 }),
+    birthDate: date("birth_date"),
+    heightCm: numeric("height_cm", { precision: 5, scale: 1 }),
+    weightKg: numeric("weight_kg", { precision: 5, scale: 1 }),
+    goal: varchar("goal", { length: 64 }), // fat_loss | muscle_gain | endurance | health
+    specialization: varchar("specialization", { length: 64 }), // for coaches
+    activityLevel: varchar("activity_level", { length: 32 }),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    onboardingComplete: boolean("onboarding_complete").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("sport_profiles_user_idx").on(t.userId),
+    index("sport_profiles_role_idx").on(t.role),
+  ]
+);
+
+// --- Coach ↔ Trainee relationship ---
+export const sportCoachClients = pgTable(
+  "sport_coach_clients",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    traineeId: uuid("trainee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 16 }).notNull().default("active"), // active | paused | ended
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("sport_coach_client_idx").on(t.coachId, t.traineeId),
+    index("sport_client_trainee_idx").on(t.traineeId),
+  ]
+);
+
+// --- Food log entries ---
+export const sportFoodLogs = pgTable(
+  "sport_food_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    logDate: date("log_date").notNull(),
+    mealType: varchar("meal_type", { length: 16 }).notNull(), // breakfast | lunch | dinner | snack
+    foodId: varchar("food_id", { length: 64 }),
+    foodNameAr: varchar("food_name_ar", { length: 200 }),
+    foodNameEn: varchar("food_name_en", { length: 200 }),
+    grams: numeric("grams", { precision: 7, scale: 1 }).notNull(),
+    calories: numeric("calories", { precision: 8, scale: 2 }).notNull().default("0"),
+    protein: numeric("protein", { precision: 7, scale: 2 }).notNull().default("0"),
+    carbs: numeric("carbs", { precision: 7, scale: 2 }).notNull().default("0"),
+    fat: numeric("fat", { precision: 7, scale: 2 }).notNull().default("0"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_food_user_date_idx").on(t.userId, t.logDate),
+  ]
+);
+
+// --- Activity (GPS / workout) records ---
+export const sportActivities = pgTable(
+  "sport_activities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    activityType: varchar("activity_type", { length: 32 }).notNull(), // run | walk | cycle | swim | gym
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    durationSec: integer("duration_sec").notNull().default(0),
+    distanceMeters: numeric("distance_meters", { precision: 10, scale: 1 }).notNull().default("0"),
+    caloriesBurned: numeric("calories_burned", { precision: 8, scale: 1 }).notNull().default("0"),
+    avgPace: numeric("avg_pace", { precision: 7, scale: 2 }), // min/km
+    avgHeartRate: integer("avg_heart_rate"),
+    routeGeojson: jsonb("route_geojson"), // GPS track
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_activity_user_idx").on(t.userId, t.startedAt),
+  ]
+);
+
+// --- Bio-age calculation history ---
+export const sportBioAgeRecords = pgTable(
+  "sport_bio_age_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    chronologicalAge: numeric("chronological_age", { precision: 5, scale: 1 }).notNull(),
+    biologicalAge: numeric("biological_age", { precision: 5, scale: 1 }).notNull(),
+     ageDelta: numeric("age_delta", { precision: 5, scale: 1 }).notNull(),
+    percentile: integer("percentile"),
+    classification: varchar("classification", { length: 32 }),
+    inputs: jsonb("inputs").notNull(), // 16 raw inputs
+    domainScores: jsonb("domain_scores"), // 5 domain breakdown
+    recommendations: jsonb("recommendations"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_bioage_user_idx").on(t.userId, t.createdAt),
+  ]
+);
+
+// --- Training programs (built by coaches) ---
+export const sportPrograms = pgTable(
+  "sport_programs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    assignedTraineeId: uuid("assigned_trainee_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    nameAr: varchar("name_ar", { length: 200 }).notNull(),
+    nameEn: varchar("name_en", { length: 200 }),
+    goal: varchar("goal", { length: 64 }),
+    durationWeeks: integer("duration_weeks").notNull().default(4),
+    daysPerWeek: integer("days_per_week").notNull().default(3),
+    structure: jsonb("structure").notNull(), // days[] → exercises[]
+    status: varchar("status", { length: 16 }).notNull().default("draft"), // draft | active | archived
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("sport_program_coach_idx").on(t.coachId),
+    index("sport_program_trainee_idx").on(t.assignedTraineeId),
+  ]
+);
+
+// --- Medical Context Bridge consent ---
+export const sportMedicalConsents = pgTable(
+  "sport_medical_consents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mrn: varchar("mrn", { length: 64 }), // links to clinical patient record
+    linkedPatientId: integer("linked_patient_id").references(() => patients.id, {
+      onDelete: "set null",
+    }),
+    coachId: uuid("coach_id").references(() => users.id, { onDelete: "set null" }),
+    shareLabResults: boolean("share_lab_results").notNull().default(false),
+    shareVitals: boolean("share_vitals").notNull().default(false),
+    shareBodyComposition: boolean("share_body_composition").notNull().default(false),
+    shareMedicalHistory: boolean("share_medical_history").notNull().default(false),
+    shareClinicalNotes: boolean("share_clinical_notes").notNull().default(false),
+    consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("sport_consent_user_idx").on(t.userId),
+    index("sport_consent_coach_idx").on(t.coachId),
+  ]
+);
+
+// --- Social challenges ---
+export const sportChallenges = pgTable(
+  "sport_challenges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    titleAr: varchar("title_ar", { length: 200 }).notNull(),
+    titleEn: varchar("title_en", { length: 200 }),
+    descriptionAr: text("description_ar"),
+    descriptionEn: text("description_en"),
+    challengeType: varchar("challenge_type", { length: 32 }).notNull(), // steps | distance | workouts | calories
+    targetValue: numeric("target_value", { precision: 12, scale: 1 }).notNull(),
+    unit: varchar("unit", { length: 16 }).notNull(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("active"), // active | completed | cancelled
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_challenge_status_idx").on(t.status),
+  ]
+);
+
+// --- Challenge participants ---
+export const sportChallengeParticipants = pgTable(
+  "sport_challenge_participants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challengeId: uuid("challenge_id")
+      .notNull()
+      .references(() => sportChallenges.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    progressValue: numeric("progress_value", { precision: 12, scale: 1 }).notNull().default("0"),
+    completed: boolean("completed").notNull().default(false),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("sport_challenge_participant_idx").on(t.challengeId, t.userId),
+    index("sport_participant_user_idx").on(t.userId),
+  ]
+);
+
+// --- Social feed posts ---
+export const sportPosts = pgTable(
+  "sport_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    imageUrl: text("image_url"),
+    activityId: uuid("activity_id").references(() => sportActivities.id, {
+      onDelete: "set null",
+    }),
+    challengeId: uuid("challenge_id").references(() => sportChallenges.id, {
+      onDelete: "set null",
+    }),
+    likesCount: integer("likes_count").notNull().default(0),
+    commentsCount: integer("comments_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_post_user_idx").on(t.userId, t.createdAt),
+  ]
+);
+
+// --- Post likes ---
+export const sportPostLikes = pgTable(
+  "sport_post_likes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => sportPosts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("sport_post_like_idx").on(t.postId, t.userId),
+  ]
+);
