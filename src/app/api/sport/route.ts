@@ -10,6 +10,18 @@ import {
   FOOD_DATABASE,
   type FoodCategory,
 } from "@/lib/sport/food-database";
+import {
+  EXERCISE_LIBRARY,
+  PROGRAM_TEMPLATES,
+  searchExercises,
+  getExercisesByMuscleGroup,
+  type MuscleGroup,
+} from "@/lib/sport/exercise-library";
+import {
+  generateCoachPlan,
+  type CoachInput,
+} from "@/lib/sport/personal-coach";
+import { searchWada, WADA_SUBSTANCES } from "@/lib/sport/wada-database";
 
 /**
  * MediSport Standalone API
@@ -87,6 +99,29 @@ export async function GET(request: NextRequest) {
         });
       }
 
+      case "exercise-search": {
+        const query = searchParams.get("q") || "";
+        const locale = (searchParams.get("locale") || "en") as "ar" | "en";
+        const group = searchParams.get("group") as MuscleGroup | null;
+        let results = query ? searchExercises(query, locale) : EXERCISE_LIBRARY;
+        if (group) results = getExercisesByMuscleGroup(group);
+        return NextResponse.json({ success: true, data: results, count: results.length });
+      }
+
+      case "program-templates": {
+        return NextResponse.json({
+          success: true,
+          data: PROGRAM_TEMPLATES,
+          count: PROGRAM_TEMPLATES.length,
+        });
+      }
+
+      case "wada-search": {
+        const query = searchParams.get("q") || "";
+        const results = query ? searchWada(query) : WADA_SUBSTANCES;
+        return NextResponse.json({ success: true, data: results, count: results.length });
+      }
+
       case "lessons": {
         // Return lesson catalog (in production, this would come from DB)
         return NextResponse.json({
@@ -103,7 +138,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: "Unknown action. Available: food-search, food-category, food-all, food-nutrition, lessons",
+            error: "Unknown action. Available: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons",
           },
           { status: 400 }
         );
@@ -214,11 +249,72 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      case "coach-plan": {
+        const input = body.input as CoachInput;
+        if (!input || !input.sex || !input.height || !input.weight || !input.age) {
+          return NextResponse.json(
+            { success: false, error: "Missing required coach input fields" },
+            { status: 400 }
+          );
+        }
+        const plan = generateCoachPlan(input);
+        return NextResponse.json({ success: true, data: plan });
+      }
+
+      case "program-save": {
+        const { name, exercises } = body;
+        if (!name || !Array.isArray(exercises) || exercises.length === 0) {
+          return NextResponse.json(
+            { success: false, error: "Missing required fields: name, exercises[]" },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json({
+          success: true,
+          data: {
+            id: `program_${Date.now()}`,
+            name,
+            exercises,
+            createdAt: new Date().toISOString(),
+          },
+          message: "Program saved successfully.",
+        });
+      }
+
+      case "medical-bridge-link": {
+        const { mrn, consents } = body;
+        if (!mrn) {
+          return NextResponse.json(
+            { success: false, error: "Missing required field: mrn" },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json({
+          success: true,
+          data: {
+            id: `bridge_${Date.now()}`,
+            mrn,
+            consents: consents || {},
+            linkedAt: new Date().toISOString(),
+          },
+          message: "Medical record linked with consent.",
+        });
+      }
+
+      case "medical-bridge-consent": {
+        const { consents } = body;
+        return NextResponse.json({
+          success: true,
+          data: { consents: consents || {}, updatedAt: new Date().toISOString() },
+          message: "Consent preferences updated.",
+        });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
-            error: "Unknown action. Available POST actions: bio-age, food-log, activity-log",
+            error: "Unknown action. Available POST actions: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent",
           },
           { status: 400 }
         );
