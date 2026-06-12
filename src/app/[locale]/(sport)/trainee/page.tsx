@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Moon,
   Scale,
+  ShieldCheck,
   Sparkles,
   Star,
   Target,
@@ -168,6 +169,13 @@ export default function TraineeDashboardPage() {
           description={t("labResultsDesc")}
           color="green"
           href={`/${locale}/sport/trainee/labs`}
+        />
+        <FeatureButton
+          icon={ShieldCheck}
+          label={t("findCoach")}
+          description={t("findCoachDesc")}
+          color="blue"
+          href={`/${locale}/sport/trainee/coaches`}
         />
       </div>
 

@@ -2110,7 +2110,8 @@
     "community": "المجتمع",
     "communityDesc": "التحديات والمنشورات",
     "bodyCompositionDesc": "تتبّع الوزن والدهون والعضلات عبر الزمن",
-    "viewHistory": "عرض السجل"
+    "viewHistory": "عرض السجل",
+    "findCoachDesc": "مدربون معتمدون مرتبون حسب التقييم"
   },
   "SportFood": {
     "title": "سجل الطعام",

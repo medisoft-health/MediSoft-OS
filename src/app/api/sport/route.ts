@@ -11,9 +11,12 @@ import {
   sportBodyMeasurements,
   sportLabResults,
   sportNotifications,
+  sportCoachCertifications,
+  sportCoachReviews,
+  sportCoachRequests,
   users,
 } from "@/db/schema";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, sql, inArray } from "drizzle-orm";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import {
   calculateBioAge,
@@ -38,6 +41,62 @@ import {
   type CoachInput,
 } from "@/lib/sport/personal-coach";
 import { searchWada, WADA_SUBSTANCES } from "@/lib/sport/wada-database";
+import {
+  calculateCoachScore,
+  type CoachScoreInput,
+} from "@/lib/sport/coach-scoring";
+
+/**
+ * Recompute a coach's verification score from their profile + certs +
+ * performance signals, and persist coachScore/coachTier/scoreBreakdown.
+ * Best-effort; returns the result or null on error.
+ */
+async function recomputeCoachScore(coachId: string) {
+  try {
+    const [p] = await db
+      .select()
+      .from(sportProfiles)
+      .where(eq(sportProfiles.userId, coachId))
+      .limit(1);
+    if (!p) return null;
+    const certs = await db
+      .select()
+      .from(sportCoachCertifications)
+      .where(eq(sportCoachCertifications.coachId, coachId));
+    const input: CoachScoreInput = {
+      highestDegree: p.highestDegree as string | null,
+      studyField: p.studyField,
+      yearsExperience: p.yearsExperience,
+      certifications: certs.map((c) => ({
+        issuer: c.issuer,
+        recognized: c.verified ? true : undefined,
+        expiryDate: c.expiryDate as string | null,
+      })),
+      hasAvatar: !!p.avatarUrl,
+      bioLength: (p.bio || "").length,
+      languagesCount: Array.isArray(p.languages) ? (p.languages as unknown[]).length : 0,
+      hasProfessionalLinks:
+        Array.isArray(p.professionalLinks) && (p.professionalLinks as unknown[]).length > 0,
+      hasCv: !!p.cvUrl,
+      adminScore: p.adminScore,
+      ratingAvg: p.ratingAvg ? Number(p.ratingAvg) : 0,
+      ratingCount: p.ratingCount ?? 0,
+    };
+    const result = calculateCoachScore(input);
+    await db
+      .update(sportProfiles)
+      .set({
+        coachScore: String(result.total),
+        coachTier: result.tier,
+        scoreBreakdown: result.breakdown,
+      })
+      .where(eq(sportProfiles.userId, coachId));
+    return result;
+  } catch (e) {
+    console.error("[MediSport API] recomputeCoachScore failed:", e);
+    return null;
+  }
+}
 
 /**
  * MediSport Standalone API — Phase 4 (DB-backed persistence)
@@ -384,12 +443,241 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: rows, unreadCount });
       }
 
+      // ===================== Coach Verification (Phase 8) =====================
+
+      // --- Coach reads their own verification profile + certs ---
+      case "my-coach-profile": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const [profile] = await db
+          .select()
+          .from(sportProfiles)
+          .where(eq(sportProfiles.userId, auth.user.id))
+          .limit(1);
+        const certs = await db
+          .select()
+          .from(sportCoachCertifications)
+          .where(eq(sportCoachCertifications.coachId, auth.user.id))
+          .orderBy(desc(sportCoachCertifications.createdAt));
+        return NextResponse.json({ success: true, data: { profile: profile || null, certifications: certs } });
+      }
+
+      // --- Admin: verification queue (pending reviews) ---
+      case "admin-verification-queue": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        if (auth.user.role !== "admin") {
+          return NextResponse.json({ success: false, error: "forbidden" }, { status: 403 });
+        }
+        const statusFilter = searchParams.get("status");
+        const statuses = statusFilter
+          ? [statusFilter]
+          : ["submitted", "under_review", "needs_more_info"];
+        const rows = await db
+          .select({
+            userId: sportProfiles.userId,
+            name: users.name,
+            email: users.email,
+            verificationStatus: sportProfiles.verificationStatus,
+            coachScore: sportProfiles.coachScore,
+            coachTier: sportProfiles.coachTier,
+            scoreBreakdown: sportProfiles.scoreBreakdown,
+            adminScore: sportProfiles.adminScore,
+            highestDegree: sportProfiles.highestDegree,
+            studyField: sportProfiles.studyField,
+            university: sportProfiles.university,
+            graduationYear: sportProfiles.graduationYear,
+            yearsExperience: sportProfiles.yearsExperience,
+            specialties: sportProfiles.specialties,
+            bio: sportProfiles.bio,
+            cvUrl: sportProfiles.cvUrl,
+            idDocUrl: sportProfiles.idDocUrl,
+            professionalLinks: sportProfiles.professionalLinks,
+            submittedAt: sportProfiles.submittedAt,
+          })
+          .from(sportProfiles)
+          .innerJoin(users, eq(users.id, sportProfiles.userId))
+          .where(
+            and(
+              eq(sportProfiles.role, "coach"),
+              inArray(sportProfiles.verificationStatus, statuses)
+            )
+          )
+          .orderBy(desc(sportProfiles.submittedAt));
+        // Attach each coach's certifications
+        const ids = rows.map((r) => r.userId);
+        const certs = ids.length
+          ? await db
+              .select()
+              .from(sportCoachCertifications)
+              .where(inArray(sportCoachCertifications.coachId, ids))
+          : [];
+        const certsByCoach = new Map<string, typeof certs>();
+        for (const c of certs) {
+          const list = certsByCoach.get(c.coachId) || [];
+          list.push(c);
+          certsByCoach.set(c.coachId, list);
+        }
+        const data = rows.map((r) => ({ ...r, certifications: certsByCoach.get(r.userId) || [] }));
+        return NextResponse.json({ success: true, data });
+      }
+
+      // --- Public coach directory (verified coaches, ranked) ---
+      case "coach-directory": {
+        const specialty = searchParams.get("specialty");
+        const q = (searchParams.get("q") || "").trim().toLowerCase();
+        const rows = await db
+          .select({
+            userId: sportProfiles.userId,
+            name: users.name,
+            displayName: sportProfiles.displayName,
+            avatarUrl: sportProfiles.avatarUrl,
+            bio: sportProfiles.bio,
+            specialties: sportProfiles.specialties,
+            city: sportProfiles.city,
+            country: sportProfiles.country,
+            yearsExperience: sportProfiles.yearsExperience,
+            coachScore: sportProfiles.coachScore,
+            coachTier: sportProfiles.coachTier,
+            ratingAvg: sportProfiles.ratingAvg,
+            ratingCount: sportProfiles.ratingCount,
+            activeClients: sportProfiles.activeClients,
+          })
+          .from(sportProfiles)
+          .innerJoin(users, eq(users.id, sportProfiles.userId))
+          .where(
+            and(
+              eq(sportProfiles.role, "coach"),
+              eq(sportProfiles.verificationStatus, "verified")
+            )
+          )
+          .orderBy(desc(sportProfiles.coachScore));
+        let data = rows;
+        if (specialty) {
+          data = data.filter(
+            (r) => Array.isArray(r.specialties) && (r.specialties as string[]).includes(specialty)
+          );
+        }
+        if (q) {
+          data = data.filter(
+            (r) =>
+              (r.displayName || r.name || "").toLowerCase().includes(q) ||
+              (r.bio || "").toLowerCase().includes(q)
+          );
+        }
+        return NextResponse.json({ success: true, data });
+      }
+
+      // --- Public coach profile (verified) + reviews ---
+      case "coach-public-profile": {
+        const coachId = searchParams.get("coachId");
+        if (!coachId) {
+          return NextResponse.json({ success: false, error: "Missing coachId" }, { status: 400 });
+        }
+        const [profile] = await db
+          .select({
+            userId: sportProfiles.userId,
+            name: users.name,
+            displayName: sportProfiles.displayName,
+            avatarUrl: sportProfiles.avatarUrl,
+            bio: sportProfiles.bio,
+            specialties: sportProfiles.specialties,
+            languages: sportProfiles.languages,
+            city: sportProfiles.city,
+            country: sportProfiles.country,
+            highestDegree: sportProfiles.highestDegree,
+            studyField: sportProfiles.studyField,
+            university: sportProfiles.university,
+            yearsExperience: sportProfiles.yearsExperience,
+            coachScore: sportProfiles.coachScore,
+            coachTier: sportProfiles.coachTier,
+            ratingAvg: sportProfiles.ratingAvg,
+            ratingCount: sportProfiles.ratingCount,
+            activeClients: sportProfiles.activeClients,
+            verificationStatus: sportProfiles.verificationStatus,
+          })
+          .from(sportProfiles)
+          .innerJoin(users, eq(users.id, sportProfiles.userId))
+          .where(eq(sportProfiles.userId, coachId))
+          .limit(1);
+        if (!profile || profile.verificationStatus !== "verified") {
+          return NextResponse.json({ success: false, error: "not_found" }, { status: 404 });
+        }
+        const certs = await db
+          .select({
+            name: sportCoachCertifications.name,
+            issuer: sportCoachCertifications.issuer,
+            verified: sportCoachCertifications.verified,
+          })
+          .from(sportCoachCertifications)
+          .where(eq(sportCoachCertifications.coachId, coachId));
+        const reviews = await db
+          .select({
+            stars: sportCoachReviews.stars,
+            comment: sportCoachReviews.comment,
+            createdAt: sportCoachReviews.createdAt,
+            traineeName: users.name,
+          })
+          .from(sportCoachReviews)
+          .innerJoin(users, eq(users.id, sportCoachReviews.traineeId))
+          .where(eq(sportCoachReviews.coachId, coachId))
+          .orderBy(desc(sportCoachReviews.createdAt))
+          .limit(20);
+        return NextResponse.json({ success: true, data: { profile, certifications: certs, reviews } });
+      }
+
+      // --- Coach: connection requests addressed to me ---
+      case "my-coach-requests": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const rows = await db
+          .select({
+            id: sportCoachRequests.id,
+            traineeId: sportCoachRequests.traineeId,
+            traineeName: users.name,
+            traineeEmail: users.email,
+            status: sportCoachRequests.status,
+            message: sportCoachRequests.message,
+            initiator: sportCoachRequests.initiator,
+            createdAt: sportCoachRequests.createdAt,
+          })
+          .from(sportCoachRequests)
+          .innerJoin(users, eq(users.id, sportCoachRequests.traineeId))
+          .where(
+            and(
+              eq(sportCoachRequests.coachId, auth.user.id),
+              eq(sportCoachRequests.status, "pending")
+            )
+          )
+          .orderBy(desc(sportCoachRequests.createdAt));
+        return NextResponse.json({ success: true, data: rows });
+      }
+
+      // --- Trainee: my outgoing requests / link status ---
+      case "my-trainee-requests": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const rows = await db
+          .select({
+            id: sportCoachRequests.id,
+            coachId: sportCoachRequests.coachId,
+            coachName: users.name,
+            status: sportCoachRequests.status,
+            createdAt: sportCoachRequests.createdAt,
+          })
+          .from(sportCoachRequests)
+          .innerJoin(users, eq(users.id, sportCoachRequests.coachId))
+          .where(eq(sportCoachRequests.traineeId, auth.user.id))
+          .orderBy(desc(sportCoachRequests.createdAt));
+        return NextResponse.json({ success: true, data: rows });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests",
           },
           { status: 400 }
         );
@@ -799,12 +1087,346 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      // ===================== Coach Verification (Phase 8) =====================
+
+      // --- Coach saves/updates their verification profile (draft) ---
+      case "coach-profile-save": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const p = body.profile || {};
+        const set: Record<string, unknown> = {
+          role: "coach",
+          displayName: p.displayName ?? null,
+          bio: p.bio ?? null,
+          highestDegree: p.highestDegree ?? null,
+          studyField: p.studyField ?? null,
+          university: p.university ?? null,
+          graduationYear: p.graduationYear ?? null,
+          yearsExperience: p.yearsExperience ?? null,
+          specialties: Array.isArray(p.specialties) ? p.specialties : null,
+          languages: Array.isArray(p.languages) ? p.languages : null,
+          city: p.city ?? null,
+          country: p.country ?? null,
+          cvUrl: p.cvUrl ?? null,
+          idDocUrl: p.idDocUrl ?? null,
+          avatarUrl: p.avatarUrl ?? null,
+          professionalLinks: Array.isArray(p.professionalLinks) ? p.professionalLinks : null,
+        };
+        // Don't overwrite a verified status with a draft save.
+        await db
+          .insert(sportProfiles)
+          .values({ userId: auth.user.id, ...set } as typeof sportProfiles.$inferInsert)
+          .onConflictDoUpdate({ target: sportProfiles.userId, set });
+        const result = await recomputeCoachScore(auth.user.id);
+        return NextResponse.json({ success: true, data: { score: result } });
+      }
+
+      // --- Coach adds a certification ---
+      case "coach-cert-add": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const c = body.certification || {};
+        const name = String(c.name || "").trim();
+        if (!name) {
+          return NextResponse.json({ success: false, error: "Missing certification name" }, { status: 400 });
+        }
+        const [saved] = await db
+          .insert(sportCoachCertifications)
+          .values({
+            coachId: auth.user.id,
+            name,
+            issuer: c.issuer ? String(c.issuer) : null,
+            credentialNo: c.credentialNo ? String(c.credentialNo) : null,
+            issueDate: c.issueDate ? String(c.issueDate) : null,
+            expiryDate: c.expiryDate ? String(c.expiryDate) : null,
+            fileUrl: c.fileUrl ? String(c.fileUrl) : null,
+          })
+          .returning({ id: sportCoachCertifications.id });
+        await recomputeCoachScore(auth.user.id);
+        return NextResponse.json({ success: true, data: { id: saved?.id } });
+      }
+
+      // --- Coach removes a certification ---
+      case "coach-cert-remove": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const id = String(body.id || "");
+        if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
+        await db
+          .delete(sportCoachCertifications)
+          .where(and(eq(sportCoachCertifications.id, id), eq(sportCoachCertifications.coachId, auth.user.id)));
+        await recomputeCoachScore(auth.user.id);
+        return NextResponse.json({ success: true });
+      }
+
+      // --- Coach submits profile for verification ---
+      case "coach-submit-verification": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const [profile] = await db
+          .select()
+          .from(sportProfiles)
+          .where(eq(sportProfiles.userId, auth.user.id))
+          .limit(1);
+        if (!profile) {
+          return NextResponse.json({ success: false, error: "no_profile" }, { status: 400 });
+        }
+        if (profile.verificationStatus === "verified") {
+          return NextResponse.json({ success: false, error: "already_verified" }, { status: 400 });
+        }
+        // Minimum bar: a degree OR at least one certification, plus experience set.
+        const certCount = (
+          await db
+            .select({ id: sportCoachCertifications.id })
+            .from(sportCoachCertifications)
+            .where(eq(sportCoachCertifications.coachId, auth.user.id))
+        ).length;
+        if (!profile.highestDegree && certCount === 0) {
+          return NextResponse.json(
+            { success: false, error: "insufficient", message: "Add a degree or at least one certification before submitting." },
+            { status: 400 }
+          );
+        }
+        await recomputeCoachScore(auth.user.id);
+        await db
+          .update(sportProfiles)
+          .set({ verificationStatus: "submitted", submittedAt: new Date(), rejectionReason: null })
+          .where(eq(sportProfiles.userId, auth.user.id));
+        // Notify all admins
+        const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+        if (admins.length) {
+          await db.insert(sportNotifications).values(
+            admins.map((a) => ({
+              userId: a.id,
+              actorId: auth.user.id,
+              type: "coach-verification",
+              title: auth.user.name || "Coach",
+              body: "New coach verification request submitted",
+              link: "/admin/coaches",
+            }))
+          );
+        }
+        return NextResponse.json({ success: true });
+      }
+
+      // --- Admin: decide on a verification request ---
+      case "admin-verify-decision": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        if (auth.user.role !== "admin") {
+          return NextResponse.json({ success: false, error: "forbidden" }, { status: 403 });
+        }
+        const coachId = String(body.coachId || "");
+        const decision = String(body.decision || ""); // approve|reject|request_info
+        if (!coachId || !decision) {
+          return NextResponse.json({ success: false, error: "Missing coachId/decision" }, { status: 400 });
+        }
+        const adminScore = body.adminScore != null ? Math.max(0, Math.min(15, Number(body.adminScore))) : null;
+        const note = body.note ? String(body.note) : null;
+        // Verify certs the admin marked verified (optional list of cert ids)
+        if (Array.isArray(body.verifiedCertIds) && body.verifiedCertIds.length) {
+          await db
+            .update(sportCoachCertifications)
+            .set({ verified: true })
+            .where(
+              and(
+                eq(sportCoachCertifications.coachId, coachId),
+                inArray(sportCoachCertifications.id, body.verifiedCertIds.map(String))
+              )
+            );
+        }
+        // Persist admin discretionary score first, then recompute total.
+        if (adminScore != null) {
+          await db.update(sportProfiles).set({ adminScore }).where(eq(sportProfiles.userId, coachId));
+        }
+        const scored = await recomputeCoachScore(coachId);
+        let newStatus = "under_review";
+        let notifyTitle = "";
+        let notifyBody = "";
+        if (decision === "approve") {
+          newStatus = "verified";
+          notifyTitle = "تم اعتماد حسابك كمدرب";
+          notifyBody = `تهانينا! تم اعتمادك بتقييم ${scored?.total ?? ""}/100.`;
+          await db
+            .update(sportProfiles)
+            .set({ verificationStatus: "verified", verifiedAt: new Date(), adminNote: note, rejectionReason: null })
+            .where(eq(sportProfiles.userId, coachId));
+        } else if (decision === "reject") {
+          newStatus = "rejected";
+          notifyTitle = "تحديث طلب الاعتماد";
+          notifyBody = note || "لم يتم اعتماد الطلب حاليًا.";
+          await db
+            .update(sportProfiles)
+            .set({ verificationStatus: "rejected", adminNote: note, rejectionReason: note })
+            .where(eq(sportProfiles.userId, coachId));
+        } else {
+          newStatus = "needs_more_info";
+          notifyTitle = "مطلوب معلومات إضافية";
+          notifyBody = note || "يرجى تزويدنا بمعلومات إضافية لإكمال الاعتماد.";
+          await db
+            .update(sportProfiles)
+            .set({ verificationStatus: "needs_more_info", adminNote: note })
+            .where(eq(sportProfiles.userId, coachId));
+        }
+        await db.insert(sportNotifications).values({
+          userId: coachId,
+          actorId: auth.user.id,
+          type: "coach-verification",
+          title: notifyTitle,
+          body: notifyBody,
+          link: "/coach/verification",
+        });
+        return NextResponse.json({ success: true, data: { status: newStatus, score: scored } });
+      }
+
+      // --- Trainee requests to connect with a verified coach ---
+      case "request-coach": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const coachId = String(body.coachId || "");
+        const message = body.message ? String(body.message) : null;
+        if (!coachId) return NextResponse.json({ success: false, error: "Missing coachId" }, { status: 400 });
+        if (coachId === auth.user.id) {
+          return NextResponse.json({ success: false, error: "self_link" }, { status: 400 });
+        }
+        const [coach] = await db
+          .select({ status: sportProfiles.verificationStatus })
+          .from(sportProfiles)
+          .where(eq(sportProfiles.userId, coachId))
+          .limit(1);
+        if (!coach || coach.status !== "verified") {
+          return NextResponse.json({ success: false, error: "coach_not_verified" }, { status: 400 });
+        }
+        await db
+          .insert(sportCoachRequests)
+          .values({ traineeId: auth.user.id, coachId, initiator: "trainee", message, status: "pending" })
+          .onConflictDoUpdate({
+            target: [sportCoachRequests.traineeId, sportCoachRequests.coachId],
+            set: { status: "pending", message, initiator: "trainee", respondedAt: null },
+          });
+        await db.insert(sportNotifications).values({
+          userId: coachId,
+          actorId: auth.user.id,
+          type: "coach-request",
+          title: auth.user.name || "Trainee",
+          body: "طلب تدريب جديد",
+          link: "/coach",
+        });
+        return NextResponse.json({ success: true });
+      }
+
+      // --- Coach responds to a trainee request ---
+      case "respond-coach-request": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const requestId = String(body.requestId || "");
+        const accept = !!body.accept;
+        if (!requestId) return NextResponse.json({ success: false, error: "Missing requestId" }, { status: 400 });
+        const [reqRow] = await db
+          .select()
+          .from(sportCoachRequests)
+          .where(and(eq(sportCoachRequests.id, requestId), eq(sportCoachRequests.coachId, auth.user.id)))
+          .limit(1);
+        if (!reqRow) return NextResponse.json({ success: false, error: "not_found" }, { status: 404 });
+        await db
+          .update(sportCoachRequests)
+          .set({ status: accept ? "accepted" : "declined", respondedAt: new Date() })
+          .where(eq(sportCoachRequests.id, requestId));
+        if (accept) {
+          await db
+            .insert(sportCoachClients)
+            .values({ coachId: auth.user.id, traineeId: reqRow.traineeId, status: "active" })
+            .onConflictDoUpdate({
+              target: [sportCoachClients.coachId, sportCoachClients.traineeId],
+              set: { status: "active" },
+            });
+          // Refresh active client count
+          const cnt = (
+            await db
+              .select({ id: sportCoachClients.id })
+              .from(sportCoachClients)
+              .where(and(eq(sportCoachClients.coachId, auth.user.id), eq(sportCoachClients.status, "active")))
+          ).length;
+          await db.update(sportProfiles).set({ activeClients: cnt }).where(eq(sportProfiles.userId, auth.user.id));
+        }
+        await db.insert(sportNotifications).values({
+          userId: reqRow.traineeId,
+          actorId: auth.user.id,
+          type: "coach-request",
+          title: accept ? "تم قبول طلبك" : "تحديث طلب التدريب",
+          body: accept ? "وافق المدرب على تدريبك" : "لم يتم قبول الطلب حاليًا",
+          link: "/trainee",
+        });
+        return NextResponse.json({ success: true });
+      }
+
+      // --- Trainee submits a review for their coach ---
+      case "coach-review": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const coachId = String(body.coachId || "");
+        const stars = Math.max(1, Math.min(5, Number(body.stars || 0)));
+        if (!coachId || !stars) {
+          return NextResponse.json({ success: false, error: "Missing coachId/stars" }, { status: 400 });
+        }
+        // Must have an active link with this coach
+        const [link] = await db
+          .select({ id: sportCoachClients.id })
+          .from(sportCoachClients)
+          .where(
+            and(
+              eq(sportCoachClients.coachId, coachId),
+              eq(sportCoachClients.traineeId, auth.user.id),
+              eq(sportCoachClients.status, "active")
+            )
+          )
+          .limit(1);
+        if (!link) {
+          return NextResponse.json({ success: false, error: "not_linked" }, { status: 403 });
+        }
+        await db
+          .insert(sportCoachReviews)
+          .values({
+            coachId,
+            traineeId: auth.user.id,
+            stars,
+            communication: body.communication != null ? Number(body.communication) : null,
+            results: body.results != null ? Number(body.results) : null,
+            comment: body.comment ? String(body.comment) : null,
+          })
+          .onConflictDoUpdate({
+            target: [sportCoachReviews.coachId, sportCoachReviews.traineeId],
+            set: {
+              stars,
+              communication: body.communication != null ? Number(body.communication) : null,
+              results: body.results != null ? Number(body.results) : null,
+              comment: body.comment ? String(body.comment) : null,
+            },
+          });
+        // Recompute aggregate rating
+        const agg = await db
+          .select({
+            avg: sql<number>`avg(${sportCoachReviews.stars})`,
+            cnt: sql<number>`count(*)`,
+          })
+          .from(sportCoachReviews)
+          .where(eq(sportCoachReviews.coachId, coachId));
+        const avg = agg[0]?.avg ? Number(agg[0].avg) : 0;
+        const cnt = agg[0]?.cnt ? Number(agg[0].cnt) : 0;
+        await db
+          .update(sportProfiles)
+          .set({ ratingAvg: String(Math.round(avg * 100) / 100), ratingCount: cnt })
+          .where(eq(sportProfiles.userId, coachId));
+        await recomputeCoachScore(coachId);
+        return NextResponse.json({ success: true, data: { ratingAvg: avg, ratingCount: cnt } });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review",
           },
           { status: 400 }
         );

@@ -1812,6 +1812,33 @@ export const sportProfiles = pgTable(
     bio: text("bio"),
     avatarUrl: text("avatar_url"),
     onboardingComplete: boolean("onboarding_complete").notNull().default(false),
+    // --- Coach verification & scoring (Phase 8) ---
+    verificationStatus: varchar("verification_status", { length: 24 })
+      .notNull()
+      .default("draft"), // draft|submitted|under_review|verified|rejected|needs_more_info
+    coachScore: numeric("coach_score", { precision: 5, scale: 2 }),
+    coachTier: varchar("coach_tier", { length: 24 }),
+    scoreBreakdown: jsonb("score_breakdown"),
+    adminScore: integer("admin_score"),
+    adminNote: text("admin_note"),
+    rejectionReason: text("rejection_reason"),
+    highestDegree: varchar("highest_degree", { length: 32 }),
+    studyField: varchar("study_field", { length: 80 }),
+    university: varchar("university", { length: 160 }),
+    graduationYear: integer("graduation_year"),
+    yearsExperience: integer("years_experience"),
+    specialties: jsonb("specialties"),
+    languages: jsonb("languages"),
+    city: varchar("city", { length: 80 }),
+    country: varchar("country", { length: 80 }),
+    cvUrl: text("cv_url"),
+    idDocUrl: text("id_doc_url"),
+    professionalLinks: jsonb("professional_links"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    ratingAvg: numeric("rating_avg", { precision: 3, scale: 2 }).notNull().default("0"),
+    ratingCount: integer("rating_count").notNull().default(0),
+    activeClients: integer("active_clients").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -1821,6 +1848,8 @@ export const sportProfiles = pgTable(
   (t) => [
     uniqueIndex("sport_profiles_user_idx").on(t.userId),
     index("sport_profiles_role_idx").on(t.role),
+    index("sport_profiles_verif_idx").on(t.verificationStatus),
+    index("sport_profiles_score_idx").on(t.coachScore),
   ]
 );
 
@@ -2152,4 +2181,71 @@ export const sportNotifications = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [index("idx_sport_notifications_user").on(t.userId, t.isRead, t.createdAt)]
+);
+
+// --- Coach certifications (Phase 8) ---
+export const sportCoachCertifications = pgTable(
+  "sport_coach_certifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 160 }).notNull(),
+    issuer: varchar("issuer", { length: 160 }),
+    credentialNo: varchar("credential_no", { length: 120 }),
+    issueDate: date("issue_date"),
+    expiryDate: date("expiry_date"),
+    fileUrl: text("file_url"),
+    verified: boolean("verified").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sport_cert_coach_idx").on(t.coachId)]
+);
+
+// --- Coach reviews by trainees (Phase 8) ---
+export const sportCoachReviews = pgTable(
+  "sport_coach_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    traineeId: uuid("trainee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    stars: integer("stars").notNull(),
+    communication: integer("communication"),
+    results: integer("results"),
+    comment: text("comment"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("sport_review_unique").on(t.coachId, t.traineeId),
+    index("sport_review_coach_idx").on(t.coachId),
+  ]
+);
+
+// --- Coach↔Trainee connection requests (two-sided consent) (Phase 8) ---
+export const sportCoachRequests = pgTable(
+  "sport_coach_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    traineeId: uuid("trainee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    initiator: varchar("initiator", { length: 16 }).notNull().default("trainee"), // trainee|coach
+    status: varchar("status", { length: 16 }).notNull().default("pending"), // pending|accepted|declined
+    message: text("message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("sport_request_unique").on(t.traineeId, t.coachId),
+    index("sport_request_coach_idx").on(t.coachId, t.status),
+    index("sport_request_trainee_idx").on(t.traineeId, t.status),
+  ]
 );

@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   Search,
   Shield,
+  ShieldCheck,
   Star,
   TrendingUp,
   User,
@@ -34,6 +35,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ClientsManager } from "@/components/sport/clients-manager";
 import { CoachNotificationBell } from "@/components/sport/coach-notification-bell";
+import { CoachVerificationForm } from "@/components/sport/coach-verification-form";
+import { CoachRequestsPanel } from "@/components/sport/coach-requests-panel";
 
 /**
  * MediSport Standalone — Coach Dashboard
@@ -157,10 +160,16 @@ export default function CoachDashboardPage() {
             <FlaskConical className="h-4 w-4 me-1.5" />
             {t("medicalContext")}
           </TabsTrigger>
+          <TabsTrigger value="verification" className="rounded-md text-sm">
+            <ShieldCheck className="h-4 w-4 me-1.5" />
+            {locale === "ar" ? "التوثيق" : "Verification"}
+          </TabsTrigger>
         </TabsList>
 
         {/* Clients Tab */}
         <TabsContent value="clients" className="space-y-4">
+          {/* Incoming trainee connection requests (accept/decline) */}
+          <CoachRequestsPanel locale={locale} />
           {/* Real DB-backed roster (mirrored with integrated module) */}
           <ClientsManager />
 
@@ -288,6 +297,11 @@ export default function CoachDashboardPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Verification Tab */}
+        <TabsContent value="verification" className="space-y-4">
+          <CoachVerificationForm />
         </TabsContent>
 
         {/* Medical Context Tab */}

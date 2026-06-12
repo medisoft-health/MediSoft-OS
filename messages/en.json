@@ -2110,7 +2110,8 @@
     "community": "Community",
     "communityDesc": "Challenges & feed",
     "bodyCompositionDesc": "Track weight, fat & muscle over time",
-    "viewHistory": "View History"
+    "viewHistory": "View History",
+    "findCoachDesc": "Verified coaches ranked by score"
   },
   "SportFood": {
     "title": "Food Logger",

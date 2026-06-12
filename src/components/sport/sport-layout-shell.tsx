@@ -14,8 +14,10 @@ import {
   X,
   Globe,
   Activity,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/auth-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,9 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   const locale = useLocale();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const { data: session } = useSession();
+  const isAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "admin";
 
   const isRtl = locale === "ar";
 
@@ -108,6 +113,14 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                     {t("myDashboard")}
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/${locale}/sport/admin/coaches`}>
+                      <ShieldCheck className="h-4 w-4 me-2" />
+                      {isRtl ? "اعتماد المدربين" : "Coach Verification"}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href={`/${locale}/sport/auth`} className="text-red-600">
