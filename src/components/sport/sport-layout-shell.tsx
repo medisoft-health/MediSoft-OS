@@ -6,22 +6,14 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  Dumbbell,
   Home,
-  LayoutDashboard,
   LogOut,
   Menu,
-  Moon,
-  Sun,
   User,
   Users,
   X,
   Globe,
-  Trophy,
-  Apple,
   Activity,
-  BookOpen,
-  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,13 +26,12 @@ import {
 
 /**
  * MediSport Standalone Layout Shell
- * 
- * Features:
- * - Top navigation bar with MediSport branding
- * - Mobile bottom navigation
- * - Language switcher (AR/EN)
- * - User menu with logout
- * - No clinical sidebar — clean fitness-focused design
+ *
+ * Brand identity v1.0 (June 2026):
+ * - Official wordmark logo (Medi=pink, Sport=blue, plum runner)
+ * - Vital Green primary actions, sticky white header
+ * - Confident-glide motion, .medisport-scope for brand fonts (Exo 2 / Cairo)
+ * - Full RTL support via logical properties
  */
 export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("SportStandalone");
@@ -49,7 +40,6 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const isRtl = locale === "ar";
-  const altLocale = locale === "ar" ? "en" : "ar";
 
   // Build locale-switched path
   const switchLocalePath = React.useMemo(() => {
@@ -60,18 +50,20 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   }, [pathname, locale]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
+    <div className="medisport-scope flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-[var(--color-sport-50)]">
       {/* Top Navigation */}
-      <header className="sticky top-0 z-50 border-b border-emerald-100/50 bg-white/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-[var(--color-sport-100)] bg-white/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
-          <Link href={`/${locale}/sport`} className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-200/50">
-              <Dumbbell className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-              MediSport
-            </span>
+          {/* Logo — official wordmark */}
+          <Link href={`/${locale}/sport`} className="flex items-center" aria-label="MediSport">
+            <Image
+              src="/images/medisport-wordmark.png"
+              alt="MediSport"
+              width={158}
+              height={27}
+              priority
+              className="h-7 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -95,16 +87,17 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
             {/* Language Switcher */}
             <Link
               href={switchLocalePath}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+              className="ms-glide flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-[var(--color-sport-50)] hover:text-[var(--color-sport-700)]"
               title={locale === "ar" ? "English" : "العربية"}
             >
               <Globe className="h-4 w-4" />
+              <span>{locale === "ar" ? "EN" : "ع"}</span>
             </Link>
 
             {/* User Menu */}
-            <DropdownMenu>
+            <DropdownMenu dir={isRtl ? "rtl" : "ltr"}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-lg hover:bg-emerald-50">
+                <Button variant="ghost" size="icon" className="rounded-lg hover:bg-[var(--color-sport-50)]">
                   <User className="h-4 w-4 text-slate-600" />
                 </Button>
               </DropdownMenuTrigger>
@@ -139,7 +132,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-emerald-100/50 bg-white/95 backdrop-blur-xl">
+          <div className="md:hidden border-t border-[var(--color-sport-100)] bg-white/95 backdrop-blur-xl">
             <nav className="flex flex-col p-4 gap-1">
               <MobileNavLink href={`/${locale}/sport`} onClick={() => setMobileMenuOpen(false)}>
                 <Home className="h-4 w-4" />
@@ -163,18 +156,29 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-emerald-100/50 bg-white/60 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      {/* Footer — Powered by MediSoft Health endorsement */}
+      <footer className="border-t border-[var(--color-sport-100)] bg-white/70 backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Dumbbell className="h-4 w-4 text-emerald-500" />
-              <span>MediSport — {t("tagline")}</span>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/images/medisport-icon-192.png"
+                alt="MediSport"
+                width={28}
+                height={28}
+                className="h-7 w-7 rounded-lg"
+              />
+              <span className="text-sm text-slate-500">{t("tagline")}</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-slate-400">
-              <span>© 2026 MediSoft Health</span>
-              <span>•</span>
-              <Link href={`/${locale}/sport/auth`} className="hover:text-emerald-600 transition-colors">
+              <span>Powered by MediSoft Health</span>
+              <span aria-hidden>·</span>
+              <span>© 2026</span>
+              <span aria-hidden>·</span>
+              <Link
+                href={`/${locale}/sport/auth`}
+                className="ms-glide transition-colors hover:text-[var(--color-sport-700)]"
+              >
                 {t("login")}
               </Link>
             </div>
@@ -183,7 +187,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
       </footer>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden border-t border-emerald-100 bg-white/95 backdrop-blur-xl safe-area-bottom">
+      <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden border-t border-[var(--color-sport-100)] bg-white/95 backdrop-blur-xl safe-area-bottom">
         <div className="flex items-center justify-around py-2">
           <BottomNavItem href={`/${locale}/sport`} icon={Home} label={t("home")} active={pathname === `/${locale}/sport`} />
           <BottomNavItem href={`/${locale}/sport/trainee`} icon={Activity} label={t("trainee")} active={pathname.includes("/trainee")} />
@@ -211,9 +215,9 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+      className={`ms-glide flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
         active
-          ? "bg-emerald-50 text-emerald-700"
+          ? "bg-[var(--color-sport-50)] text-[var(--color-sport-700)]"
           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
       }`}
     >
@@ -235,7 +239,7 @@ function MobileNavLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+      className="ms-glide flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-[var(--color-sport-50)] hover:text-[var(--color-sport-700)]"
     >
       {children}
     </Link>
@@ -256,12 +260,12 @@ function BottomNavItem({
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
-        active ? "text-emerald-600" : "text-slate-400 hover:text-slate-600"
+      className={`ms-glide flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 transition-colors ${
+        active ? "text-[var(--color-sport-600)]" : "text-slate-400 hover:text-slate-600"
       }`}
     >
-      <Icon className={`h-5 w-5 ${active ? "text-emerald-600" : ""}`} />
-      <span className="text-[10px] font-medium">{label}</span>
+      <Icon className={`h-5 w-5 ${active ? "text-[var(--color-sport-600)]" : ""}`} />
+      <span className="text-[10px] font-semibold">{label}</span>
     </Link>
   );
 }

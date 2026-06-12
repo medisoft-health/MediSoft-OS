@@ -38,46 +38,45 @@ export default function SportLandingPage() {
 
   return (
     <div className="flex flex-col pb-20 md:pb-0">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50" />
-          <div className="absolute top-20 start-10 h-72 w-72 rounded-full bg-emerald-200/20 blur-3xl" />
-          <div className="absolute bottom-10 end-10 h-96 w-96 rounded-full bg-teal-200/20 blur-3xl" />
+      {/* Hero Section — Slate 900 with brand radial glows (brand guide) */}
+      <section className="relative overflow-hidden px-4 py-20 sm:px-6 sm:py-28 lg:px-8 bg-slate-900">
+        <div className="absolute inset-0 -z-0">
+          <div className="absolute top-[-10%] end-[8%] h-[36rem] w-[36rem] rounded-full bg-[var(--color-sport-500)]/30 blur-3xl" />
+          <div className="absolute bottom-[-15%] start-[6%] h-[28rem] w-[28rem] rounded-full bg-[var(--color-energy-500)]/18 blur-3xl" />
         </div>
 
-        <div className="mx-auto max-w-4xl text-center">
-          <Badge variant="secondary" className="mb-4 bg-emerald-100 text-emerald-700 border-emerald-200">
-            <Sparkles className="h-3 w-3 me-1" />
+        <div className="relative z-10 mx-auto max-w-4xl text-center">
+          <span className="ms-grad-brand mb-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-semibold text-white shadow-lg">
+            <Sparkles className="h-3.5 w-3.5" />
             {t("heroTag")}
-          </Badge>
-          
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+          </span>
+
+          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
             {t("heroTitle")}
           </h1>
-          
-          <p className="mt-4 text-lg text-slate-600 sm:text-xl max-w-2xl mx-auto">
+
+          <p className="mt-5 text-lg text-slate-300 sm:text-xl max-w-2xl mx-auto">
             {t("heroSubtitle")}
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href={`/${locale}/sport/auth?mode=register&role=trainee`}>
-              <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-200/50 rounded-xl px-8">
+              <Button size="lg" className="ms-glide ms-grad-brand text-white shadow-lg shadow-[var(--color-sport-500)]/30 rounded-xl px-8 hover:brightness-105">
                 <Activity className="h-5 w-5 me-2" />
                 {t("joinAsTrainee")}
               </Button>
             </Link>
             <Link href={`/${locale}/sport/auth?mode=register&role=coach`}>
-              <Button size="lg" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl px-8">
+              <Button size="lg" variant="outline" className="ms-glide rounded-xl px-8 border-white/25 bg-white/5 text-white hover:bg-white/10">
                 <Users className="h-5 w-5 me-2" />
                 {t("joinAsCoach")}
               </Button>
             </Link>
           </div>
 
-          <p className="mt-4 text-sm text-slate-500">
+          <p className="mt-5 text-sm text-slate-400">
             {t("alreadyHaveAccount")}{" "}
-            <Link href={`/${locale}/sport/auth`} className="text-emerald-600 font-medium hover:underline">
+            <Link href={`/${locale}/sport/auth`} className="font-semibold text-[var(--color-sport-400)] hover:underline">
               {t("loginHere")}
             </Link>
           </p>
@@ -138,7 +137,7 @@ export default function SportLandingPage() {
       </section>
 
       {/* Dual-Entry Section */}
-      <section className="px-4 py-12 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-emerald-50/30">
+      <section className="px-4 py-12 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-[var(--color-sport-50)]">
         <div className="mx-auto max-w-5xl">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
@@ -151,34 +150,34 @@ export default function SportLandingPage() {
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* Trainee Card */}
-            <Card className="relative overflow-hidden border-emerald-200 hover:shadow-xl hover:shadow-emerald-100/50 transition-all duration-300 group">
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
+            <Card className="ms-glide relative overflow-hidden border-[var(--color-sport-300)] hover:shadow-xl hover:shadow-[var(--color-sport-100)] transition-all duration-300 group">
+              <div className="absolute top-0 inset-x-0 h-1 ms-grad-brand" />
               <CardContent className="p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 mb-4 group-hover:scale-110 transition-transform">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-sport-100)] text-[var(--color-sport-600)] mb-4 group-hover:scale-110 transition-transform">
                   <Activity className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">{t("traineeCardTitle")}</h3>
                 <p className="text-slate-600 text-sm mb-4">{t("traineeCardDesc")}</p>
                 <ul className="space-y-2 text-sm text-slate-600 mb-6">
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("traineeFeature1")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("traineeFeature2")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("traineeFeature3")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("traineeFeature4")}
                   </li>
                 </ul>
                 <Link href={`/${locale}/sport/auth?mode=register&role=trainee`}>
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">
+                  <Button className="ms-glide w-full bg-[var(--color-sport-600)] hover:bg-[var(--color-sport-700)] text-white rounded-lg">
                     {t("startAsTrainee")}
                     <ArrowRight className={`h-4 w-4 ms-2 ${isRtl ? "rotate-180" : ""}`} />
                   </Button>
@@ -187,34 +186,34 @@ export default function SportLandingPage() {
             </Card>
 
             {/* Coach Card */}
-            <Card className="relative overflow-hidden border-blue-200 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 group">
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-400 to-indigo-500" />
+            <Card className="ms-glide relative overflow-hidden border-[var(--color-coach-300)] hover:shadow-xl hover:shadow-[var(--color-coach-100)] transition-all duration-300 group">
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[var(--color-coach-500)] to-[var(--color-coach-700)]" />
               <CardContent className="p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-coach-100)] text-[var(--color-coach-500)] mb-4 group-hover:scale-110 transition-transform">
                   <Users className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">{t("coachCardTitle")}</h3>
                 <p className="text-slate-600 text-sm mb-4">{t("coachCardDesc")}</p>
                 <ul className="space-y-2 text-sm text-slate-600 mb-6">
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("coachFeature1")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("coachFeature2")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("coachFeature3")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Star className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Star className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("coachFeature4")}
                   </li>
                 </ul>
                 <Link href={`/${locale}/sport/auth?mode=register&role=coach`}>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                  <Button className="ms-glide w-full bg-[var(--color-coach-500)] hover:bg-[var(--color-coach-600)] text-white rounded-lg">
                     {t("startAsCoach")}
                     <ArrowRight className={`h-4 w-4 ms-2 ${isRtl ? "rotate-180" : ""}`} />
                   </Button>
@@ -265,63 +264,63 @@ export default function SportLandingPage() {
             </Card>
 
             {/* Pro Tier */}
-            <Card className="border-emerald-300 ring-2 ring-emerald-100 hover:shadow-xl transition-shadow relative">
+            <Card className="border-[var(--color-sport-300)] ring-2 ring-[var(--color-sport-100)] hover:shadow-xl transition-shadow relative">
               <div className="absolute -top-3 inset-x-0 flex justify-center">
-                <Badge className="bg-emerald-600 text-white">{t("mostPopular")}</Badge>
+                <Badge className="bg-[var(--color-sport-600)] text-white">{t("mostPopular")}</Badge>
               </div>
               <CardContent className="p-6 text-center">
-                <Badge variant="secondary" className="mb-3 bg-emerald-100 text-emerald-700">{t("tierPro")}</Badge>
+                <Badge variant="secondary" className="mb-3 bg-[var(--color-sport-100)] text-[var(--color-sport-700)]">{t("tierPro")}</Badge>
                 <h3 className="text-2xl font-bold text-slate-900">{t("tierProPrice")}</h3>
                 <p className="text-sm text-slate-500 mt-1 mb-4">{t("tierProDesc")}</p>
                 <ul className="space-y-2 text-sm text-slate-600 text-start mb-6">
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("tierProFeature1")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("tierProFeature2")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("tierProFeature3")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-sport-500)] shrink-0" />
                     {t("tierProFeature4")}
                   </li>
                 </ul>
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">
+                <Button className="ms-glide w-full bg-[var(--color-sport-600)] hover:bg-[var(--color-sport-700)] text-white rounded-lg">
                   {t("subscribePro")}
                 </Button>
               </CardContent>
             </Card>
 
             {/* Elite Tier */}
-            <Card className="border-blue-200 hover:shadow-lg transition-shadow">
+            <Card className="border-[var(--color-coach-300)] hover:shadow-lg transition-shadow">
               <CardContent className="p-6 text-center">
-                <Badge variant="secondary" className="mb-3 bg-blue-100 text-blue-700">{t("tierElite")}</Badge>
+                <Badge variant="secondary" className="mb-3 bg-[var(--color-coach-100)] text-[var(--color-coach-600)]">{t("tierElite")}</Badge>
                 <h3 className="text-2xl font-bold text-slate-900">{t("tierElitePrice")}</h3>
                 <p className="text-sm text-slate-500 mt-1 mb-4">{t("tierEliteDesc")}</p>
                 <ul className="space-y-2 text-sm text-slate-600 text-start mb-6">
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("tierEliteFeature1")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("tierEliteFeature2")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("tierEliteFeature3")}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <Zap className="h-3.5 w-3.5 text-[var(--color-coach-500)] shrink-0" />
                     {t("tierEliteFeature4")}
                   </li>
                 </ul>
-                <Button variant="outline" className="w-full rounded-lg border-blue-200 text-blue-700 hover:bg-blue-50">
+                <Button variant="outline" className="ms-glide w-full rounded-lg border-[var(--color-coach-300)] text-[var(--color-coach-600)] hover:bg-[var(--color-coach-100)]">
                   {t("subscribeElite")}
                 </Button>
               </CardContent>
@@ -349,16 +348,16 @@ function FeatureCard({
   color: string;
 }) {
   const colorMap: Record<string, string> = {
-    emerald: "bg-emerald-100 text-emerald-600",
-    green: "bg-green-100 text-green-600",
-    teal: "bg-teal-100 text-teal-600",
-    blue: "bg-blue-100 text-blue-600",
-    purple: "bg-purple-100 text-purple-600",
+    emerald: "bg-[var(--color-sport-100)] text-[var(--color-sport-600)]",
+    green: "bg-[var(--color-sport-100)] text-[var(--color-sport-700)]",
+    teal: "bg-[var(--color-sport-100)] text-[var(--color-sport-500)]",
+    blue: "bg-[var(--color-coach-100)] text-[var(--color-coach-500)]",
+    purple: "bg-[var(--color-energy-100)] text-[var(--color-energy-600)]",
     amber: "bg-amber-100 text-amber-600",
   };
 
   return (
-    <Card className="border-slate-100 hover:shadow-md hover:border-emerald-100 transition-all duration-200 group">
+    <Card className="ms-glide border-slate-100 hover:shadow-md hover:border-[var(--color-sport-100)] transition-all duration-200 group">
       <CardContent className="p-5">
         <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorMap[color]} mb-3 group-hover:scale-110 transition-transform`}>
           <Icon className="h-5 w-5" />

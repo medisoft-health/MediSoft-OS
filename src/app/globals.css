@@ -70,6 +70,50 @@
   --shadow-md: 0 4px 6px oklch(0% 0 0 / 0.05), 0 2px 4px oklch(0% 0 0 / 0.04);
   --shadow-lg: 0 10px 15px oklch(0% 0 0 / 0.06), 0 4px 6px oklch(0% 0 0 / 0.03);
   --shadow-xl: 0 20px 25px oklch(0% 0 0 / 0.08), 0 8px 10px oklch(0% 0 0 / 0.03);
+
+  /* ============================================
+     MediSport — Brand Identity v1.0 (June 2026)
+     Endorsed sub-brand of MediSoft. Vital Green primary,
+     Energy Pink + Trust Blue portal accents, Plum + AI gradient.
+     These power the (sport) route group and /medisport module.
+     ============================================ */
+  /* Primary — Vital Green (from runner icon) */
+  --color-sport-50:  #ECFDF5;
+  --color-sport-100: #D1FAE5;
+  --color-sport-300: #6EE7B7;
+  --color-sport-400: #34D399;
+  --color-sport-500: #0E9F6E;
+  --color-sport-600: #057A55;
+  --color-sport-700: #047857;
+  --color-sport-800: #065F46;
+  --color-sport-900: #064E3B;
+  /* Secondary — Energy Pink (achievements / streaks) */
+  --color-energy-100: #FCE7F3;
+  --color-energy-300: #F9A8D4;
+  --color-energy-500: #E8509B;
+  --color-energy-600: #C2367D;
+  --color-energy-700: #9D2463;
+  /* Secondary — Trust Blue (coach / clinical) */
+  --color-coach-100: #DBEAFE;
+  --color-coach-300: #93B8E9;
+  --color-coach-500: #2456A6;
+  --color-coach-600: #1B4485;
+  --color-coach-700: #143468;
+  /* Accent — Plum (wordmark runner) */
+  --color-plum-500: #8E3A63;
+  --color-plum-700: #6E2348;
+
+  /* Sport gradients */
+  --grad-sport-brand: linear-gradient(135deg, #34D399 0%, #0E9F6E 45%, #047857 100%);
+  --grad-sport-energy: linear-gradient(135deg, #E8509B 0%, #8E3A63 60%, #2456A6 100%);
+  --grad-sport-ai: linear-gradient(135deg, #F6A335 0%, #E13A8C 30%, #7C3AED 60%, #2D6CB5 85%, #22C3BE 100%);
+
+  /* Sport typography — Exo 2 / Cairo display, Inter / IBM Plex Sans Arabic body */
+  --font-sport-display: var(--font-exo2), var(--font-cairo), var(--font-inter), system-ui, sans-serif;
+  --font-sport-body: var(--font-inter), var(--font-plex-arabic), system-ui, sans-serif;
+
+  /* Sport card radius */
+  --radius-sport: 0.75rem;
 }
 
 /* ============================================
@@ -417,4 +461,108 @@ a:focus-visible,
   .infographic-report .rounded-2xl {
     break-inside: avoid;
   }
+}
+
+
+/* ============================================
+   MediSport — Brand Identity utilities
+   Scoped so the clinical app is unaffected.
+   The .medisport-scope is applied by the sport
+   layout shell and the integrated /medisport module.
+   ============================================ */
+
+/* Display headings inside MediSport use Exo 2 (Cairo for Arabic) */
+.medisport-scope h1,
+.medisport-scope h2,
+.medisport-scope h3,
+.medisport-scope h4,
+.medisport-scope .ms-display {
+  font-family: var(--font-sport-display);
+  letter-spacing: -0.01em;
+  color: inherit;
+}
+html[dir="rtl"] .medisport-scope h1,
+html[dir="rtl"] .medisport-scope h2,
+html[dir="rtl"] .medisport-scope h3,
+html[dir="rtl"] .medisport-scope h4 {
+  font-family: var(--font-cairo), var(--font-sport-display);
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.medisport-scope {
+  font-family: var(--font-sport-body);
+}
+html[dir="rtl"] .medisport-scope {
+  font-family: var(--font-plex-arabic), var(--font-sport-body);
+}
+
+/* Brand gradients */
+.ms-grad-brand { background: var(--grad-sport-brand); }
+.ms-grad-energy { background: var(--grad-sport-energy); }
+.ms-grad-ai { background: var(--grad-sport-ai); }
+
+.ms-grad-brand-text {
+  background: var(--grad-sport-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Reserved AI gradient text — for AI Coach features only */
+.ms-grad-ai-text {
+  background: var(--grad-sport-ai);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Confident-glide easing per brand guide motion spec */
+.ms-glide {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Metric value style — tabular, data-lg */
+.ms-data {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-glide { transition: none; }
+}
+
+
+/* ============================================
+   MediSport — Brand color remap (scoped)
+   Existing pages/components use Tailwind emerald/teal
+   utilities. Inside .medisport-scope we remap those
+   palette variables to the official MediSport Vital
+   Green so the whole experience adopts the brand
+   without touching every file. Clinical app keeps
+   Tailwind's default emerald/teal (unaffected).
+   ============================================ */
+.medisport-scope {
+  /* Vital Green ramp mapped onto Tailwind "emerald" */
+  --color-emerald-50:  #ECFDF5;
+  --color-emerald-100: #D1FAE5;
+  --color-emerald-200: #A7F3D0;
+  --color-emerald-300: #6EE7B7;
+  --color-emerald-400: #34D399;
+  --color-emerald-500: #0E9F6E;
+  --color-emerald-600: #057A55;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065F46;
+  --color-emerald-900: #064E3B;
+  /* Teal harmonized toward the brand green so gradients stay on-brand */
+  --color-teal-50:  #ECFDF5;
+  --color-teal-100: #CCFBEF;
+  --color-teal-200: #99F6E0;
+  --color-teal-300: #5EEAD4;
+  --color-teal-400: #2DD4BF;
+  --color-teal-500: #0E9F6E;
+  --color-teal-600: #057A55;
+  --color-teal-700: #036A4A;
+  --color-teal-800: #065F46;
+  --color-teal-900: #064E3B;
 }

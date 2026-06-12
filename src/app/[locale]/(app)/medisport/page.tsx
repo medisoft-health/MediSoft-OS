@@ -198,7 +198,7 @@ function OnboardingScreen({ onComplete }: { onComplete: (profile: AthleteProfile
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] p-4">
+    <div className="medisport-scope flex flex-col items-center justify-center min-h-[80vh] p-4">
       <div className="w-full max-w-2xl">
         {/* Logo & Header */}
         <div className="text-center mb-8">
@@ -224,7 +224,7 @@ function OnboardingScreen({ onComplete }: { onComplete: (profile: AthleteProfile
             <div
               key={i}
               className={`h-2 rounded-full transition-all duration-300 ${
-                i + 1 <= step ? "w-12 bg-blue-600" : "w-8 bg-gray-200"
+                i + 1 <= step ? "w-12 bg-[var(--color-sport-600)]" : "w-8 bg-gray-200"
               }`}
             />
           ))}
@@ -1149,7 +1149,7 @@ export default function MediSportPage() {
 
   // Show adaptive dashboard based on category
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
+    <div className="medisport-scope flex flex-col gap-4 p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

@@ -1916,6 +1916,8 @@
     "printPrescription": "طباعة الوصفة"
   },
   "SportStandalone": {
+    "labResults": "نتائج التحاليل",
+    "labResultsDesc": "سجّل تحاليلك وقارن النتائج عبر المواسم",
     "home": "الرئيسية",
     "trainee": "المتدرب",
     "coach": "المدرب",

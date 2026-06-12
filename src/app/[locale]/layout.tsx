@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { Inter, JetBrains_Mono, Noto_Sans_Arabic, Pacifico, Playfair_Display } from "next/font/google";
+import { Inter, JetBrains_Mono, Noto_Sans_Arabic, Pacifico, Playfair_Display, Exo_2, Cairo, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { routing, isRtlLocale, type Locale } from "@/i18n/routing";
 
@@ -47,6 +47,28 @@ const notoSansArabic = Noto_Sans_Arabic({
   weight: ["400", "500", "600", "700"],
 });
 
+// --- MediSport brand fonts ---
+const exo2 = Exo_2({
+  variable: "--font-exo2",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic", "latin"],
+  display: "swap",
+  weight: ["400", "600", "700", "800"],
+});
+
+const plexArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-plex-arabic",
+  subsets: ["arabic", "latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
 /**
  * Locale-aware root shell. Owns the <html> element so we can set
  * `lang` + `dir` per request, mounts the next-intl client provider
@@ -72,7 +94,7 @@ export default async function LocaleLayout({
     <html
       lang={typedLocale}
       dir={isRtlLocale(typedLocale) ? "rtl" : "ltr"}
-      className={`${inter.variable} ${jetbrainsMono.variable} ${pacifico.variable} ${notoSansArabic.variable} ${playfairDisplay.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${pacifico.variable} ${notoSansArabic.variable} ${playfairDisplay.variable} ${exo2.variable} ${cairo.variable} ${plexArabic.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <NextIntlClientProvider locale={typedLocale} messages={messages}>
