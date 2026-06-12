@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { ClientsManager } from "@/components/sport/clients-manager";
 
 /**
  * MediSport Standalone — Coach Dashboard
@@ -164,6 +165,9 @@ export default function CoachDashboardPage() {
 
         {/* Clients Tab */}
         <TabsContent value="clients" className="space-y-4">
+          {/* Real DB-backed roster (mirrored with integrated module) */}
+          <ClientsManager />
+
           {/* Search */}
           <div className="relative">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />

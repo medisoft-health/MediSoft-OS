@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BodyCompositionHistory } from "@/components/sport/body-composition-history";
 import {
   Activity,
   ArrowDown,
@@ -256,10 +257,11 @@ export function BodyCompositionTracker({
         {/* Tabs */}
         {records.length > 0 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview" className="text-[11px]">نظرة عامة</TabsTrigger>
               <TabsTrigger value="comparison" className="text-[11px]">مقارنة</TabsTrigger>
               <TabsTrigger value="segmental" className="text-[11px]">تحليل قطاعي</TabsTrigger>
+              <TabsTrigger value="saved" className="text-[11px]">السجل المحفوظ</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -339,6 +341,11 @@ export function BodyCompositionTracker({
                   أضف قياسين على الأقل لعرض المقارنة
                 </div>
               )}
+            </TabsContent>
+
+            {/* Saved (DB-backed, mirrored with standalone) Tab */}
+            <TabsContent value="saved" className="mt-3">
+              <BodyCompositionHistory />
             </TabsContent>
 
             {/* Segmental Tab */}

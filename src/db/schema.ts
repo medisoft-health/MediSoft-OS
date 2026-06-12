@@ -2066,3 +2066,35 @@ export const sportPostLikes = pgTable(
     uniqueIndex("sport_post_like_idx").on(t.postId, t.userId),
   ]
 );
+
+
+// --- Body composition measurements over time (Phase 5) ---
+export const sportBodyMeasurements = pgTable(
+  "sport_body_measurements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    measuredAt: date("measured_at").notNull().defaultNow(),
+    weightKg: numeric("weight_kg", { precision: 5, scale: 1 }),
+    bodyFatPct: numeric("body_fat_pct", { precision: 4, scale: 1 }),
+    muscleMassKg: numeric("muscle_mass_kg", { precision: 5, scale: 1 }),
+    waterPct: numeric("water_pct", { precision: 4, scale: 1 }),
+    boneMassKg: numeric("bone_mass_kg", { precision: 4, scale: 1 }),
+    visceralFat: numeric("visceral_fat", { precision: 4, scale: 1 }),
+    bmrKcal: integer("bmr_kcal"),
+    waistCm: numeric("waist_cm", { precision: 5, scale: 1 }),
+    hipCm: numeric("hip_cm", { precision: 5, scale: 1 }),
+    chestCm: numeric("chest_cm", { precision: 5, scale: 1 }),
+    armCm: numeric("arm_cm", { precision: 5, scale: 1 }),
+    thighCm: numeric("thigh_cm", { precision: 5, scale: 1 }),
+    source: varchar("source", { length: 24 }).notNull().default("manual"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_body_user_idx").on(t.userId),
+    index("sport_body_user_date_idx").on(t.userId, t.measuredAt),
+  ]
+);

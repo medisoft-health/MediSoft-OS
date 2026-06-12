@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { MyCoachCard } from "@/components/sport/clients-manager";
 
 /**
  * MediSport Standalone — Trainee Dashboard
@@ -65,6 +66,11 @@ export default function TraineeDashboardPage() {
           <Flame className="h-3 w-3 me-1" />
           {t("streak")}: 7
         </Badge>
+      </div>
+
+      {/* Linked coach (DB-backed, mirrored) */}
+      <div className="mb-4">
+        <MyCoachCard />
       </div>
 
       {/* Daily Progress Overview */}
@@ -149,14 +155,26 @@ export default function TraineeDashboardPage() {
           color="green"
           href={`/${locale}/sport/trainee/community`}
         />
+        <FeatureButton
+          icon={Scale}
+          label={t("bodyComposition")}
+          description={t("bodyCompositionDesc")}
+          color="blue"
+          href={`/${locale}/sport/trainee/body`}
+        />
       </div>
 
-      {/* Body Composition Tracker */}
+      {/* Body Composition Tracker (snapshot — full history at /trainee/body) */}
       <Card className="border-slate-100 mb-4">
         <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-            <Scale className="h-4 w-4 text-blue-500" />
-            {t("bodyComposition")}
+          <CardTitle className="text-sm font-semibold text-slate-900 flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <Scale className="h-4 w-4 text-blue-500" />
+              {t("bodyComposition")}
+            </span>
+            <Link href={`/${locale}/sport/trainee/body`} className="text-xs font-normal text-emerald-600 hover:underline">
+              {t("viewHistory")}
+            </Link>
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4">

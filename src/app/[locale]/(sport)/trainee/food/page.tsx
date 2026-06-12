@@ -71,6 +71,42 @@ export default function FoodLoggerPage() {
   // Daily targets
   const targets = { calories: 2200, protein: 150, carbs: 250, fat: 70 };
 
+  // Load today's persisted meals from the shared MediSport API
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/sport?action=my-food-logs");
+        if (!res.ok) return; // not signed in / no data
+        const json = await res.json();
+        if (!active || !json.success || !Array.isArray(json.data)) return;
+        const restored: LoggedMeal[] = json.data
+          .map((row: Record<string, unknown>) => {
+            const food = FOOD_DATABASE.find((f) => f.id === row.foodId);
+            if (!food) return null;
+            return {
+              id: String(row.id),
+              food,
+              grams: Number(row.grams),
+              mealType: row.mealType as LoggedMeal["mealType"],
+              time: new Date(String(row.createdAt)).toLocaleTimeString(
+                locale === "ar" ? "ar-SA" : "en-US",
+                { hour: "2-digit", minute: "2-digit" }
+              ),
+            } as LoggedMeal;
+          })
+          .filter(Boolean) as LoggedMeal[];
+        setLoggedMeals(restored);
+      } catch {
+        /* offline / anonymous — keep local state */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Calculate daily totals
   const dailyTotals = React.useMemo(() => {
     return loggedMeals.reduce(
@@ -109,25 +145,46 @@ export default function FoodLoggerPage() {
     setShowAddModal(true);
   };
 
-  const handleAddMeal = () => {
+  const handleAddMeal = async () => {
     if (!selectedFood) return;
+    const food = selectedFood;
+    const grams = portionGrams;
+    const mt = mealType;
     const newMeal: LoggedMeal = {
       id: Date.now().toString(),
-      food: selectedFood,
-      grams: portionGrams,
-      mealType,
+      food,
+      grams,
+      mealType: mt,
       time: new Date().toLocaleTimeString(locale === "ar" ? "ar-SA" : "en-US", {
         hour: "2-digit",
         minute: "2-digit",
       }),
     };
-    setLoggedMeals([...loggedMeals, newMeal]);
+    // Optimistic update
+    setLoggedMeals((prev) => [...prev, newMeal]);
     setShowAddModal(false);
     setSelectedFood(null);
+    // Persist to shared MediSport API (server keeps the source of truth)
+    try {
+      const res = await fetch("/api/sport", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "food-log", foodId: food.id, grams, mealType: mt }),
+      });
+      const json = await res.json();
+      if (json.success && json.data?.id) {
+        // Replace temp id with the DB id
+        setLoggedMeals((prev) =>
+          prev.map((m) => (m.id === newMeal.id ? { ...m, id: String(json.data.id) } : m))
+        );
+      }
+    } catch {
+      /* offline — meal stays in local state */
+    }
   };
 
   const handleRemoveMeal = (id: string) => {
-    setLoggedMeals(loggedMeals.filter((m) => m.id !== id));
+    setLoggedMeals((prev) => prev.filter((m) => m.id !== id));
   };
 
   return (

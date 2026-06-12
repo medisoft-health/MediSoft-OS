@@ -2106,7 +2106,9 @@
     "wadaCheck": "WADA Check",
     "wadaCheckDesc": "Verify supplement compliance",
     "community": "Community",
-    "communityDesc": "Challenges & feed"
+    "communityDesc": "Challenges & feed",
+    "bodyCompositionDesc": "Track weight, fat & muscle over time",
+    "viewHistory": "View History"
   },
   "SportFood": {
     "title": "Food Logger",
@@ -2360,5 +2362,35 @@
     "athlete": "Athlete",
     "joinChallenge": "Join Challenge",
     "completed": "Completed"
+  },
+  "SportClients": {
+    "title": "My Trainees",
+    "add": "Add",
+    "added": "Trainee linked successfully",
+    "emailPlaceholder": "Trainee's email",
+    "noUser": "No MediSport user found with this email.",
+    "selfLink": "You cannot add yourself.",
+    "error": "Something went wrong. Please try again.",
+    "empty": "No trainees linked yet. Add one by email.",
+    "athlete": "Athlete",
+    "active": "Active",
+    "remove": "Remove",
+    "yourCoach": "Your Coach",
+    "coach": "Coach"
+  },
+  "SportBody": {
+    "title": "Body Composition",
+    "subtitle": "Track and compare your body composition over time",
+    "addMeasurement": "Add Measurement",
+    "save": "Save",
+    "history": "History",
+    "empty": "No measurements yet. Add your first one.",
+    "needTwo": "Add at least two measurements to see your progress.",
+    "date": "Date",
+    "weightKg": "Weight (kg)",
+    "bodyFatPct": "Body Fat (%)",
+    "muscleMassKg": "Muscle (kg)",
+    "waterPct": "Water (%)",
+    "waistCm": "Waist (cm)"
   }
 }

@@ -6,6 +6,10 @@ import {
   sportBioAgeRecords,
   sportPrograms,
   sportMedicalConsents,
+  sportCoachClients,
+  sportProfiles,
+  sportBodyMeasurements,
+  users,
 } from "@/db/schema";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { requireSessionApi } from "@/lib/auth-helpers";
@@ -177,12 +181,90 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: rows[0] || null });
       }
 
+      // --- Coach views their trainees ---
+      case "my-clients": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const rows = await db
+          .select({
+            linkId: sportCoachClients.id,
+            status: sportCoachClients.status,
+            notes: sportCoachClients.notes,
+            createdAt: sportCoachClients.createdAt,
+            traineeId: users.id,
+            traineeName: users.name,
+            traineeEmail: users.email,
+          })
+          .from(sportCoachClients)
+          .innerJoin(users, eq(users.id, sportCoachClients.traineeId))
+          .where(eq(sportCoachClients.coachId, auth.user.id))
+          .orderBy(desc(sportCoachClients.createdAt));
+        return NextResponse.json({ success: true, data: rows });
+      }
+
+      // --- Body composition history + first/last comparison ---
+      case "my-body-measurements": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const rows = await db
+          .select()
+          .from(sportBodyMeasurements)
+          .where(eq(sportBodyMeasurements.userId, auth.user.id))
+          .orderBy(sportBodyMeasurements.measuredAt);
+        const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+        let comparison: Record<string, unknown> | null = null;
+        if (rows.length >= 2) {
+          const first = rows[0];
+          const last = rows[rows.length - 1];
+          const delta = (a: unknown, b: unknown) => {
+            const na = num(a);
+            const nb = num(b);
+            if (na === null || nb === null) return null;
+            return Math.round((nb - na) * 10) / 10;
+          };
+          comparison = {
+            from: first.measuredAt,
+            to: last.measuredAt,
+            weightKg: delta(first.weightKg, last.weightKg),
+            bodyFatPct: delta(first.bodyFatPct, last.bodyFatPct),
+            muscleMassKg: delta(first.muscleMassKg, last.muscleMassKg),
+            waistCm: delta(first.waistCm, last.waistCm),
+          };
+        }
+        return NextResponse.json({ success: true, data: rows, comparison });
+      }
+
+      // --- Trainee views their coach ---
+      case "my-coach": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const rows = await db
+          .select({
+            linkId: sportCoachClients.id,
+            status: sportCoachClients.status,
+            createdAt: sportCoachClients.createdAt,
+            coachId: users.id,
+            coachName: users.name,
+            coachEmail: users.email,
+          })
+          .from(sportCoachClients)
+          .innerJoin(users, eq(users.id, sportCoachClients.coachId))
+          .where(
+            and(
+              eq(sportCoachClients.traineeId, auth.user.id),
+              eq(sportCoachClients.status, "active")
+            )
+          )
+          .limit(1);
+        return NextResponse.json({ success: true, data: rows[0] || null });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements",
           },
           { status: 400 }
         );
@@ -403,12 +485,107 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, data: saved || null, persisted: !!saved });
       }
 
+      // --- Save a body composition measurement ---
+      case "body-measurement": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const m = body.measurement || body;
+        const numOrNull = (v: unknown) =>
+          v === undefined || v === null || v === "" ? null : String(v);
+        const [saved] = await db
+          .insert(sportBodyMeasurements)
+          .values({
+            userId: auth.user.id,
+            measuredAt: m.measuredAt ? String(m.measuredAt) : todayStr(),
+            weightKg: numOrNull(m.weightKg),
+            bodyFatPct: numOrNull(m.bodyFatPct),
+            muscleMassKg: numOrNull(m.muscleMassKg),
+            waterPct: numOrNull(m.waterPct),
+            boneMassKg: numOrNull(m.boneMassKg),
+            visceralFat: numOrNull(m.visceralFat),
+            bmrKcal: m.bmrKcal ? Number(m.bmrKcal) : null,
+            waistCm: numOrNull(m.waistCm),
+            hipCm: numOrNull(m.hipCm),
+            chestCm: numOrNull(m.chestCm),
+            armCm: numOrNull(m.armCm),
+            thighCm: numOrNull(m.thighCm),
+            source: m.source ? String(m.source) : "manual",
+            note: m.note ? String(m.note) : null,
+          })
+          .returning({ id: sportBodyMeasurements.id });
+        return NextResponse.json({ success: true, data: { id: saved?.id }, persisted: true });
+      }
+
+      // --- Coach links a trainee by email ---
+      case "coach-add-client": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const email = String(body.email || "").trim().toLowerCase();
+        const notes = body.notes ? String(body.notes) : null;
+        if (!email) {
+          return NextResponse.json({ success: false, error: "Missing trainee email" }, { status: 400 });
+        }
+        // Find the trainee user by email
+        const [trainee] = await db
+          .select({ id: users.id, name: users.name, email: users.email })
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+        if (!trainee) {
+          return NextResponse.json(
+            { success: false, error: "no_user", message: "No MediSport user found with this email." },
+            { status: 404 }
+          );
+        }
+        if (trainee.id === auth.user.id) {
+          return NextResponse.json({ success: false, error: "self_link" }, { status: 400 });
+        }
+        // Ensure the current user is registered as a coach profile
+        await db
+          .insert(sportProfiles)
+          .values({ userId: auth.user.id, role: "coach" })
+          .onConflictDoNothing({ target: sportProfiles.userId });
+        // Create / reactivate the link (idempotent on unique coach+trainee)
+        const [link] = await db
+          .insert(sportCoachClients)
+          .values({ coachId: auth.user.id, traineeId: trainee.id, notes, status: "active" })
+          .onConflictDoUpdate({
+            target: [sportCoachClients.coachId, sportCoachClients.traineeId],
+            set: { status: "active", notes },
+          })
+          .returning();
+        return NextResponse.json({
+          success: true,
+          data: { linkId: link.id, traineeId: trainee.id, traineeName: trainee.name, traineeEmail: trainee.email, status: link.status },
+        });
+      }
+
+      // --- Coach ends a trainee relationship ---
+      case "coach-remove-client": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const traineeId = String(body.traineeId || "");
+        if (!traineeId) {
+          return NextResponse.json({ success: false, error: "Missing traineeId" }, { status: 400 });
+        }
+        await db
+          .update(sportCoachClients)
+          .set({ status: "ended" })
+          .where(
+            and(
+              eq(sportCoachClients.coachId, auth.user.id),
+              eq(sportCoachClients.traineeId, traineeId)
+            )
+          );
+        return NextResponse.json({ success: true });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement",
           },
           { status: 400 }
         );

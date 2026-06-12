@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { SharedCommunityPanel } from "@/components/sport/shared-community-panel";
 import {
   Card,
   CardContent,
@@ -282,7 +283,7 @@ export function SocialFeedButton() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function SocialContent() {
-  const [activeTab, setActiveTab] = React.useState<"feed" | "leaderboard" | "clubs">("feed");
+  const [activeTab, setActiveTab] = React.useState<"live" | "feed" | "leaderboard" | "clubs">("live");
   const [feed, setFeed] = React.useState(SAMPLE_FEED);
   const [leaderboardType, setLeaderboardType] = React.useState<"streak" | "workouts" | "calories">("streak");
   const [clubs, setClubs] = React.useState(CLUBS);
@@ -336,6 +337,7 @@ function SocialContent() {
       {/* Tab Navigation */}
       <div className="flex gap-2">
         {[
+          { id: "live" as const, label: "مباشر", icon: Users },
           { id: "feed" as const, label: "آخر الأخبار", icon: Zap },
           { id: "leaderboard" as const, label: "الترتيب", icon: Trophy },
           { id: "clubs" as const, label: "النوادي", icon: Users },
@@ -352,6 +354,9 @@ function SocialContent() {
           </Button>
         ))}
       </div>
+
+      {/* ═══ Live (DB-backed, mirrored with standalone) Tab ═══ */}
+      {activeTab === "live" && <SharedCommunityPanel defaultTab="feed" />}
 
       {/* ═══ Feed Tab ═══ */}
       {activeTab === "feed" && (
