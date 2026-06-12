@@ -1,14 +1,11 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   ArrowLeft,
-  ArrowRight,
-  Dumbbell,
   Eye,
   EyeOff,
   Loader2,
@@ -17,6 +14,7 @@ import {
   User,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -125,10 +123,14 @@ export default function SportAuthPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-xl shadow-emerald-200/50 mb-3">
-            <Dumbbell className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="text-xl font-bold text-slate-900">MediSport</h1>
+          <Image
+            src="/images/medisport-wordmark.png"
+            alt="MediSport"
+            width={180}
+            height={48}
+            className="h-12 w-auto mb-2"
+            priority
+          />
           <p className="text-sm text-slate-500 mt-1">{t("tagline")}</p>
         </div>
 
@@ -274,7 +276,7 @@ export default function SportAuthPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg h-11"
+                  className="w-full ms-grad-brand hover:opacity-90 text-white rounded-lg h-11 transition-opacity"
                 >
                   {loading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                   {mode === "login" ? t("loginBtn") : t("registerBtn")}

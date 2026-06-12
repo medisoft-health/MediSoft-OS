@@ -129,7 +129,7 @@ export default function SportOnboardingPage() {
         {step === "goal" && (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 mx-auto mb-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl ms-grad-brand mx-auto mb-3 shadow-lg shadow-sport-500/20">
                 {role === "trainee" ? (
                   <Target className="h-6 w-6 text-white" />
                 ) : (
@@ -270,7 +270,7 @@ export default function SportOnboardingPage() {
               <Button
                 onClick={handleComplete}
                 disabled={loading}
-                className="w-full mt-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg h-11"
+                className="w-full mt-6 ms-grad-brand hover:opacity-90 text-white rounded-lg h-11 transition-opacity"
               >
                 {loading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                 {t("completeOnboarding")}

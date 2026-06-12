@@ -28,13 +28,14 @@ export type TrendPoint = Record<string, string | number | null> & {
   label: string;
 };
 
+// MediSport brand palette — Vital Green primary, Trust Blue, Energy Pink, Plum, Amber, Teal
 const PALETTE = [
-  "#059669", // emerald-600
-  "#0d9488", // teal-600
-  "#6366f1", // indigo-500
-  "#f59e0b", // amber-500
-  "#ec4899", // pink-500
-  "#8b5cf6", // violet-500
+  "#0E9F6E", // Vital Green (brand primary)
+  "#2563EB", // Trust Blue (coach)
+  "#EC4899", // Energy Pink
+  "#7C3AED", // Plum
+  "#F59E0B", // Amber
+  "#14B8A6", // Teal
 ];
 
 export function trendColor(i: number): string {
