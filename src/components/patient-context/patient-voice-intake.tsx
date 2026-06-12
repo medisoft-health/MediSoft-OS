@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   Mic,
-  MicOff,
   Square,
   Play,
   Pause,
@@ -15,7 +14,6 @@ import {
   Save,
   FileText,
   Clock,
-  AudioWaveform,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { appointments, communicationLog, patients } from "@/db/schema";
-import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, desc, sql } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // Configuration

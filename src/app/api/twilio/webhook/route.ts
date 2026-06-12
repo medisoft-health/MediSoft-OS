@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { appointments, communicationLog, patients } from "@/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // Configuration

@@ -8,10 +8,7 @@ import {
   Droplets,
   Weight,
   Plus,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
-  Clock,
   Smartphone,
   Watch,
   Loader2,
@@ -369,7 +366,7 @@ export function PatientReadingsTab({ patientId }: Props) {
         <div className="text-center py-8 text-gray-500">
           <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300" />
           <p className="text-sm">لا توجد قراءات مسجلة بعد</p>
-          <p className="text-xs text-gray-400 mt-1">اضغط "قراءة جديدة" لتسجيل أول قراءة</p>
+          <p className="text-xs text-gray-400 mt-1">اضغط «قراءة جديدة» لتسجيل أول قراءة</p>
         </div>
       )}
     </div>

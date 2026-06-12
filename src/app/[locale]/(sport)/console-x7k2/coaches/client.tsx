@@ -3,24 +3,20 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
-import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AdminCoachVerification } from "@/components/sport/admin-coach-verification";
 
 /**
- * MediSport — Admin Coach Verification page.
- * Lives in the (sport) group so it shares the MediSport shell + brand identity.
- * Access control is enforced server-side by the API (role=admin → 403 otherwise),
- * and the component renders an "admins only" state on 403.
+ * Client view for the private admin coach-verification console.
+ * Server guard (page.tsx) already confirmed the platform-owner session.
  */
-export default function AdminCoachesPage() {
-  const locale = useLocale() as "ar" | "en";
+export function AdminCoachesClient({ locale }: { locale: "ar" | "en" }) {
   const isAr = locale === "ar";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/coach">
+        <Link href={`/${locale}/sport/coach`}>
           <Button variant="ghost" size="icon" className="rounded-full">
             <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
           </Button>

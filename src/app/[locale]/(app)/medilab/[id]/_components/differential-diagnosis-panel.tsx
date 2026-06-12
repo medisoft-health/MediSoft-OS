@@ -8,9 +8,7 @@ import {
   ChevronDown,
   FlaskConical,
   Loader2,
-  Pill,
   Search,
-  Sparkles,
   Stethoscope,
   X,
 } from "lucide-react";

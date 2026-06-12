@@ -46,7 +46,6 @@ import {
   SoapTemplateConfig,
   type SoapSectionConfig,
   getPresetSections,
-  ALL_SECTIONS,
 } from "@/components/mediscript/soap-template-config";
 import { useSession } from "@/lib/auth-client";
 import { SoapForm } from "./soap-form";

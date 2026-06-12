@@ -5,9 +5,6 @@ import Image from "next/image";
 import {
   MessageSquare,
   ChevronRight,
-  ChevronLeft,
-  User,
-  Search,
   Send,
   Copy,
   FileText,
@@ -16,12 +13,7 @@ import {
   Sparkles,
   BookOpen,
   Stethoscope,
-  FlaskConical,
   Trash2,
-  Info,
-  ClipboardList,
-  Zap,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMediBot, type ChatMessage } from "./medibot-provider";

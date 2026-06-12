@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import {
   Radio,
   Mic,
-  MicOff,
   FileText,
-  Clock,
   CheckCircle2,
   Pause,
   Play,
@@ -15,11 +13,8 @@ import {
   Wand2,
   Stethoscope,
   MessageSquare,
-  AlertCircle,
   Download,
   Share2,
-  Volume2,
-  VolumeX,
   Settings,
   Layers,
   Brain,

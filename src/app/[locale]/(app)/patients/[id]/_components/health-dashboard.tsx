@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Activity, Calendar, FlaskConical, Loader2, Pill, Stethoscope } from "lucide-react";
+import { Activity, FlaskConical, Loader2, Pill, Stethoscope } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchPatientDashboard, type DashboardData } from "@/lib/medilab/client";

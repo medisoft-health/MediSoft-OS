@@ -23,15 +23,12 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
-  Calendar,
   CheckCircle2,
   FlaskConical,
   Loader2,
   Minus,
   Plus,
   Sparkles,
-  TrendingDown,
-  TrendingUp,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";

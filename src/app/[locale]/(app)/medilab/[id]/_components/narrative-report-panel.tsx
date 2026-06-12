@@ -37,7 +37,6 @@ import {
   generateNarrativeReport,
   type DoctorReportData,
   type NarrativeReportData,
-  type PatientReportData,
 } from "@/lib/medilab/client";
 import { cn } from "@/lib/utils";
 import { InfographicReport } from "./infographic-report";

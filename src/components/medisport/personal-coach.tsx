@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import {
   Sheet,
   SheetContent,
@@ -18,35 +17,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Activity,
   Apple,
   ArrowLeft,
   ArrowRight,
-  BarChart3,
   CheckCircle2,
-  Dumbbell,
-  FlaskConical,
-  Heart,
-  Loader2,
   Pill,
   Ruler,
   Scale,
   Sparkles,
-  Target,
   Timer,
-  TrendingDown,
-  TrendingUp,
-  Trophy,
   User,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 

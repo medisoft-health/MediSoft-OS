@@ -34,7 +34,6 @@ import { SPECIALTY_OPTIONS } from "@/lib/validations/auth";
 import { updateProfile } from "@/lib/actions/settings";
 import type { UserProfile } from "@/lib/queries/user";
 import { formatClinicalDate } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 
 interface Props {
   user: UserProfile;

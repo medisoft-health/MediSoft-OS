@@ -3,18 +3,15 @@
 import * as React from "react";
 import {
   Video,
-  Phone,
   Calendar,
   Clock,
   User,
   Plus,
-  Search,
   CheckCircle,
   XCircle,
   AlertCircle,
   Loader2,
   FileText,
-  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

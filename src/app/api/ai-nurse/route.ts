@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { followUpTasks, patients, prescriptions, encounters, communicationLog } from "@/db/schema";
-import { eq, and, gte, lte, desc, asc, sql } from "drizzle-orm";
+import { eq, and, lte, desc, asc } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;

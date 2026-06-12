@@ -19,9 +19,7 @@ import "server-only";
  * @see https://cloud.google.com/vertex-ai/docs/predictions/get-predictions
  */
 
-import * as fs from "fs";
-import * as crypto from "crypto";
-import { getGeminiClient, GEMINI_MODEL, isGeminiConfigured } from "@/lib/ai/gemini";
+import { getGeminiClient, isGeminiConfigured } from "@/lib/ai/gemini";
 import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Configuration ───────────────────────────────────────────────────────────

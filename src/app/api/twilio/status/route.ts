@@ -5,9 +5,6 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db";
-import { communicationLog } from "@/db/schema";
-import { eq } from "drizzle-orm";
 
 // POST /api/twilio/status — Twilio sends status updates here
 export async function POST(req: NextRequest) {

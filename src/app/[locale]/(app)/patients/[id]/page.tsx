@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Brain, FileText, HeartPulse, History, Mic, Stethoscope, UserCircle, Upload, ClipboardList, Activity, Target } from "lucide-react";
+import { FileText, HeartPulse, History, Mic, Stethoscope, UserCircle, Upload, ClipboardList, Activity, Target } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 
@@ -22,7 +22,6 @@ import { TabOverview } from "./_components/tab-overview";
 import { TabEncounters } from "./_components/tab-encounters";
 import { TabVitals } from "./_components/tab-vitals";
 import { TabDocuments } from "./_components/tab-documents";
-import { TabTimeline } from "./_components/tab-timeline";
 import { HealthDashboard } from "./_components/health-dashboard";
 import { PatientTimeline } from "./_components/patient-timeline";
 import { Patient360Wrapper } from "./_components/patient-360-wrapper";

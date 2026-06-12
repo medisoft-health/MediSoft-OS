@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/db";
 import { prescriptions, patients } from "@/db/schema";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // ═══════════════════════════════════════════════════════════════════════════════

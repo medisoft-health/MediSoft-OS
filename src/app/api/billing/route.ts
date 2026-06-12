@@ -6,8 +6,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
-import { billingClaims, insuranceProviders, encounters, patients } from "@/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { billingClaims, insuranceProviders, encounters } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // GET /api/billing — List claims or get billing stats

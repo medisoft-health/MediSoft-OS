@@ -7,12 +7,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Info,
   Pill,
-  FlaskConical,
-  Stethoscope,
   Activity,
-  X,
 } from "lucide-react";
 
 /**

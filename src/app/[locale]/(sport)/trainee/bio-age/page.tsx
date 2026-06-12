@@ -13,7 +13,6 @@ import {
   Heart,
   Scale,
   Sparkles,
-  Timer,
   TrendingDown,
   TrendingUp,
   Zap,
@@ -26,7 +25,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   calculateBioAge,
-  getOptimalRanges,
   type BioAgeInputs,
   type BioAgeResult,
 } from "@/lib/sport/bio-age-calculator";

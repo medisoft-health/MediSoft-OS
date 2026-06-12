@@ -9,7 +9,7 @@ import {
   vitals,
   patientEvents,
 } from "@/db/schema";
-import { eq, and, isNull, desc, gte, lte, sql, asc } from "drizzle-orm";
+import { eq, and, isNull, desc, sql, asc } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL, decodeAllStrings } from "@/lib/ai/gemini";
 
 // ═══════════════════════════════════════════════════════════════════════════════

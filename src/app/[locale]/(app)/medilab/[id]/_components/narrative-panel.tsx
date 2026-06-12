@@ -519,7 +519,7 @@ function ExpandableResultCard({ result: r, index }: { result: EnrichedHighlight;
  <p className="text-xs leading-relaxed text-gray-600">{r.note}</p>
  </>
  ) : (
- <p className="text-xs text-gray-400">اضغط "إنشاء" للحصول على تفسير مفصل.</p>
+ <p className="text-xs text-gray-400">اضغط «إنشاء» للحصول على تفسير مفصل.</p>
  )}
  </div>
  </div>

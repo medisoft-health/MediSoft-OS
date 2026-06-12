@@ -10,7 +10,6 @@ import {
   Loader2,
   Plus,
   Save,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 

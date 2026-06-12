@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
-  CheckCircle2,
   ShieldCheck,
 } from "lucide-react";
 import { z } from "zod";

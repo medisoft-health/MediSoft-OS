@@ -22,16 +22,12 @@ import {
   CheckCircle2,
   ChevronRight,
   Flame,
-  Heart,
   MessageCircle,
-  Moon,
-  PartyPopper,
   Sparkles,
   Star,
   Target,
   TrendingUp,
   Trophy,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1642,7 +1638,7 @@ export function MoodEnergyChart() {
             <div className="text-6xl">📊</div>
             <h3 className="text-lg font-bold">مفيش بيانات لسه!</h3>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              سجل يومك من خلال "سجل يومك" وهنبدأ نعرضلك الـ trends هنا.
+              سجل يومك من خلال «سجل يومك» وهنبدأ نعرضلك الـ trends هنا.
             </p>
           </div>
         ) : (

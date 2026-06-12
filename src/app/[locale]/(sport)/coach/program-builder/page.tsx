@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Dumbbell,
   Flame,
-  GripVertical,
   Layers,
   Plus,
   Save,

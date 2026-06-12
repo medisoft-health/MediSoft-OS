@@ -8,9 +8,8 @@ import {
   remotePrescriptions,
   patientNotifications,
   patients,
-  users,
 } from "@/db/schema";
-import { eq, and, desc, sql, or, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 
 /**
  * GET /api/mediconnect — Fetch conversations, messages, or prescriptions

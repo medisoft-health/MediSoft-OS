@@ -23,7 +23,6 @@ import {
   type AthleteLabPanel,
   type BodyComposition,
   type TrainingLoad,
-  type SleepAnalysis,
   type SCAT6Assessment,
   type PCMAAssessment,
   type MovementAssessment,

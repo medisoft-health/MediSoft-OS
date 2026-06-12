@@ -6,9 +6,8 @@ import {
   patientReadings,
   patientAlerts,
   patientNotifications,
-  patients,
 } from "@/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 // Thresholds for automatic alerts
 const ALERT_THRESHOLDS: Record<string, { critical: [number, number]; warning: [number, number] }> = {

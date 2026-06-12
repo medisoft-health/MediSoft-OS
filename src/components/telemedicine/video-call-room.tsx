@@ -10,19 +10,14 @@ import {
   PhoneOff,
   Monitor,
   MessageSquare,
-  Settings,
   Maximize2,
   Minimize2,
-  Camera,
   RotateCcw,
   Users,
-  Clock,
   AlertCircle,
   CheckCircle,
   Loader2,
   FileText,
-  Pill,
-  Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

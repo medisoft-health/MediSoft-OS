@@ -5,30 +5,22 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
-  Award,
   BookOpen,
   Check,
   ChevronRight,
   Clock,
-  Dumbbell,
   Flame,
-  Heart,
   Lightbulb,
   Lock,
   Play,
-  Salad,
-  Shield,
   Sparkles,
-  Star,
-  Timer,
   Trophy,
   X,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Lesson {

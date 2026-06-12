@@ -6,7 +6,7 @@ import { Activity, FlaskConical, Loader2, Pill, ScanLine, Stethoscope, Star } fr
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fetchPatientTimeline, type TimelineEvent, type TimelineResult } from "@/lib/medilab/client";
+import { fetchPatientTimeline, type TimelineEvent } from "@/lib/medilab/client";
 import { cn } from "@/lib/utils";
 
 interface Props { patientId: number; }

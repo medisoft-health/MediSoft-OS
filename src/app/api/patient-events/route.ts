@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { patientEvents } from "@/db/schema";
-import { and, desc, eq, isNull, gte, lte, inArray } from "drizzle-orm";
+import { and, desc, eq, isNull, gte, lte } from "drizzle-orm";
 
 export const runtime = "nodejs";
 

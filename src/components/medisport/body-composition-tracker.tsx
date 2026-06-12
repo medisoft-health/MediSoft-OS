@@ -21,18 +21,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BodyCompositionHistory } from "@/components/sport/body-composition-history";
 import {
-  Activity,
   ArrowDown,
   ArrowUp,
-  BarChart3,
   Calendar,
-  Dumbbell,
   Loader2,
   Minus,
   Plus,
   Scale,
   Sparkles,
-  Target,
   TrendingDown,
   TrendingUp,
   User,

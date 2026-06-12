@@ -5,13 +5,9 @@ import { SharedCommunityPanel } from "@/components/sport/shared-community-panel"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -21,11 +17,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Award,
   Crown,
   Flame,
-  Heart,
-  Medal,
   MessageCircle,
   Plus,
   Share2,

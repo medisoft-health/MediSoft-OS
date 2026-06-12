@@ -5,17 +5,12 @@ import {
   Upload,
   FileText,
   Image as ImageIcon,
-  X,
   Loader2,
   CheckCircle2,
   AlertCircle,
   Brain,
   Eye,
-  Download,
   Trash2,
-  Plus,
-  Calendar,
-  Tag,
   File,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

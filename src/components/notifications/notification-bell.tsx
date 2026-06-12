@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, Check, ExternalLink, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell, Check, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Notification {

@@ -14,10 +14,13 @@ import {
   sportCoachCertifications,
   sportCoachReviews,
   sportCoachRequests,
+  sportCoachScoreHistory,
   users,
 } from "@/db/schema";
 import { and, desc, eq, gte, sql, inArray } from "drizzle-orm";
 import { requireSessionApi } from "@/lib/auth-helpers";
+import { isPlatformAdmin } from "@/lib/sport/admin-guard";
+import { sendEmail, buildCoachDecisionEmail } from "@/lib/email";
 import {
   calculateBioAge,
   type BioAgeInputs,
@@ -51,7 +54,7 @@ import {
  * performance signals, and persist coachScore/coachTier/scoreBreakdown.
  * Best-effort; returns the result or null on error.
  */
-async function recomputeCoachScore(coachId: string) {
+async function recomputeCoachScore(coachId: string, reason: string = "recompute") {
   try {
     const [p] = await db
       .select()
@@ -91,11 +94,121 @@ async function recomputeCoachScore(coachId: string) {
         scoreBreakdown: result.breakdown,
       })
       .where(eq(sportProfiles.userId, coachId));
+    // Append a time-series snapshot so the coach analytics dashboard can
+    // chart score/rating progression. Best-effort; never blocks the recompute.
+    try {
+      await db.insert(sportCoachScoreHistory).values({
+        coachId,
+        total: String(result.total),
+        tier: result.tier,
+        breakdown: result.breakdown,
+        ratingAvg: p.ratingAvg ? String(p.ratingAvg) : "0",
+        ratingCount: p.ratingCount ?? 0,
+        reason,
+      });
+    } catch (e) {
+      console.error("[MediSport API] score-history snapshot failed:", e);
+    }
     return result;
   } catch (e) {
     console.error("[MediSport API] recomputeCoachScore failed:", e);
     return null;
   }
+}
+
+/**
+ * Apply a single admin verification decision to one coach. Shared by the
+ * single (`admin-verify-decision`) and bulk (`admin-bulk-decision`) actions
+ * so both paths produce identical side effects: optional cert verification,
+ * optional discretionary score, score recompute + history snapshot, status
+ * transition, in-app notification, and best-effort decision email.
+ */
+async function applyCoachDecision(opts: {
+  coachId: string;
+  decision: "approve" | "reject" | "request_info";
+  adminId: string;
+  adminScore?: number | null;
+  note?: string | null;
+  verifiedCertIds?: string[] | null;
+}): Promise<{ status: string; score: number | null }> {
+  const { coachId, decision, adminId } = opts;
+  const note = opts.note ?? null;
+  if (opts.verifiedCertIds && opts.verifiedCertIds.length) {
+    await db
+      .update(sportCoachCertifications)
+      .set({ verified: true })
+      .where(
+        and(
+          eq(sportCoachCertifications.coachId, coachId),
+          inArray(sportCoachCertifications.id, opts.verifiedCertIds.map(String))
+        )
+      );
+  }
+  if (opts.adminScore != null) {
+    const clamped = Math.max(0, Math.min(15, Number(opts.adminScore)));
+    await db.update(sportProfiles).set({ adminScore: clamped }).where(eq(sportProfiles.userId, coachId));
+  }
+  const scored = await recomputeCoachScore(coachId, "admin");
+  let newStatus = "under_review";
+  let notifyTitle = "";
+  let notifyBody = "";
+  if (decision === "approve") {
+    newStatus = "verified";
+    notifyTitle = "تم اعتماد حسابك كمدرب";
+    notifyBody = `تهانينا! تم اعتمادك بتقييم ${scored?.total ?? ""}/100.`;
+    await db
+      .update(sportProfiles)
+      .set({ verificationStatus: "verified", verifiedAt: new Date(), adminNote: note, rejectionReason: null })
+      .where(eq(sportProfiles.userId, coachId));
+  } else if (decision === "reject") {
+    newStatus = "rejected";
+    notifyTitle = "تحديث طلب الاعتماد";
+    notifyBody = note || "لم يتم اعتماد الطلب حاليًا.";
+    await db
+      .update(sportProfiles)
+      .set({ verificationStatus: "rejected", adminNote: note, rejectionReason: note })
+      .where(eq(sportProfiles.userId, coachId));
+  } else {
+    newStatus = "needs_more_info";
+    notifyTitle = "مطلوب معلومات إضافية";
+    notifyBody = note || "يرجى تزويدنا بمعلومات إضافية لإكمال الاعتماد.";
+    await db
+      .update(sportProfiles)
+      .set({ verificationStatus: "needs_more_info", adminNote: note })
+      .where(eq(sportProfiles.userId, coachId));
+  }
+  await db.insert(sportNotifications).values({
+    userId: coachId,
+    actorId: adminId,
+    type: "coach-verification",
+    title: notifyTitle,
+    body: notifyBody,
+    link: "/coach/verification",
+  });
+  try {
+    const [coachUser] = await db
+      .select({ email: users.email, name: users.name })
+      .from(users)
+      .where(eq(users.id, coachId))
+      .limit(1);
+    if (coachUser?.email) {
+      const base = process.env.NEXT_PUBLIC_APP_URL || "https://app.medisofthealth.com";
+      await sendEmail(
+        buildCoachDecisionEmail({
+          toName: coachUser.name,
+          toEmail: coachUser.email,
+          decision,
+          score: scored?.total ?? null,
+          tier: scored?.tier ?? null,
+          note,
+          ctaUrl: `${base}/ar/sport/coach`,
+        })
+      );
+    }
+  } catch (e) {
+    console.error("[MediSport API] coach decision email failed:", e);
+  }
+  return { status: newStatus, score: scored?.total ?? null };
 }
 
 /**
@@ -462,11 +575,109 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: { profile: profile || null, certifications: certs } });
       }
 
+      // --- Coach analytics: score/rating progression + reviews summary ---
+      case "coach-analytics": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const coachId = auth.user.id;
+
+        // Current profile snapshot
+        const [profile] = await db
+          .select({
+            coachScore: sportProfiles.coachScore,
+            coachTier: sportProfiles.coachTier,
+            scoreBreakdown: sportProfiles.scoreBreakdown,
+            ratingAvg: sportProfiles.ratingAvg,
+            ratingCount: sportProfiles.ratingCount,
+            verificationStatus: sportProfiles.verificationStatus,
+          })
+          .from(sportProfiles)
+          .where(eq(sportProfiles.userId, coachId))
+          .limit(1);
+
+        // Time-series history (oldest → newest, last 60 points)
+        const historyRaw = await db
+          .select()
+          .from(sportCoachScoreHistory)
+          .where(eq(sportCoachScoreHistory.coachId, coachId))
+          .orderBy(desc(sportCoachScoreHistory.createdAt))
+          .limit(60);
+        const history = historyRaw
+          .map((h) => ({
+            date: h.createdAt,
+            total: h.total != null ? Number(h.total) : 0,
+            tier: h.tier,
+            ratingAvg: h.ratingAvg != null ? Number(h.ratingAvg) : 0,
+            ratingCount: h.ratingCount ?? 0,
+            reason: h.reason,
+          }))
+          .reverse();
+
+        // Star distribution + averages for sub-criteria
+        const reviews = await db
+          .select()
+          .from(sportCoachReviews)
+          .where(eq(sportCoachReviews.coachId, coachId))
+          .orderBy(desc(sportCoachReviews.createdAt));
+        const dist = [0, 0, 0, 0, 0]; // index 0 → 1-star … index 4 → 5-star
+        let commSum = 0, commCnt = 0, resSum = 0, resCnt = 0;
+        for (const r of reviews) {
+          const s = Math.max(1, Math.min(5, r.stars));
+          dist[s - 1] += 1;
+          if (r.communication != null) { commSum += r.communication; commCnt += 1; }
+          if (r.results != null) { resSum += r.results; resCnt += 1; }
+        }
+        const recentReviews = reviews.slice(0, 5).map((r) => ({
+          stars: r.stars,
+          comment: r.comment,
+          communication: r.communication,
+          results: r.results,
+          createdAt: r.createdAt,
+        }));
+
+        // Client/request counts
+        const [reqAgg] = await db
+          .select({
+            accepted: sql<number>`count(*) filter (where ${sportCoachRequests.status} = 'accepted')`,
+            pending: sql<number>`count(*) filter (where ${sportCoachRequests.status} = 'pending')`,
+          })
+          .from(sportCoachRequests)
+          .where(eq(sportCoachRequests.coachId, coachId));
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            current: profile
+              ? {
+                  score: profile.coachScore != null ? Number(profile.coachScore) : 0,
+                  tier: profile.coachTier,
+                  breakdown: profile.scoreBreakdown,
+                  ratingAvg: profile.ratingAvg != null ? Number(profile.ratingAvg) : 0,
+                  ratingCount: profile.ratingCount ?? 0,
+                  verificationStatus: profile.verificationStatus,
+                }
+              : null,
+            history,
+            reviews: {
+              total: reviews.length,
+              distribution: dist,
+              avgCommunication: commCnt ? Math.round((commSum / commCnt) * 10) / 10 : null,
+              avgResults: resCnt ? Math.round((resSum / resCnt) * 10) / 10 : null,
+              recent: recentReviews,
+            },
+            clients: {
+              active: reqAgg?.accepted ? Number(reqAgg.accepted) : 0,
+              pending: reqAgg?.pending ? Number(reqAgg.pending) : 0,
+            },
+          },
+        });
+      }
+
       // --- Admin: verification queue (pending reviews) ---
       case "admin-verification-queue": {
         const auth = await requireSessionApi();
         if ("response" in auth) return auth.response;
-        if (auth.user.role !== "admin") {
+        if (!isPlatformAdmin(auth.user)) {
           return NextResponse.json({ success: false, error: "forbidden" }, { status: 403 });
         }
         const statusFilter = searchParams.get("status");
@@ -1202,7 +1413,7 @@ export async function POST(request: NextRequest) {
               type: "coach-verification",
               title: auth.user.name || "Coach",
               body: "New coach verification request submitted",
-              link: "/admin/coaches",
+              link: "/console-x7k2/coaches",
             }))
           );
         }
@@ -1213,7 +1424,7 @@ export async function POST(request: NextRequest) {
       case "admin-verify-decision": {
         const auth = await requireSessionApi();
         if ("response" in auth) return auth.response;
-        if (auth.user.role !== "admin") {
+        if (!isPlatformAdmin(auth.user)) {
           return NextResponse.json({ success: false, error: "forbidden" }, { status: 403 });
         }
         const coachId = String(body.coachId || "");
@@ -1221,62 +1432,67 @@ export async function POST(request: NextRequest) {
         if (!coachId || !decision) {
           return NextResponse.json({ success: false, error: "Missing coachId/decision" }, { status: 400 });
         }
-        const adminScore = body.adminScore != null ? Math.max(0, Math.min(15, Number(body.adminScore))) : null;
+        const adminScore = body.adminScore != null ? Number(body.adminScore) : null;
         const note = body.note ? String(body.note) : null;
-        // Verify certs the admin marked verified (optional list of cert ids)
-        if (Array.isArray(body.verifiedCertIds) && body.verifiedCertIds.length) {
-          await db
-            .update(sportCoachCertifications)
-            .set({ verified: true })
-            .where(
-              and(
-                eq(sportCoachCertifications.coachId, coachId),
-                inArray(sportCoachCertifications.id, body.verifiedCertIds.map(String))
-              )
-            );
-        }
-        // Persist admin discretionary score first, then recompute total.
-        if (adminScore != null) {
-          await db.update(sportProfiles).set({ adminScore }).where(eq(sportProfiles.userId, coachId));
-        }
-        const scored = await recomputeCoachScore(coachId);
-        let newStatus = "under_review";
-        let notifyTitle = "";
-        let notifyBody = "";
-        if (decision === "approve") {
-          newStatus = "verified";
-          notifyTitle = "تم اعتماد حسابك كمدرب";
-          notifyBody = `تهانينا! تم اعتمادك بتقييم ${scored?.total ?? ""}/100.`;
-          await db
-            .update(sportProfiles)
-            .set({ verificationStatus: "verified", verifiedAt: new Date(), adminNote: note, rejectionReason: null })
-            .where(eq(sportProfiles.userId, coachId));
-        } else if (decision === "reject") {
-          newStatus = "rejected";
-          notifyTitle = "تحديث طلب الاعتماد";
-          notifyBody = note || "لم يتم اعتماد الطلب حاليًا.";
-          await db
-            .update(sportProfiles)
-            .set({ verificationStatus: "rejected", adminNote: note, rejectionReason: note })
-            .where(eq(sportProfiles.userId, coachId));
-        } else {
-          newStatus = "needs_more_info";
-          notifyTitle = "مطلوب معلومات إضافية";
-          notifyBody = note || "يرجى تزويدنا بمعلومات إضافية لإكمال الاعتماد.";
-          await db
-            .update(sportProfiles)
-            .set({ verificationStatus: "needs_more_info", adminNote: note })
-            .where(eq(sportProfiles.userId, coachId));
-        }
-        await db.insert(sportNotifications).values({
-          userId: coachId,
-          actorId: auth.user.id,
-          type: "coach-verification",
-          title: notifyTitle,
-          body: notifyBody,
-          link: "/coach/verification",
+        const verifiedCertIds = Array.isArray(body.verifiedCertIds)
+          ? body.verifiedCertIds.map(String)
+          : null;
+        const out = await applyCoachDecision({
+          coachId,
+          decision: decision as "approve" | "reject" | "request_info",
+          adminId: auth.user.id,
+          adminScore,
+          note,
+          verifiedCertIds,
         });
-        return NextResponse.json({ success: true, data: { status: newStatus, score: scored } });
+        return NextResponse.json({ success: true, data: { status: out.status, score: out.score } });
+      }
+
+      // --- Admin: bulk decision on many coaches at once ---
+      case "admin-bulk-decision": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        if (!isPlatformAdmin(auth.user)) {
+          return NextResponse.json({ success: false, error: "forbidden" }, { status: 403 });
+        }
+        const decision = String(body.decision || "");
+        const rawIds: string[] = Array.isArray(body.coachIds)
+          ? (body.coachIds as unknown[]).map((x) => String(x))
+          : [];
+        const coachIds: string[] = Array.from(new Set<string>(rawIds)).filter(
+          (s) => s.length > 0
+        );
+        const note = body.note ? String(body.note) : null;
+        if (!decision || !coachIds.length) {
+          return NextResponse.json({ success: false, error: "Missing decision/coachIds" }, { status: 400 });
+        }
+        if (!["approve", "reject", "request_info"].includes(decision)) {
+          return NextResponse.json({ success: false, error: "Invalid decision" }, { status: 400 });
+        }
+        if (coachIds.length > 100) {
+          return NextResponse.json({ success: false, error: "Too many (max 100)" }, { status: 400 });
+        }
+        // Process sequentially to keep DB load predictable; collect outcomes.
+        const results: Array<{ coachId: string; ok: boolean; status?: string; error?: string }> = [];
+        for (const id of coachIds) {
+          try {
+            const out = await applyCoachDecision({
+              coachId: id,
+              decision: decision as "approve" | "reject" | "request_info",
+              adminId: auth.user.id,
+              note,
+            });
+            results.push({ coachId: id, ok: true, status: out.status });
+          } catch (e) {
+            console.error("[MediSport API] bulk decision failed for", id, e);
+            results.push({ coachId: id, ok: false, error: "failed" });
+          }
+        }
+        const succeeded = results.filter((r) => r.ok).length;
+        return NextResponse.json({
+          success: true,
+          data: { total: coachIds.length, succeeded, failed: coachIds.length - succeeded, results },
+        });
       }
 
       // --- Trainee requests to connect with a verified coach ---
@@ -1417,7 +1633,7 @@ export async function POST(request: NextRequest) {
           .update(sportProfiles)
           .set({ ratingAvg: String(Math.round(avg * 100) / 100), ratingCount: cnt })
           .where(eq(sportProfiles.userId, coachId));
-        await recomputeCoachScore(coachId);
+        await recomputeCoachScore(coachId, "review");
         return NextResponse.json({ success: true, data: { ratingAvg: avg, ratingCount: cnt } });
       }
 

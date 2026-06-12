@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, gte, lte, desc, sql, or, count } from "drizzle-orm";
+import { and, eq, gte, lte, desc, sql, count } from "drizzle-orm";
 import { db } from "@/db";
 import { appointments, patients, users } from "@/db/schema";
 import { requireSessionApi } from "@/lib/auth-helpers";

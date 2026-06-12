@@ -4,10 +4,8 @@ import { useState, useCallback } from "react";
 import { useLocale } from "next-intl";
 import {
   Mic,
-  MicOff,
   FileText,
   CheckCircle2,
-  Clock,
   Stethoscope,
   Pill,
   FlaskConical,

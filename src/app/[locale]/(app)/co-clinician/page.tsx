@@ -8,7 +8,6 @@ import {
   Bot,
   User,
   FileText,
-  AlertTriangle,
   CheckCircle2,
   Loader2,
   Globe,

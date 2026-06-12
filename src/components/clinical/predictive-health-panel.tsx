@@ -10,7 +10,6 @@ import {
   Shield,
   Activity,
   Moon,
-  Utensils,
   Target,
   Calendar,
   Watch,

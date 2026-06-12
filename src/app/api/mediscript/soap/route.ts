@@ -13,7 +13,6 @@ import {
 } from "@/lib/ai/who-icd";
 import {
   SOAP_RESPONSE_SCHEMA,
-  SOAP_SYSTEM_PROMPT,
   getSOAPSystemPrompt,
   buildUserPrompt,
 } from "@/lib/mediscript/soap-prompt";

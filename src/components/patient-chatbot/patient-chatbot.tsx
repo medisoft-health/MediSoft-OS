@@ -13,7 +13,6 @@ import {
   Heart,
   AlertTriangle,
   AlertCircle,
-  Loader2,
   X,
   Minimize2,
   Maximize2,

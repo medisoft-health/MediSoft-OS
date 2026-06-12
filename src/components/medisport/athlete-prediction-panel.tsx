@@ -11,8 +11,6 @@ import {
   Utensils,
   Calendar,
   AlertTriangle,
-  TrendingUp,
-  Target,
   Brain,
   ChevronDown,
   ChevronUp,

@@ -34,8 +34,6 @@ import "server-only";
  * @see https://docs.cloud.google.com/healthcare-api/docs/concepts/consent
  */
 
-import * as fs from "fs";
-import * as crypto from "crypto";
 import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Google Cloud Healthcare Consent API Integration ────────────────────────

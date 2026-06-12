@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
-import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,14 +9,12 @@ import {
   Bell,
   Watch,
   Send,
-  Users,
   Activity,
   Smartphone,
   Wifi,
   FileText,
   Pill,
   Stethoscope,
-  Heart,
 } from "lucide-react";
 import { MediConnectInbox } from "@/components/mediconnect/mediconnect-inbox";
 import { NotificationsPanel } from "@/components/mediconnect/notifications-panel";

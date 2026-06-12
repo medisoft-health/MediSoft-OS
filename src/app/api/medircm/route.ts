@@ -13,7 +13,6 @@ import {
   generateAppeal,
   PAYER_DATABASE,
   DEMO_ENCOUNTERS,
-  DEMO_CLAIMS,
   type EncounterForCoding,
   type Claim
 } from "@/lib/medircm";

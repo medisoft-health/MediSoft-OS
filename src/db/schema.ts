@@ -2249,3 +2249,22 @@ export const sportCoachRequests = pgTable(
     index("sport_request_trainee_idx").on(t.traineeId, t.status),
   ]
 );
+
+// --- Coach score/rating time-series snapshots (Phase 8.1 — analytics) ---
+export const sportCoachScoreHistory = pgTable(
+  "sport_coach_score_history",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    total: numeric("total", { precision: 5, scale: 2 }).notNull(),
+    tier: varchar("tier", { length: 24 }),
+    breakdown: jsonb("breakdown"),
+    ratingAvg: numeric("rating_avg", { precision: 3, scale: 2 }).notNull().default("0"),
+    ratingCount: integer("rating_count").notNull().default(0),
+    reason: varchar("reason", { length: 32 }).notNull().default("recompute"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sport_score_hist_coach_idx").on(t.coachId, t.createdAt)]
+);

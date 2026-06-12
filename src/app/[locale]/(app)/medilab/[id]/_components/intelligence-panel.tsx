@@ -5,11 +5,8 @@ import { toast } from "sonner";
 import {
   Activity,
   AlertTriangle,
-  ArrowDown,
   ArrowRight,
-  ArrowUp,
   Brain,
-  CheckCircle2,
   Loader2,
   Pill,
   RefreshCw,

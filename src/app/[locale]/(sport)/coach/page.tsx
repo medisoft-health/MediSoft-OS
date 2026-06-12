@@ -1,34 +1,28 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   BarChart3,
-  Calendar,
-  ChevronDown,
   ClipboardList,
   Dumbbell,
   FileText,
   FlaskConical,
   Heart,
-  LineChart,
-  MessageSquare,
   MoreHorizontal,
   Search,
   Shield,
   ShieldCheck,
   Star,
   TrendingUp,
-  User,
   UserPlus,
   Users,
   Utensils,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +31,7 @@ import { ClientsManager } from "@/components/sport/clients-manager";
 import { CoachNotificationBell } from "@/components/sport/coach-notification-bell";
 import { CoachVerificationForm } from "@/components/sport/coach-verification-form";
 import { CoachRequestsPanel } from "@/components/sport/coach-requests-panel";
+import { CoachAnalytics } from "@/components/sport/coach-analytics";
 
 /**
  * MediSport Standalone — Coach Dashboard
@@ -50,7 +45,6 @@ import { CoachRequestsPanel } from "@/components/sport/coach-requests-panel";
 export default function CoachDashboardPage() {
   const t = useTranslations("SportStandalone");
   const locale = useLocale();
-  const isRtl = locale === "ar";
 
   // Mock data for demonstration
   const clients = [
@@ -269,34 +263,7 @@ export default function CoachDashboardPage() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-slate-100">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <LineChart className="h-4 w-4 text-blue-500" />
-                  {t("clientProgress")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-40 flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
-                  {t("chartPlaceholder")}
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-slate-100">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-emerald-500" />
-                  {t("adherenceOverview")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-40 flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
-                  {t("chartPlaceholder")}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <CoachAnalytics locale={locale as "ar" | "en"} />
         </TabsContent>
 
         {/* Verification Tab */}
@@ -413,7 +380,7 @@ function StatCard({
   );
 }
 
-function StatusBadge({ status, t }: { status: string; t: any }) {
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
     active: { bg: "bg-emerald-100", text: "text-emerald-700", label: t("statusActive") },
     needs_attention: { bg: "bg-amber-100", text: "text-amber-700", label: t("statusAttention") },
@@ -440,7 +407,7 @@ function ProgramCard({
   clients: number;
   duration: string;
   color: string;
-  t: any;
+  t: (key: string) => string;
 }) {
   const colorMap: Record<string, string> = {
     blue: "bg-blue-100 text-blue-600",

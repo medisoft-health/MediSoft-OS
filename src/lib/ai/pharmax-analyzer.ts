@@ -4,7 +4,6 @@ import { GEMINI_MODEL, getGeminiClient, isGeminiConfigured, decodeAllStrings } f
 import { getFdaLabelsByIngredients, type OpenFdaLabel } from "@/lib/ai/openfda";
 import { isSfdaConfigured, lookupSfdaDrug } from "@/lib/ai/sfda";
 import {
-  SEVERITY_OPTIONS,
   type Severity,
   type InteractionItem,
 } from "@/lib/validations/prescription";

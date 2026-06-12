@@ -5,7 +5,7 @@
  */
 
 import { db } from "@/db";
-import { patientNotifications, patients, pushSubscriptions, notificationPreferences } from "@/db/schema";
+import { patientNotifications, patients, pushSubscriptions } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 // ============ TYPES ============

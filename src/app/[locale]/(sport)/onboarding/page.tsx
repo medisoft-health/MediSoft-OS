@@ -11,7 +11,6 @@ import {
   Dumbbell,
   Heart,
   Loader2,
-  MapPin,
   Ruler,
   Scale,
   Target,
@@ -23,7 +22,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 

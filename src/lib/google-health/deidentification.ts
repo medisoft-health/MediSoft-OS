@@ -20,7 +20,6 @@ import "server-only";
  * @see https://cloud.google.com/healthcare-api/docs/how-tos/deidentify
  */
 
-import * as fs from "fs";
 import * as crypto from "crypto";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 import { getAccessTokenForScopes, fetchWithRetry } from "./auth";

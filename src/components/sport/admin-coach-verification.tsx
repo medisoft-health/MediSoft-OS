@@ -117,6 +117,18 @@ export function AdminCoachVerification({
   const [loading, setLoading] = React.useState(true);
   const [forbidden, setForbidden] = React.useState(false);
   const [filter, setFilter] = React.useState<string>("pending");
+  // Bulk selection state
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = React.useState<string | null>(null);
+
+  const toggleSelect = React.useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -144,6 +156,68 @@ export function AdminCoachVerification({
   React.useEffect(() => {
     load();
   }, [load]);
+
+  // Drop selections that are no longer in the visible list (e.g. after refresh)
+  React.useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(rows.map((r) => r.userId));
+      const next = new Set([...prev].filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [rows]);
+
+  const allSelected = rows.length > 0 && selected.size === rows.length;
+  const toggleSelectAll = () => {
+    setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.userId)));
+  };
+
+  const runBulk = async (decision: "approve" | "reject" | "request_info") => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    let note: string | null = null;
+    if (decision === "reject" || decision === "request_info") {
+      const promptMsg = isAr
+        ? "اكتب ملاحظة/سبب يُرسل لجميع المدربين المحددين:"
+        : "Enter a note/reason sent to all selected coaches:";
+      const entered = window.prompt(promptMsg, "");
+      if (entered == null) return; // cancelled
+      if (!entered.trim()) {
+        toast.error(isAr ? "الملاحظة مطلوبة" : "A note is required");
+        return;
+      }
+      note = entered.trim();
+    } else {
+      const confirmMsg = isAr
+        ? `اعتماد ${ids.length} مدرب دفعة واحدة؟`
+        : `Approve ${ids.length} coaches at once?`;
+      if (!window.confirm(confirmMsg)) return;
+    }
+    setBulkBusy(decision);
+    try {
+      const res = await fetch("/api/sport", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "admin-bulk-decision", decision, coachIds: ids, note }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const d = json.data;
+        toast.success(
+          isAr
+            ? `تم تنفيذ القرار على ${d.succeeded}/${d.total}${d.failed ? ` (فشل ${d.failed})` : ""}`
+            : `Applied to ${d.succeeded}/${d.total}${d.failed ? ` (${d.failed} failed)` : ""}`
+        );
+        setSelected(new Set());
+        load();
+      } else {
+        toast.error(json.error || (isAr ? "تعذّر تنفيذ القرار الجماعي" : "Bulk action failed"));
+      }
+    } catch {
+      toast.error(isAr ? "خطأ في الاتصال" : "Network error");
+    } finally {
+      setBulkBusy(null);
+    }
+  };
 
   if (forbidden) {
     return (
@@ -198,6 +272,61 @@ export function AdminCoachVerification({
         </Button>
       </div>
 
+      {/* Bulk actions bar */}
+      {rows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleSelectAll}
+              className="h-4 w-4 accent-emerald-600"
+            />
+            {isAr ? "تحديد الكل" : "Select all"}
+          </label>
+          <span className="text-xs text-slate-400">
+            {selected.size > 0
+              ? isAr
+                ? `${selected.size} محدد`
+                : `${selected.size} selected`
+              : isAr
+                ? "لم يتم التحديد"
+                : "None selected"}
+          </span>
+          <div className="ms-auto flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              disabled={selected.size === 0 || bulkBusy != null}
+              onClick={() => runBulk("approve")}
+              className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              {bulkBusy === "approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              {isAr ? "اعتماد المحدد" : "Approve"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0 || bulkBusy != null}
+              onClick={() => runBulk("request_info")}
+              className="gap-1.5 border-purple-200 text-purple-700 hover:bg-purple-50"
+            >
+              {bulkBusy === "request_info" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <HelpCircle className="h-3.5 w-3.5" />}
+              {isAr ? "طلب معلومات" : "Request info"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0 || bulkBusy != null}
+              onClick={() => runBulk("reject")}
+              className="gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50"
+            >
+              {bulkBusy === "reject" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+              {isAr ? "رفض المحدد" : "Reject"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16 text-slate-400">
           <Loader2 className="h-6 w-6 animate-spin" />
@@ -213,7 +342,14 @@ export function AdminCoachVerification({
         </Card>
       ) : (
         rows.map((row) => (
-          <CoachReviewCard key={row.userId} row={row} isAr={isAr} onDone={load} />
+          <CoachReviewCard
+            key={row.userId}
+            row={row}
+            isAr={isAr}
+            onDone={load}
+            selected={selected.has(row.userId)}
+            onToggleSelect={() => toggleSelect(row.userId)}
+          />
         ))
       )}
     </div>
@@ -224,10 +360,14 @@ function CoachReviewCard({
   row,
   isAr,
   onDone,
+  selected,
+  onToggleSelect,
 }: {
   row: QueueRow;
   isAr: boolean;
   onDone: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
   const [adminScore, setAdminScore] = React.useState<number>(
     row.adminScore ?? 0
@@ -316,11 +456,20 @@ function CoachReviewCard({
     <Card className="overflow-hidden border-slate-200">
       <CardHeader className="bg-slate-50/70 pb-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-base text-slate-800">
-              {row.name || (isAr ? "مدرب" : "Coach")}
-            </CardTitle>
-            <p className="text-xs text-slate-500">{row.email}</p>
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelect}
+              aria-label={isAr ? "تحديد المدرب" : "Select coach"}
+              className="mt-1 h-4 w-4 accent-emerald-600"
+            />
+            <div>
+              <CardTitle className="text-base text-slate-800">
+                {row.name || (isAr ? "مدرب" : "Coach")}
+              </CardTitle>
+              <p className="text-xs text-slate-500">{row.email}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className={statusMeta.cls}>

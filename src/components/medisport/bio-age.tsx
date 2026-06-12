@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,14 +20,11 @@ import {
 } from "@/components/ui/sheet";
 import {
   Activity,
-  ArrowDown,
-  ArrowUp,
   Brain,
   Calendar,
   ChevronRight,
   Clock,
   Dumbbell,
-  Flame,
   Heart,
   Leaf,
   Moon,

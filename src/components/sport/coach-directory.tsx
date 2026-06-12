@@ -27,7 +27,6 @@ import {
   Award,
   Loader2,
   Send,
-  X,
   CheckCircle2,
   Clock,
   GraduationCap,

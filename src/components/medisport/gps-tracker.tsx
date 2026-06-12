@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -20,22 +19,16 @@ import {
 } from "@/components/ui/sheet";
 import {
   Activity,
-  Bike,
   Calendar,
   ChevronRight,
   Clock,
   Flame,
-  Footprints,
-  Heart,
-  MapPin,
   Pause,
   Play,
   Route,
   Square,
   Timer,
-  TrendingUp,
   Trophy,
-  Waves,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";

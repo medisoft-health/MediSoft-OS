@@ -7,9 +7,8 @@ import {
   labResults,
   vitals,
   appointments,
-  patientAlerts,
 } from "@/db/schema";
-import { eq, and, isNull, desc, gte, lte, sql, asc, lt } from "drizzle-orm";
+import { eq, and, isNull, desc, gte, asc } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // ═══════════════════════════════════════════════════════════════════════════════

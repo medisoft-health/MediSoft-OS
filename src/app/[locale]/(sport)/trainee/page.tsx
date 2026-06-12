@@ -4,14 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  Activity,
   Apple,
-  ArrowRight,
-  BarChart3,
   BookOpen,
-  Calendar,
   ChevronRight,
-  Dumbbell,
   Flame,
   FlaskConical,
   Footprints,
@@ -22,14 +17,8 @@ import {
   Scale,
   ShieldCheck,
   Sparkles,
-  Star,
-  Target,
-  Timer,
   Trophy,
-  TrendingUp,
-  User,
   Users,
-  Zap,
   Droplets,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

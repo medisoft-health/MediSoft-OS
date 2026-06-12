@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { LocaleSwitcher } from "@/components/clinical/locale-switcher";
 import { THEME_OPTIONS, type ThemePreference } from "@/lib/validations/settings";
 import { cn } from "@/lib/utils";

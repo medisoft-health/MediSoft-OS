@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { getNotifications } from "@/lib/notifications/notification-engine";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";

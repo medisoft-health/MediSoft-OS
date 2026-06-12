@@ -7,7 +7,7 @@ import {
   labResults,
   vitals,
 } from "@/db/schema";
-import { eq, and, isNull, desc, gte, sql, count } from "drizzle-orm";
+import { and, isNull, desc, gte, count } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 
 // ═══════════════════════════════════════════════════════════════════════════════

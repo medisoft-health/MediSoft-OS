@@ -17,7 +17,6 @@ import {
   Trash2,
   Mic,
   Upload,
-  FileText,
   Activity,
   Syringe,
   Brain,
@@ -30,8 +29,6 @@ import {
   Dumbbell,
   UtensilsCrossed,
   Baby,
-  Briefcase,
-  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

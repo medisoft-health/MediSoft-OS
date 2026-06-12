@@ -1,8 +1,6 @@
 "use client";
 
-import * as React from "react";
 import { usePathname } from "next/navigation";
-import { useMediBot } from "./medibot-provider";
 
 /**
  * usePageContext — Makes MediBot aware of the current page/module

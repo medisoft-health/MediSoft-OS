@@ -12,10 +12,7 @@ import {
   PHQ9,
   GAD7,
   CBT_SESSIONS,
-  INSTRUMENTS,
-  type MentalHealthProfile,
-  type MentalHealthCondition,
-  type TherapyModality
+  type MentalHealthProfile
 } from "@/lib/medimental";
 
 export async function GET() {

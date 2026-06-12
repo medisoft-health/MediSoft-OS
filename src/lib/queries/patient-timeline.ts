@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, isNull, gte, lte } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { encounters, labResults, prescriptions, scans, vitals } from "@/db/schema";
 

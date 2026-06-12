@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Cloud, CloudOff, RefreshCw, Check, AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Cloud, CloudOff, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

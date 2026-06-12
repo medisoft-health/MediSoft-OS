@@ -15,8 +15,6 @@ import "server-only";
  * @see https://cloud.google.com/healthcare-api/docs/reference/rest
  */
 
-import * as fs from "fs";
-import * as crypto from "crypto";
 import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Configuration ───────────────────────────────────────────────────────────

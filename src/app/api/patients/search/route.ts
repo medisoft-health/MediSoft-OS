@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
 import { patients } from "@/db/schema";
-import { and, or, ilike, isNull, sql } from "drizzle-orm";
+import { and, or, ilike, isNull } from "drizzle-orm";
 import { calculateAge } from "@/lib/utils";
 
 export const runtime = "nodejs";

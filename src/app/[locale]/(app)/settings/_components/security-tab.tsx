@@ -22,7 +22,6 @@ import {
   type ChangePasswordInput,
 } from "@/lib/validations/settings";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 
 export function SecurityTab() {
   const [submitting, setSubmitting] = React.useState(false);

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
-import { appointments, patients, users } from "@/db/schema";
+import { appointments, users } from "@/db/schema";
 import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 
 // GET /api/patient-portal/appointments — List appointments

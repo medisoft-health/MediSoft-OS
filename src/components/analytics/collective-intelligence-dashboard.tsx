@@ -4,11 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocale } from "next-intl";
 import {
   Users,
-  TrendingUp,
   AlertTriangle,
   BarChart3,
   Pill,
-  Shield,
   Globe,
   RefreshCw,
   Brain,

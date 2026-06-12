@@ -12,8 +12,7 @@ import {
   executeAgentTask,
   AGENT_REGISTRY,
   DEMO_SCENARIOS,
-  type AgentTask,
-  type AgentRole
+  type AgentTask
 } from "@/lib/medimind";
 
 export async function GET() {

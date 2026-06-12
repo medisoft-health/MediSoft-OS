@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -20,26 +19,18 @@ import {
 } from "@/components/ui/sheet";
 import {
   Apple,
-  Award,
   Battery,
   BookOpen,
   Brain,
   Check,
-  ChevronLeft,
   ChevronRight,
   Clock,
   Dumbbell,
-  Flame,
   GraduationCap,
-  Heart,
   Lightbulb,
   Lock,
-  Moon,
   Sparkles,
-  Star,
-  Target,
   Trophy,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 

@@ -23,7 +23,6 @@ import {
   Brain,
   Calendar,
   ChevronDown,
-  Clock,
   Dumbbell,
   FileText,
   Filter,
@@ -47,8 +46,6 @@ import {
 import { usePatientContext } from "./patient-context-provider";
 import Image from "next/image";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,

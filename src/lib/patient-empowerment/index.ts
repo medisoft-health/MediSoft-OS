@@ -5,10 +5,8 @@ import {
   encounters,
   labResults,
   vitals,
-  prescriptions,
 } from "@/db/schema";
-import { eq, and, isNull, desc, gte, sql } from "drizzle-orm";
-import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
+import { eq, and, isNull, desc, gte } from "drizzle-orm";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Patient Empowerment Engine

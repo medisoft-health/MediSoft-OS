@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
-import { translationSessions, patients } from "@/db/schema";
+import { translationSessions } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
 

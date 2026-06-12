@@ -6,8 +6,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { db } from "@/db";
-import { patientMessages, patients, users } from "@/db/schema";
-import { eq, and, desc, or } from "drizzle-orm";
+import { patientMessages, users } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 // GET /api/patient-portal/messages — List messages for a patient or physician
 export async function GET(req: NextRequest) {

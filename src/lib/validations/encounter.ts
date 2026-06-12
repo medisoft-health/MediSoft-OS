@@ -97,13 +97,13 @@ type _AssertKeysEqual =
       ? true
       : false
     : false;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const _soapShapeMatchesType: _AssertKeysEqual = true;
 
 // The SoapNote schema type is intentionally imported so that if the
 // upstream type is removed entirely, this file also fails to compile.
 type _SoapNoteImportProof = SoapNote;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const _proof: _SoapNoteImportProof | undefined = undefined;
 
 // ─────────────────────────────────────────────────────────────────

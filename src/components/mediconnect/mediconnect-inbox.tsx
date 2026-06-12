@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   MessageCircle,
   Send,
@@ -17,15 +15,11 @@ import {
   Pill,
   FileText,
   Bell,
-  Clock,
   CheckCheck,
   AlertTriangle,
-  User,
-  Stethoscope,
   Mic,
   Image as ImageIcon,
   MoreVertical,
-  Archive,
   X,
 } from "lucide-react";
 

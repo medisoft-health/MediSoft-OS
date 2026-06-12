@@ -16,7 +16,6 @@ import {
   Thermometer,
   Droplets,
   Wind,
-  FlaskConical,
   ScanLine,
   Dumbbell,
 

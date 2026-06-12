@@ -41,8 +41,12 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const { data: session } = useSession();
+  // Platform-owner gate: BOTH role=admin AND the pinned owner email.
+  // (UI-only convenience; real enforcement is server-side + API.)
+  const su = session?.user as { role?: string; email?: string } | undefined;
   const isAdmin =
-    (session?.user as { role?: string } | undefined)?.role === "admin";
+    su?.role === "admin" &&
+    (su?.email ?? "").trim().toLowerCase() === "medisoft2022@gmail.com";
 
   const isRtl = locale === "ar";
 
@@ -61,6 +65,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo — official wordmark */}
           <Link href={`/${locale}/sport`} className="flex items-center" aria-label="MediSport">
+            {/* logo links to MediSport landing (/sport) */}
             <Image
               src="/images/medisport-wordmark.png"
               alt="MediSport"
@@ -77,11 +82,11 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
               <Home className="h-4 w-4" />
               <span>{t("home")}</span>
             </NavLink>
-            <NavLink href={`/${locale}/sport/trainee`} active={pathname.includes("/trainee")}>
+            <NavLink href={`/${locale}/trainee`} active={pathname.includes("/trainee")}>
               <Activity className="h-4 w-4" />
               <span>{t("trainee")}</span>
             </NavLink>
-            <NavLink href={`/${locale}/sport/coach`} active={pathname.includes("/coach")}>
+            <NavLink href={`/${locale}/coach`} active={pathname.includes("/coach")}>
               <Users className="h-4 w-4" />
               <span>{t("coach")}</span>
             </NavLink>
@@ -108,14 +113,14 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align={isRtl ? "start" : "end"} className="w-48">
                 <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/sport/trainee`}>
+                  <Link href={`/${locale}/trainee`}>
                     <Activity className="h-4 w-4 me-2" />
                     {t("myDashboard")}
                   </Link>
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link href={`/${locale}/sport/admin/coaches`}>
+                    <Link href={`/${locale}/console-x7k2/coaches`}>
                       <ShieldCheck className="h-4 w-4 me-2" />
                       {isRtl ? "اعتماد المدربين" : "Coach Verification"}
                     </Link>
@@ -123,7 +128,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/sport/auth`} className="text-red-600">
+                  <Link href={`/${locale}/auth`} className="text-red-600">
                     <LogOut className="h-4 w-4 me-2" />
                     {t("logout")}
                   </Link>
@@ -151,11 +156,11 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                 <Home className="h-4 w-4" />
                 {t("home")}
               </MobileNavLink>
-              <MobileNavLink href={`/${locale}/sport/trainee`} onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink href={`/${locale}/trainee`} onClick={() => setMobileMenuOpen(false)}>
                 <Activity className="h-4 w-4" />
                 {t("trainee")}
               </MobileNavLink>
-              <MobileNavLink href={`/${locale}/sport/coach`} onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink href={`/${locale}/coach`} onClick={() => setMobileMenuOpen(false)}>
                 <Users className="h-4 w-4" />
                 {t("coach")}
               </MobileNavLink>
@@ -189,7 +194,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
               <span>© 2026</span>
               <span aria-hidden>·</span>
               <Link
-                href={`/${locale}/sport/auth`}
+                href={`/${locale}/auth`}
                 className="ms-glide transition-colors hover:text-[var(--color-sport-700)]"
               >
                 {t("login")}
@@ -203,9 +208,9 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
       <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden border-t border-[var(--color-sport-100)] bg-white/95 backdrop-blur-xl safe-area-bottom">
         <div className="flex items-center justify-around py-2">
           <BottomNavItem href={`/${locale}/sport`} icon={Home} label={t("home")} active={pathname === `/${locale}/sport`} />
-          <BottomNavItem href={`/${locale}/sport/trainee`} icon={Activity} label={t("trainee")} active={pathname.includes("/trainee")} />
-          <BottomNavItem href={`/${locale}/sport/coach`} icon={Users} label={t("coach")} active={pathname.includes("/coach")} />
-          <BottomNavItem href={`/${locale}/sport/auth`} icon={User} label={t("account")} active={pathname.includes("/auth")} />
+          <BottomNavItem href={`/${locale}/trainee`} icon={Activity} label={t("trainee")} active={pathname.includes("/trainee")} />
+          <BottomNavItem href={`/${locale}/coach`} icon={Users} label={t("coach")} active={pathname.includes("/coach")} />
+          <BottomNavItem href={`/${locale}/auth`} icon={User} label={t("account")} active={pathname.includes("/auth")} />
         </div>
       </nav>
     </div>

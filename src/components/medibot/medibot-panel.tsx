@@ -6,7 +6,6 @@ import Image from "next/image";
 import {
   MessageSquare,
   ChevronRight,
-  ChevronLeft,
   User,
   Search,
   Send,
@@ -14,7 +13,6 @@ import {
   FileText,
   Pill,
   Loader2,
-  Sparkles,
   BookOpen,
   Stethoscope,
   FlaskConical,

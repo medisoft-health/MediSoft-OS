@@ -1,16 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
 import {
   Calendar,
   FlaskConical,
   Pill,
   MessageSquare,
-  Heart,
   Shield,
-  TrendingUp,
-  Clock,
   ChevronRight,
   Bell,
   FileText,

@@ -21,8 +21,6 @@ import "server-only";
  */
 
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/ai/gemini";
-import * as fs from "fs";
-import * as crypto from "crypto";
 import { getAccessTokenForScopes, fetchWithRetry } from "./auth";
 
 // ─── Vertex AI Toggle ────────────────────────────────────────────────────────
