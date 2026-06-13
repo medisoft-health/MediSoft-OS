@@ -2268,3 +2268,175 @@ export const sportCoachScoreHistory = pgTable(
   },
   (t) => [index("sport_score_hist_coach_idx").on(t.coachId, t.createdAt)]
 );
+
+// ============================================================
+// MediSport Virtual Training Engine (Phase 9)
+// ============================================================
+
+// --- Local exercise library cache ---
+export const sportExercises = pgTable(
+  "sport_exercises",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    externalId: varchar("external_id", { length: 64 }),
+    source: varchar("source", { length: 16 }).notNull().default("exercisedb"),
+    name: varchar("name", { length: 256 }).notNull(),
+    nameAr: varchar("name_ar", { length: 256 }),
+    gifUrl: text("gif_url"),
+    videoUrl: text("video_url"),
+    targetMuscles: jsonb("target_muscles").notNull().default([]),
+    secondaryMuscles: jsonb("secondary_muscles").notNull().default([]),
+    bodyParts: jsonb("body_parts").notNull().default([]),
+    equipments: jsonb("equipments").notNull().default([]),
+    instructions: jsonb("instructions").notNull().default([]),
+    difficulty: varchar("difficulty", { length: 16 }),
+    forceType: varchar("force_type", { length: 16 }),
+    category: varchar("category", { length: 32 }),
+    isPremium: boolean("is_premium").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_exercises_source_idx").on(t.source),
+    index("sport_exercises_name_idx").on(t.name),
+  ]
+);
+
+// --- Training plans (master plans) ---
+export const sportTrainingPlans = pgTable(
+  "sport_training_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 256 }).notNull(),
+    goal: varchar("goal", { length: 32 }).notNull(),
+    durationWeeks: integer("duration_weeks").notNull().default(8),
+    daysPerWeek: integer("days_per_week").notNull().default(4),
+    equipmentAccess: varchar("equipment_access", { length: 32 }).notNull().default("full_gym"),
+    currentWeek: integer("current_week").notNull().default(1),
+    status: varchar("status", { length: 16 }).notNull().default("active"),
+    medicalAdjustments: jsonb("medical_adjustments").default({}),
+    planStructure: jsonb("plan_structure").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sport_plan_user_idx").on(t.userId, t.status)]
+);
+
+// --- Daily workouts within a plan ---
+export const sportWorkouts = pgTable(
+  "sport_workouts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    planId: uuid("plan_id").notNull().references(() => sportTrainingPlans.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    weekNumber: integer("week_number").notNull(),
+    dayNumber: integer("day_number").notNull(),
+    title: varchar("title", { length: 256 }).notNull(),
+    targetMuscles: jsonb("target_muscles").notNull().default([]),
+    exercises: jsonb("exercises").notNull().default([]),
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    scheduledDate: date("scheduled_date"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sport_workout_plan_idx").on(t.planId, t.weekNumber, t.dayNumber),
+    index("sport_workout_user_idx").on(t.userId, t.status),
+  ]
+);
+
+// --- Workout sessions (actual logged sessions) ---
+export const sportWorkoutSessions = pgTable(
+  "sport_workout_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workoutId: uuid("workout_id").references(() => sportWorkouts.id, { onDelete: "set null" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+    totalVolume: numeric("total_volume", { precision: 10, scale: 2 }).default("0"),
+    totalSets: integer("total_sets").default(0),
+    caloriesBurned: integer("calories_burned").default(0),
+    notes: text("notes"),
+    moodRating: integer("mood_rating"),
+    status: varchar("status", { length: 16 }).notNull().default("in_progress"),
+  },
+  (t) => [
+    index("sport_session_user_idx").on(t.userId),
+    index("sport_session_workout_idx").on(t.workoutId),
+  ]
+);
+
+// --- Session exercise logs ---
+export const sportSessionExercises = pgTable(
+  "sport_session_exercises",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id").notNull().references(() => sportWorkoutSessions.id, { onDelete: "cascade" }),
+    exerciseId: uuid("exercise_id").references(() => sportExercises.id, { onDelete: "set null" }),
+    exerciseName: varchar("exercise_name", { length: 256 }).notNull(),
+    exerciseOrder: integer("exercise_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sport_session_ex_session_idx").on(t.sessionId, t.exerciseOrder)]
+);
+
+// --- Set logs ---
+export const sportSessionSets = pgTable(
+  "sport_session_sets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionExerciseId: uuid("session_exercise_id").notNull().references(() => sportSessionExercises.id, { onDelete: "cascade" }),
+    setNumber: integer("set_number").notNull(),
+    setType: varchar("set_type", { length: 16 }).notNull().default("working"),
+    weightKg: numeric("weight_kg", { precision: 6, scale: 2 }),
+    reps: integer("reps"),
+    durationSeconds: integer("duration_seconds"),
+    distanceMeters: numeric("distance_meters", { precision: 8, scale: 2 }),
+    rpe: integer("rpe"),
+    restTakenSeconds: integer("rest_taken_seconds"),
+    isPr: boolean("is_pr").notNull().default(false),
+    completed: boolean("completed").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sport_set_exercise_idx").on(t.sessionExerciseId, t.setNumber)]
+);
+
+// --- Personal records ---
+export const sportPersonalRecords = pgTable(
+  "sport_personal_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    exerciseId: uuid("exercise_id").references(() => sportExercises.id, { onDelete: "set null" }),
+    exerciseName: varchar("exercise_name", { length: 256 }).notNull(),
+    recordType: varchar("record_type", { length: 16 }).notNull(),
+    value: numeric("value", { precision: 10, scale: 2 }).notNull(),
+    previousValue: numeric("previous_value", { precision: 10, scale: 2 }),
+    sessionId: uuid("session_id").references(() => sportWorkoutSessions.id, { onDelete: "set null" }),
+    achievedAt: timestamp("achieved_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sport_pr_user_idx").on(t.userId, t.exerciseName, t.recordType)]
+);
+
+// --- Progressive overload tracking ---
+export const sportExerciseProgress = pgTable(
+  "sport_exercise_progress",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    exerciseId: uuid("exercise_id").references(() => sportExercises.id, { onDelete: "set null" }),
+    exerciseName: varchar("exercise_name", { length: 256 }).notNull(),
+    currentWeightKg: numeric("current_weight_kg", { precision: 6, scale: 2 }),
+    currentRepMin: integer("current_rep_min").notNull().default(8),
+    currentRepMax: integer("current_rep_max").notNull().default(12),
+    lastAchievedReps: jsonb("last_achieved_reps").default([]),
+    nextWeightKg: numeric("next_weight_kg", { precision: 6, scale: 2 }),
+    progressionStatus: varchar("progression_status", { length: 16 }).notNull().default("maintain"),
+    consecutiveSuccesses: integer("consecutive_successes").notNull().default(0),
+    lastUpdated: timestamp("last_updated", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("sport_progress_user_exercise_idx").on(t.userId, t.exerciseName)]
+);

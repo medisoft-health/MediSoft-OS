@@ -15,6 +15,13 @@ import {
   sportCoachReviews,
   sportCoachRequests,
   sportCoachScoreHistory,
+  sportTrainingPlans,
+  sportWorkouts,
+  sportWorkoutSessions,
+  sportSessionExercises,
+  sportSessionSets,
+  sportPersonalRecords,
+  sportExerciseProgress,
   users,
 } from "@/db/schema";
 import { and, desc, eq, gte, sql, inArray } from "drizzle-orm";
@@ -883,12 +890,95 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: rows });
       }
 
+      case "my-training-plan": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const plans = await db
+          .select()
+          .from(sportTrainingPlans)
+          .where(and(eq(sportTrainingPlans.userId, auth.user.id), eq(sportTrainingPlans.status, "active")))
+          .limit(1);
+        if (!plans[0]) {
+          return NextResponse.json({ success: true, plan: null });
+        }
+        const plan = plans[0];
+        const structure = plan.planStructure as any;
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const workouts = await db
+          .select()
+          .from(sportWorkouts)
+          .where(and(eq(sportWorkouts.planId, plan.id), eq(sportWorkouts.weekNumber, plan.currentWeek)))
+          .orderBy(sportWorkouts.dayNumber);
+        const todayWorkout = workouts.find(w => w.dayNumber === (dayOfWeek === 0 ? 7 : dayOfWeek));
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dayNamesAr = ["\u0627\u0644\u0623\u062d\u062f", "\u0627\u0644\u0625\u062b\u0646\u064a\u0646", "\u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621", "\u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621", "\u0627\u0644\u062e\u0645\u064a\u0633", "\u0627\u0644\u062c\u0645\u0639\u0629", "\u0627\u0644\u0633\u0628\u062a"];
+        const weekDays = Array.from({ length: 7 }, (_, i) => {
+          const wk = workouts.find(w => w.dayNumber === (i === 0 ? 7 : i));
+          return {
+            dayNumber: i,
+            dayName: dayNames[i],
+            dayNameAr: dayNamesAr[i],
+            isToday: i === dayOfWeek,
+            isCompleted: wk?.status === "completed",
+            isRest: !wk,
+            workoutTitle: wk?.title,
+            workoutTitleAr: wk?.title,
+          };
+        });
+        const sessions = await db
+          .select()
+          .from(sportWorkoutSessions)
+          .where(eq(sportWorkoutSessions.userId, auth.user.id))
+          .orderBy(desc(sportWorkoutSessions.startedAt))
+          .limit(20);
+        const history = sessions.map(s => ({
+          id: s.id,
+          date: s.startedAt?.toISOString() || "",
+          workoutTitle: "Workout",
+          workoutTitleAr: "\u062a\u0645\u0631\u064a\u0646",
+          durationMinutes: Math.round((s.durationSeconds || 0) / 60),
+          totalVolume: parseFloat(s.totalVolume || "0"),
+          totalSets: s.totalSets || 0,
+          personalRecords: 0,
+          moodRating: s.moodRating || 3,
+        }));
+        const medAdj = (plan.medicalAdjustments as any) || [];
+        return NextResponse.json({
+          success: true,
+          plan: {
+            id: plan.id,
+            title: plan.title,
+            titleAr: plan.title,
+            goal: plan.goal,
+            durationWeeks: plan.durationWeeks,
+            currentWeek: plan.currentWeek,
+            daysPerWeek: plan.daysPerWeek,
+            splitName: structure?.splitName || "Custom",
+            splitNameAr: structure?.splitNameAr || "\u0645\u062e\u0635\u0635",
+            phases: structure?.phases || [],
+            medicalAdjustments: Array.isArray(medAdj) ? medAdj : [],
+          },
+          todayWorkout: todayWorkout ? {
+            dayNumber: todayWorkout.dayNumber,
+            title: todayWorkout.title,
+            titleAr: todayWorkout.title,
+            targetMuscles: todayWorkout.targetMuscles || [],
+            exercises: (todayWorkout.exercises as any[]) || [],
+            estimatedDuration: ((todayWorkout.exercises as any[]) || []).length * 5,
+          } : null,
+          weekDays,
+          history,
+          progressionTips: [],
+        });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests, my-training-plan",
           },
           { status: 400 }
         );
@@ -1662,12 +1752,137 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      case "generate-training-plan": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const { goal, fitnessLevel, daysPerWeek, equipmentAccess, heightCm, weightKg, age, sex } = body;
+        // Import training plan engine
+        const { generateTrainingPlan } = await import("@/lib/sport/training-plan-engine");
+        // Check for medical data from sport_lab_results
+        const labResults = await db
+          .select()
+          .from(sportLabResults)
+          .where(eq(sportLabResults.userId, auth.user.id))
+          .orderBy(desc(sportLabResults.createdAt))
+          .limit(5);
+        // Build medical context
+        const medicalContext: any[] = [];
+        for (const lab of labResults) {
+          const results = lab.results as any;
+          if (results?.hemoglobin && parseFloat(results.hemoglobin) < 12) {
+            medicalContext.push({ condition: "Low Iron/Hemoglobin", conditionAr: "\u0646\u0642\u0635 \u0627\u0644\u062d\u062f\u064a\u062f", severity: "moderate", adjustment: "Reduce high-intensity endurance", adjustmentAr: "\u062a\u0642\u0644\u064a\u0644 \u062a\u0645\u0627\u0631\u064a\u0646 \u0627\u0644\u062a\u062d\u0645\u0644 \u0627\u0644\u0645\u0643\u062b\u0641\u0629" });
+          }
+          if (results?.vitaminD && parseFloat(results.vitaminD) < 20) {
+            medicalContext.push({ condition: "Vitamin D Deficiency", conditionAr: "\u0646\u0642\u0635 \u0641\u064a\u062a\u0627\u0645\u064a\u0646 \u062f", severity: "moderate", adjustment: "Focus on joint strengthening, reduce heavy loads", adjustmentAr: "\u0627\u0644\u062a\u0631\u0643\u064a\u0632 \u0639\u0644\u0649 \u062a\u0642\u0648\u064a\u0629 \u0627\u0644\u0645\u0641\u0627\u0635\u0644 \u0648\u062a\u062e\u0641\u064a\u0641 \u0627\u0644\u0623\u0648\u0632\u0627\u0646" });
+          }
+        }
+        // Generate plan
+        const planResult = generateTrainingPlan({
+          goal: goal || "general_fitness",
+          fitnessLevel: fitnessLevel || "beginner",
+          daysPerWeek: daysPerWeek || 4,
+          equipmentAccess: equipmentAccess || "full_gym",
+          sex: sex || "male",
+          age: age || 25,
+          weightKg: weightKg || 75,
+          heightCm: heightCm || 175,
+        });
+        // Save plan to DB
+        const [newPlan] = await db.insert(sportTrainingPlans).values({
+          userId: auth.user.id,
+          title: planResult.title,
+          goal: goal || "general_fitness",
+          durationWeeks: planResult.durationWeeks,
+          daysPerWeek: planResult.daysPerWeek,
+          equipmentAccess: equipmentAccess || "full_gym",
+          currentWeek: 1,
+          status: "active",
+          medicalAdjustments: [...medicalContext, ...planResult.medicalAdjustments],
+          planStructure: {
+            splitName: planResult.split.name,
+            splitNameAr: planResult.split.nameAr,
+            phases: planResult.phases,
+            fitnessLevel,
+            sex,
+          },
+        }).returning();
+        // Generate workouts for all weeks of the plan
+        const workoutInserts: any[] = [];
+        for (let week = 1; week <= planResult.durationWeeks; week++) {
+          for (const day of planResult.weeklySchedule) {
+            workoutInserts.push({
+              planId: newPlan.id,
+              userId: auth.user.id,
+              weekNumber: week,
+              dayNumber: day.dayNumber,
+              title: day.title,
+              targetMuscles: day.targetMuscles,
+              exercises: day.exercises,
+              status: "pending",
+            });
+          }
+        }
+        if (workoutInserts.length > 0) {
+          // Insert in batches of 50 to avoid oversized queries
+          for (let i = 0; i < workoutInserts.length; i += 50) {
+            await db.insert(sportWorkouts).values(workoutInserts.slice(i, i + 50));
+          }
+        }
+        return NextResponse.json({ success: true, planId: newPlan.id });
+      }
+
+      case "save-training-session": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const { workoutId, exercises, durationSeconds, moodRating, totalVolume, totalSets, caloriesBurned } = body;
+        // Create session record
+        const [session] = await db.insert(sportWorkoutSessions).values({
+          workoutId: workoutId || null,
+          userId: auth.user.id,
+          durationSeconds: durationSeconds || 0,
+          totalVolume: String(totalVolume || 0),
+          totalSets: totalSets || 0,
+          caloriesBurned: caloriesBurned || 0,
+          moodRating: moodRating || 3,
+          status: "completed",
+          endedAt: new Date(),
+        }).returning();
+        // Save exercise logs and sets
+        if (exercises && Array.isArray(exercises)) {
+          for (const ex of exercises) {
+            const [exLog] = await db.insert(sportSessionExercises).values({
+              sessionId: session.id,
+              exerciseName: ex.name || "Unknown",
+              exerciseOrder: ex.order || 0,
+            }).returning();
+            if (ex.sets && Array.isArray(ex.sets)) {
+              for (const set of ex.sets) {
+                await db.insert(sportSessionSets).values({
+                  sessionExerciseId: exLog.id,
+                  setNumber: set.setNumber || 1,
+                  weightKg: set.weightKg ? String(set.weightKg) : null,
+                  reps: set.reps || 0,
+                  rpe: set.rpe || null,
+                  restTakenSeconds: set.restTaken || null,
+                  completed: set.completed !== false,
+                });
+              }
+            }
+          }
+        }
+        // Mark workout as completed if workoutId provided
+        if (workoutId) {
+          await db.update(sportWorkouts).set({ status: "completed", completedAt: new Date() }).where(eq(sportWorkouts.id, workoutId));
+        }
+        return NextResponse.json({ success: true, sessionId: session.id });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review, trainee-profile-save",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review, trainee-profile-save, generate-training-plan, save-training-session",
           },
           { status: 400 }
         );

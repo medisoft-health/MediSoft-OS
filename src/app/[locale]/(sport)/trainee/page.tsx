@@ -18,6 +18,7 @@ import {
   Sparkles,
   Trophy,
   Users,
+  Dumbbell,
   Droplets,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,13 @@ export default function TraineeDashboardPage() {
 
       {/* Feature Grid — improved cards */}
       <div className="grid grid-cols-2 gap-3.5 mb-5 ms-animate-in ms-animate-in-delay-4">
+        <FeatureButton
+          icon={Dumbbell}
+          label={t("training")}
+          description={t("trainingDesc")}
+          color="emerald"
+          href={`/${locale}/trainee/training`}
+        />
         <FeatureButton
           icon={Apple}
           label={t("foodLogger")}
@@ -329,6 +337,7 @@ function FeatureButton({
     blue: { card: "hover:shadow-[0_4px_6px_rgba(15,23,42,0.06),0_10px_24px_rgba(15,23,42,0.05)]", icon: "bg-blue-50 text-blue-600" },
     rose: { card: "hover:shadow-[0_4px_6px_rgba(15,23,42,0.06),0_10px_24px_rgba(15,23,42,0.05)]", icon: "bg-rose-50 text-rose-600" },
     purple: { card: "hover:shadow-[0_4px_6px_rgba(15,23,42,0.06),0_10px_24px_rgba(15,23,42,0.05)]", icon: "bg-purple-50 text-purple-600" },
+    emerald: { card: "hover:shadow-[0_4px_6px_rgba(15,23,42,0.06),0_10px_24px_rgba(15,23,42,0.05)]", icon: "bg-emerald-100 text-emerald-700" },
   };
   const c = colorMap[color] || colorMap.green;
 
