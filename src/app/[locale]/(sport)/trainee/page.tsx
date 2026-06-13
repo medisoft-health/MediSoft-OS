@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { MyCoachCard } from "@/components/sport/clients-manager";
+import { SportAuthGuard } from "@/components/sport/sport-auth-guard";
 
 /**
  * MediSport Standalone — Trainee Dashboard (v2.0 UI Upgrade)
@@ -43,6 +44,7 @@ export default function TraineeDashboardPage() {
   const isRtl = locale === "ar";
 
   return (
+    <SportAuthGuard requiredRole="trainee">
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 pb-28 md:pb-8">
       {/* Header — more breathing room */}
       <div className="flex items-center justify-between mb-8 ms-animate-in">
@@ -283,6 +285,7 @@ export default function TraineeDashboardPage() {
         </Card>
       </Link>
     </div>
+    </SportAuthGuard>
   );
 }
 

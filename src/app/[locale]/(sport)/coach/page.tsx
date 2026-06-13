@@ -33,6 +33,7 @@ import { CoachNotificationBell } from "@/components/sport/coach-notification-bel
 import { CoachVerificationForm } from "@/components/sport/coach-verification-form";
 import { CoachRequestsPanel } from "@/components/sport/coach-requests-panel";
 import { CoachAnalytics } from "@/components/sport/coach-analytics";
+import { SportAuthGuard } from "@/components/sport/sport-auth-guard";
 
 /**
  * MediSport Standalone — Coach Dashboard (v2.0 UI Upgrade)
@@ -110,6 +111,7 @@ export default function CoachDashboardPage() {
   }, []);
 
   return (
+    <SportAuthGuard requiredRole="coach">
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 pb-28 md:pb-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 ms-animate-in">
@@ -358,6 +360,7 @@ export default function CoachDashboardPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </SportAuthGuard>
   );
 }
 

@@ -1637,12 +1637,37 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, data: { ratingAvg: avg, ratingCount: cnt } });
       }
 
+      // --- Trainee profile save (onboarding + profile updates) ---
+      case "trainee-profile-save": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const p = body.profile || {};
+        const set: Record<string, unknown> = {
+          role: "trainee",
+          displayName: p.displayName ?? null,
+          sex: p.sex ?? null,
+          birthDate: p.birthDate ?? null,
+          heightCm: p.heightCm ?? null,
+          weightKg: p.weightKg ?? null,
+          goal: p.goal ?? null,
+          activityLevel: p.activityLevel ?? null,
+          bio: p.bio ?? null,
+          avatarUrl: p.avatarUrl ?? null,
+          onboardingComplete: true,
+        };
+        await db
+          .insert(sportProfiles)
+          .values({ userId: auth.user.id, ...set } as typeof sportProfiles.$inferInsert)
+          .onConflictDoUpdate({ target: sportProfiles.userId, set });
+        return NextResponse.json({ success: true });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review, trainee-profile-save",
           },
           { status: 400 }
         );
