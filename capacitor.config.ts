@@ -2,11 +2,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.medisofthealth.app",
-  appName: "MediSoft",
+  appName: "MediSport",
   webDir: "out",
   // Server configuration — loads from your live URL
   server: {
-    url: "https://app.medisofthealth.com",
+    url: "https://sport.medisofthealth.com",
     cleartext: false,
     // Allow navigation to these origins
     allowNavigation: [
@@ -20,7 +20,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: "#FFFFFF",
+      backgroundColor: "#0F172A",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
@@ -29,7 +29,7 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: "LIGHT",
-      backgroundColor: "#FFFFFF",
+      backgroundColor: "#0F172A",
     },
     Keyboard: {
       resize: "body" as any,
@@ -43,7 +43,7 @@ const config: CapacitorConfig = {
     },
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",
-      iconColor: "#0D9488",
+      iconColor: "#0E9F6E",
       sound: "beep.wav",
     },
   },
@@ -60,7 +60,7 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#0F172A",
   },
 };
 

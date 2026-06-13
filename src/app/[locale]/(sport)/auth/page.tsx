@@ -5,33 +5,36 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
-  ArrowLeft,
   Eye,
   EyeOff,
+  HeartPulse,
   Loader2,
   Lock,
   Mail,
+  Salad,
   User,
   Users,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 type AuthMode = "login" | "register";
 type UserRole = "trainee" | "coach";
 
 /**
- * MediSport Standalone — Auth Page
- * 
- * Independent authentication flow:
- * - Email-based registration/login
- * - Role selection (Coach / Trainee)
- * - Does NOT require a full MediSoft clinical account
- * - Can link to MediSoft later for medical context access
+ * MediSport Standalone — Enhanced Single Login / Sign-up page
+ *
+ * Visual identity v2.0 (June 2026):
+ * - Split-screen: branded hero (emerald→teal gradient + runner image + wordmark)
+ *   on the left (lg+) and a clean auth card on the right.
+ * - One unified screen: tabs for Sign In / Create Account, inline role selection
+ *   (Trainee / Coach) shown only when creating an account.
+ * - Email + password (matches the configured Better-Auth backend).
+ * - Full RTL support via logical properties; uses .medisport-scope brand fonts.
+ *
+ * This page is the standalone app's entry point (sport.medisofthealth.com → /auth).
  */
 export default function SportAuthPage() {
   const t = useTranslations("SportStandalone");
@@ -46,9 +49,6 @@ export default function SportAuthPage() {
   const [role, setRole] = React.useState<UserRole>(
     (searchParams.get("role") as UserRole) || "trainee"
   );
-  const [step, setStep] = React.useState<"role" | "credentials">(
-    mode === "register" ? "role" : "credentials"
-  );
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 
@@ -57,18 +57,12 @@ export default function SportAuthPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
 
-  const handleRoleSelect = (selectedRole: UserRole) => {
-    setRole(selectedRole);
-    setStep("credentials");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (mode === "register") {
-        // Register via Better-Auth
         const res = await fetch("/api/auth/sign-up/email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -76,7 +70,6 @@ export default function SportAuthPage() {
             name,
             email,
             password,
-            // Store role in metadata for MediSport
             callbackURL: `/${locale}/${role}`,
           }),
         });
@@ -87,11 +80,9 @@ export default function SportAuthPage() {
         }
 
         toast.success(t("registerSuccess"));
-        // Store sport role in localStorage
         localStorage.setItem("medisport-role", role);
         router.push(`/${locale}/onboarding?role=${role}`);
       } else {
-        // Login via Better-Auth
         const res = await fetch("/api/auth/sign-in/email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -119,204 +110,298 @@ export default function SportAuthPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <Image
-            src="/images/medisport-wordmark.png"
-            alt="MediSport"
-            width={180}
-            height={48}
-            className="h-12 w-auto mb-2"
-            priority
-          />
-          <p className="text-sm text-slate-500 mt-1">{t("tagline")}</p>
+    <div className="medisport-scope flex min-h-screen w-full items-stretch">
+      {/* ── Branded Hero (left on lg+) ── */}
+      <aside className="relative hidden w-1/2 overflow-hidden lg:flex lg:flex-col lg:justify-between">
+        {/* Background image + gradient overlay */}
+        <Image
+          src="/images/medisport-runner.jpg"
+          alt=""
+          fill
+          priority
+          className="object-cover"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(6,78,59,0.92) 0%, rgba(5,122,85,0.85) 45%, rgba(14,159,110,0.78) 100%)",
+          }}
+        />
+
+        {/* Top: wordmark on white chip */}
+        <div className="relative z-10 p-10">
+          <div className="inline-flex items-center rounded-2xl bg-white/95 px-4 py-3 shadow-lg shadow-emerald-950/20">
+            <Image
+              src="/images/medisport-wordmark.png"
+              alt="MediSport"
+              width={170}
+              height={29}
+              priority
+              className="h-7 w-auto"
+            />
+          </div>
         </div>
 
-        {/* Role Selection Step (Register only) */}
-        {mode === "register" && step === "role" && (
-          <div className="space-y-4">
-            <div className="text-center mb-6">
-              <h2 className="text-lg font-semibold text-slate-900">{t("selectRole")}</h2>
-              <p className="text-sm text-slate-500 mt-1">{t("selectRoleDesc")}</p>
+        {/* Middle: headline */}
+        <div className="relative z-10 px-10">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm ring-1 ring-white/25">
+            <HeartPulse className="h-3.5 w-3.5" />
+            {t("authHeroBadge")}
+          </span>
+          <h1 className="ms-display mt-5 max-w-md text-3xl font-extrabold leading-tight text-white xl:text-4xl">
+            {t("authHeroTitle")}
+          </h1>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-emerald-50/90 xl:text-base">
+            {t("authHeroSubtitle")}
+          </p>
+        </div>
+
+        {/* Bottom: feature chips */}
+        <div className="relative z-10 flex flex-wrap gap-3 p-10">
+          <HeroChip icon={Activity} label={t("authFeatureBioAge")} />
+          <HeroChip icon={Salad} label={t("authFeatureNutrition")} />
+          <HeroChip icon={HeartPulse} label={t("authFeatureClinical")} />
+        </div>
+      </aside>
+
+      {/* ── Auth Card (right) ── */}
+      <main className="flex w-full items-center justify-center px-5 py-10 lg:w-1/2">
+        <div className="w-full max-w-md">
+          {/* Mobile wordmark */}
+          <div className="mb-8 flex flex-col items-center lg:hidden">
+            <Image
+              src="/images/medisport-wordmark.png"
+              alt="MediSport"
+              width={180}
+              height={31}
+              priority
+              className="h-9 w-auto"
+            />
+            <p className="mt-2 text-sm text-slate-500">{t("tagline")}</p>
+          </div>
+
+          {/* Tabs */}
+          <div className="mb-6 flex rounded-2xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+                mode === "login"
+                  ? "bg-white text-[var(--color-sport-700)] shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {t("signInTab")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+                mode === "register"
+                  ? "bg-white text-[var(--color-sport-700)] shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {t("signUpTab")}
+            </button>
+          </div>
+
+          <h2 className="ms-display text-2xl font-bold text-slate-900">
+            {mode === "login" ? t("loginTitle") : t("registerTitle")}
+          </h2>
+          <p className="mt-1 mb-6 text-sm text-slate-500">{t("tagline")}</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Role selection (register only) */}
+            {mode === "register" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">
+                  {t("roleQuestion")}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <RoleOption
+                    active={role === "trainee"}
+                    icon={Activity}
+                    label={t("roleTrainee")}
+                    onClick={() => setRole("trainee")}
+                  />
+                  <RoleOption
+                    active={role === "coach"}
+                    icon={Users}
+                    label={t("roleCoach")}
+                    onClick={() => setRole("coach")}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Full name (register only) */}
+            {mode === "register" && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  {t("fullName")}
+                </label>
+                <div className="relative">
+                  <User className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder={t("fullNamePlaceholder")}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="rounded-xl ps-10"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">
+                {t("emailLabel")}
+              </label>
+              <div className="relative">
+                <Mail className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type="email"
+                  placeholder={t("emailPlaceholder")}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="rounded-xl ps-10"
+                  required
+                />
+              </div>
             </div>
 
-            <button
-              onClick={() => handleRoleSelect("trainee")}
-              className="w-full p-4 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/50 transition-all duration-200 text-start group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 group-hover:scale-110 transition-transform">
-                  <Activity className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900">{t("roleTrainee")}</h3>
-                  <p className="text-sm text-slate-500 mt-0.5">{t("roleTraineeDesc")}</p>
-                </div>
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">
+                {t("passwordLabel")}
+              </label>
+              <div className="relative">
+                <Lock className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("passwordPlaceholder")}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="rounded-xl ps-10 pe-10"
+                  required
+                  minLength={12}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-            </button>
+            </div>
 
-            <button
-              onClick={() => handleRoleSelect("coach")}
-              className="w-full p-4 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 text-start group"
+            <Button
+              type="submit"
+              disabled={loading}
+              className="ms-grad-brand h-12 w-full rounded-xl text-white transition-opacity hover:opacity-90"
             >
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 group-hover:scale-110 transition-transform">
-                  <Users className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900">{t("roleCoach")}</h3>
-                  <p className="text-sm text-slate-500 mt-0.5">{t("roleCoachDesc")}</p>
-                </div>
-              </div>
-            </button>
+              {loading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {mode === "login" ? t("loginBtn") : t("registerBtn")}
+            </Button>
+          </form>
 
-            <div className="text-center pt-4">
+          {/* Switch mode hint */}
+          <div className="mt-5 text-center">
+            {mode === "login" ? (
+              <p className="text-sm text-slate-500">
+                {t("noAccount")}{" "}
+                <button
+                  onClick={() => setMode("register")}
+                  className="font-semibold text-[var(--color-sport-700)] hover:underline"
+                >
+                  {t("registerHere")}
+                </button>
+              </p>
+            ) : (
               <p className="text-sm text-slate-500">
                 {t("alreadyHaveAccount")}{" "}
                 <button
-                  onClick={() => { setMode("login"); setStep("credentials"); }}
-                  className="text-emerald-600 font-medium hover:underline"
+                  onClick={() => setMode("login")}
+                  className="font-semibold text-[var(--color-sport-700)] hover:underline"
                 >
                   {t("loginHere")}
                 </button>
               </p>
-            </div>
+            )}
           </div>
-        )}
 
-        {/* Credentials Step */}
-        {step === "credentials" && (
-          <Card className="border-slate-200 shadow-xl shadow-slate-100/50">
-            <CardHeader className="pb-4 pt-6 px-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    {mode === "login" ? t("loginTitle") : t("registerTitle")}
-                  </h2>
-                  {mode === "register" && (
-                    <Badge
-                      variant="secondary"
-                      className={`mt-1 ${role === "coach" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}`}
-                    >
-                      {role === "coach" ? t("roleCoach") : t("roleTrainee")}
-                    </Badge>
-                  )}
-                </div>
-                {mode === "register" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setStep("role")}
-                    className="text-slate-500"
-                  >
-                    <ArrowLeft className={`h-4 w-4 ${isRtl ? "rotate-180" : ""}`} />
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {mode === "register" && (
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">{t("fullName")}</label>
-                    <div className="relative">
-                      <User className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        type="text"
-                        placeholder={t("fullNamePlaceholder")}
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="ps-10 rounded-lg"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">{t("emailLabel")}</label>
-                  <div className="relative">
-                    <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      type="email"
-                      placeholder={t("emailPlaceholder")}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="ps-10 rounded-lg"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">{t("passwordLabel")}</label>
-                  <div className="relative">
-                    <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder={t("passwordPlaceholder")}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="ps-10 pe-10 rounded-lg"
-                      required
-                      minLength={12}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full ms-grad-brand hover:opacity-90 text-white rounded-lg h-11 transition-opacity"
-                >
-                  {loading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
-                  {mode === "login" ? t("loginBtn") : t("registerBtn")}
-                </Button>
-              </form>
-
-              <div className="mt-4 text-center">
-                {mode === "login" ? (
-                  <p className="text-sm text-slate-500">
-                    {t("noAccount")}{" "}
-                    <button
-                      onClick={() => { setMode("register"); setStep("role"); }}
-                      className="text-emerald-600 font-medium hover:underline"
-                    >
-                      {t("registerHere")}
-                    </button>
-                  </p>
-                ) : (
-                  <p className="text-sm text-slate-500">
-                    {t("alreadyHaveAccount")}{" "}
-                    <button
-                      onClick={() => { setMode("login"); setStep("credentials"); }}
-                      className="text-emerald-600 font-medium hover:underline"
-                    >
-                      {t("loginHere")}
-                    </button>
-                  </p>
-                )}
-              </div>
-
-              {/* Link to MediSoft */}
-              <div className="mt-6 pt-4 border-t border-slate-100 text-center">
-                <p className="text-xs text-slate-400">
-                  {t("linkMediSoft")}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          {/* MediSoft endorsement */}
+          <div className="mt-8 border-t border-slate-100 pt-5 text-center">
+            <p className="text-xs text-slate-400">{t("linkMediSoft")}</p>
+            <p className="mt-2 text-[11px] font-medium text-slate-400">
+              Powered by MediSoft Health
+            </p>
+          </div>
+        </div>
+      </main>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────
+
+function HeroChip({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm ring-1 ring-white/20">
+      <Icon className="h-4 w-4" />
+      {label}
+    </span>
+  );
+}
+
+function RoleOption({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-3.5 transition-all ${
+        active
+          ? "border-[var(--color-sport-500)] bg-[var(--color-sport-50)] text-[var(--color-sport-700)]"
+          : "border-slate-200 text-slate-500 hover:border-slate-300"
+      }`}
+    >
+      <span
+        className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+          active
+            ? "bg-[var(--color-sport-500)] text-white"
+            : "bg-slate-100 text-slate-400"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="text-sm font-semibold">{label}</span>
+    </button>
   );
 }

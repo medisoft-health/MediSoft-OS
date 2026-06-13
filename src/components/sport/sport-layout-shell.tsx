@@ -50,6 +50,10 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
 
   const isRtl = locale === "ar";
 
+  // The auth/login screen is rendered full-screen without the app chrome
+  // (no top-nav, footer, or bottom-nav) for a clean, focused entry point.
+  const isAuthRoute = /\/(auth|login|register)(\/|$)/.test(pathname);
+
   // Build locale-switched path
   const switchLocalePath = React.useMemo(() => {
     if (locale === "ar") {
@@ -57,6 +61,10 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
     }
     return pathname.replace(/^\/en/, "/ar");
   }, [pathname, locale]);
+
+  if (isAuthRoute) {
+    return <div className="medisport-scope min-h-screen bg-white">{children}</div>;
+  }
 
   return (
     <div className="medisport-scope flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-[var(--color-sport-50)]">
