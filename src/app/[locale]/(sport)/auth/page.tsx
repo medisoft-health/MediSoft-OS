@@ -113,7 +113,9 @@ export default function SportAuthPage() {
         toast.success(t("loginSuccess"));
         const savedRole = localStorage.getItem("medisport-role") || "trainee";
         const returnTo = searchParams.get("returnTo");
-        router.push(returnTo || `/${locale}/${savedRole}`);
+        // Use window.location to ensure session cookie is set before navigation
+        const destination = returnTo ? decodeURIComponent(returnTo) : `/${locale}/${savedRole}`;
+        window.location.href = destination;
       }
     } catch (err: any) {
       toast.error(err.message || t("authError"));
@@ -197,7 +199,8 @@ export default function SportAuthPage() {
       toast.success(t("loginSuccess"));
       const savedRole = localStorage.getItem("medisport-role") || "trainee";
       const returnTo = searchParams.get("returnTo");
-      router.push(returnTo || `/${locale}/${savedRole}`);
+      const destination = returnTo ? decodeURIComponent(returnTo) : `/${locale}/${savedRole}`;
+      window.location.href = destination;
     } catch (err: any) {
       toast.error(err.message || t("authError"));
     } finally {
