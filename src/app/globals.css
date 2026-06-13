@@ -566,3 +566,100 @@ html[dir="rtl"] .medisport-scope {
   --color-teal-800: #065F46;
   --color-teal-900: #064E3B;
 }
+
+/* ============================================
+   MediSport — UI/UX Upgrade v2.0 (June 2026)
+   Enhanced visual polish: softer backgrounds,
+   refined shadows, improved transitions,
+   and micro-interactions per Brand Package.
+   ============================================ */
+
+/* ── Sport-specific card styling ── */
+.medisport-scope .ms-card {
+  background: #FFFFFF;
+  border: 1px solid var(--ms-border, #E2E8F0);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.03);
+  transition: box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.medisport-scope .ms-card:hover {
+  box-shadow: 0 4px 6px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.05);
+  transform: translateY(-1px);
+}
+.medisport-scope .ms-card-interactive:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* ── Soft background for sport pages ── */
+.medisport-scope .ms-page-bg {
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 50%, #ECFDF5 100%);
+  min-height: 100vh;
+}
+
+/* ── Improved button transitions ── */
+.medisport-scope button,
+.medisport-scope a[role="button"],
+.medisport-scope [class*="btn"] {
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Loading skeleton shimmer ── */
+@keyframes ms-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.medisport-scope .ms-skeleton {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: ms-shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ── Fade-in animation for page content ── */
+@keyframes ms-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.medisport-scope .ms-animate-in {
+  animation: ms-fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.medisport-scope .ms-animate-in-delay-1 { animation-delay: 0.05s; }
+.medisport-scope .ms-animate-in-delay-2 { animation-delay: 0.1s; }
+.medisport-scope .ms-animate-in-delay-3 { animation-delay: 0.15s; }
+.medisport-scope .ms-animate-in-delay-4 { animation-delay: 0.2s; }
+
+/* ── Stat card number styling ── */
+.medisport-scope .ms-stat-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ── Subtle focus ring for accessibility ── */
+.medisport-scope :focus-visible {
+  outline: 2px solid var(--color-sport-400);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Improved Progress bar styling ── */
+.medisport-scope [role="progressbar"] > div {
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medisport-scope .ms-animate-in,
+  .medisport-scope .ms-card:hover {
+    animation: none;
+    transform: none;
+  }
+}

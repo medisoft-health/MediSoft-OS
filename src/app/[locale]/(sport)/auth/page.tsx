@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -24,17 +23,14 @@ type AuthMode = "login" | "register";
 type UserRole = "trainee" | "coach";
 
 /**
- * MediSport Standalone — Enhanced Single Login / Sign-up page
+ * MediSport Standalone — Enhanced Single Login / Sign-up page (v2.0 UI Upgrade)
  *
  * Visual identity v2.0 (June 2026):
  * - Split-screen: branded hero (emerald→teal gradient + runner image + wordmark)
  *   on the left (lg+) and a clean auth card on the right.
- * - One unified screen: tabs for Sign In / Create Account, inline role selection
- *   (Trainee / Coach) shown only when creating an account.
- * - Email + password (matches the configured Better-Auth backend).
+ * - Softer background (#F8FAFC), improved form spacing, refined shadows
+ * - Smoother transitions and micro-interactions
  * - Full RTL support via logical properties; uses .medisport-scope brand fonts.
- *
- * This page is the standalone app's entry point (sport.medisofthealth.com → /auth).
  */
 export default function SportAuthPage() {
   const t = useTranslations("SportStandalone");
@@ -60,7 +56,6 @@ export default function SportAuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (mode === "register") {
         const res = await fetch("/api/auth/sign-up/email", {
@@ -73,12 +68,10 @@ export default function SportAuthPage() {
             callbackURL: `/${locale}/${role}`,
           }),
         });
-
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || t("authError"));
         }
-
         toast.success(t("registerSuccess"));
         localStorage.setItem("medisport-role", role);
         router.push(`/${locale}/onboarding?role=${role}`);
@@ -92,12 +85,10 @@ export default function SportAuthPage() {
             callbackURL: `/${locale}/trainee`,
           }),
         });
-
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || t("authError"));
         }
-
         toast.success(t("loginSuccess"));
         const savedRole = localStorage.getItem("medisport-role") || "trainee";
         router.push(`/${locale}/${savedRole}`);
@@ -166,8 +157,8 @@ export default function SportAuthPage() {
       </aside>
 
       {/* ── Auth Card (right) ── */}
-      <main className="flex w-full items-center justify-center px-5 py-10 lg:w-1/2">
-        <div className="w-full max-w-md">
+      <main className="flex w-full items-center justify-center bg-[#F8FAFC] px-5 py-10 lg:w-1/2">
+        <div className="w-full max-w-md ms-animate-in">
           {/* Mobile wordmark */}
           <div className="mb-8 flex flex-col items-center lg:hidden">
             <Image
@@ -182,13 +173,13 @@ export default function SportAuthPage() {
           </div>
 
           {/* Tabs */}
-          <div className="mb-6 flex rounded-2xl bg-slate-100 p-1">
+          <div className="mb-6 flex rounded-2xl bg-slate-100/80 p-1.5">
             <button
               type="button"
               onClick={() => setMode("login")}
-              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${
                 mode === "login"
-                  ? "bg-white text-[var(--color-sport-700)] shadow-sm"
+                  ? "bg-white text-emerald-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -197,9 +188,9 @@ export default function SportAuthPage() {
             <button
               type="button"
               onClick={() => setMode("register")}
-              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${
                 mode === "register"
-                  ? "bg-white text-[var(--color-sport-700)] shadow-sm"
+                  ? "bg-white text-emerald-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -207,15 +198,15 @@ export default function SportAuthPage() {
             </button>
           </div>
 
-          <h2 className="ms-display text-2xl font-bold text-slate-900">
+          <h2 className="ms-display text-2xl font-bold text-slate-800">
             {mode === "login" ? t("loginTitle") : t("registerTitle")}
           </h2>
-          <p className="mt-1 mb-6 text-sm text-slate-500">{t("tagline")}</p>
+          <p className="mt-1.5 mb-7 text-sm text-slate-500">{t("tagline")}</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Role selection (register only) */}
             {mode === "register" && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <label className="text-sm font-medium text-slate-700">
                   {t("roleQuestion")}
                 </label>
@@ -249,7 +240,7 @@ export default function SportAuthPage() {
                     placeholder={t("fullNamePlaceholder")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="rounded-xl ps-10"
+                    className="rounded-xl ps-10 h-11 border-slate-200 focus:border-emerald-300 focus:ring-emerald-200/50"
                     required
                   />
                 </div>
@@ -268,7 +259,7 @@ export default function SportAuthPage() {
                   placeholder={t("emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-xl ps-10"
+                  className="rounded-xl ps-10 h-11 border-slate-200 focus:border-emerald-300 focus:ring-emerald-200/50"
                   required
                 />
               </div>
@@ -286,14 +277,14 @@ export default function SportAuthPage() {
                   placeholder={t("passwordPlaceholder")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-xl ps-10 pe-10"
+                  className="rounded-xl ps-10 pe-10 h-11 border-slate-200 focus:border-emerald-300 focus:ring-emerald-200/50"
                   required
                   minLength={12}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -307,7 +298,7 @@ export default function SportAuthPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="ms-grad-brand h-12 w-full rounded-xl text-white transition-opacity hover:opacity-90"
+              className="ms-grad-brand h-12 w-full rounded-xl text-white transition-all duration-200 hover:opacity-90 hover:shadow-lg shadow-emerald-200/50"
             >
               {loading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               {mode === "login" ? t("loginBtn") : t("registerBtn")}
@@ -315,13 +306,13 @@ export default function SportAuthPage() {
           </form>
 
           {/* Switch mode hint */}
-          <div className="mt-5 text-center">
+          <div className="mt-6 text-center">
             {mode === "login" ? (
               <p className="text-sm text-slate-500">
                 {t("noAccount")}{" "}
                 <button
                   onClick={() => setMode("register")}
-                  className="font-semibold text-[var(--color-sport-700)] hover:underline"
+                  className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition-colors"
                 >
                   {t("registerHere")}
                 </button>
@@ -331,7 +322,7 @@ export default function SportAuthPage() {
                 {t("alreadyHaveAccount")}{" "}
                 <button
                   onClick={() => setMode("login")}
-                  className="font-semibold text-[var(--color-sport-700)] hover:underline"
+                  className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition-colors"
                 >
                   {t("loginHere")}
                 </button>
@@ -340,7 +331,7 @@ export default function SportAuthPage() {
           </div>
 
           {/* MediSoft endorsement */}
-          <div className="mt-8 border-t border-slate-100 pt-5 text-center">
+          <div className="mt-8 border-t border-slate-100 pt-6 text-center">
             <p className="text-xs text-slate-400">{t("linkMediSoft")}</p>
             <p className="mt-2 text-[11px] font-medium text-slate-400">
               Powered by MediSoft Health
@@ -364,7 +355,7 @@ function HeroChip({
   label: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm ring-1 ring-white/20">
+    <span className="inline-flex items-center gap-2 rounded-xl bg-white/12 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm ring-1 ring-white/20 transition-all duration-200 hover:bg-white/20">
       <Icon className="h-4 w-4" />
       {label}
     </span>
@@ -386,16 +377,16 @@ function RoleOption({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-3.5 transition-all ${
+      className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-3.5 transition-all duration-200 ${
         active
-          ? "border-[var(--color-sport-500)] bg-[var(--color-sport-50)] text-[var(--color-sport-700)]"
-          : "border-slate-200 text-slate-500 hover:border-slate-300"
+          ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/50"
+          : "border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
       }`}
     >
       <span
-        className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+        className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 ${
           active
-            ? "bg-[var(--color-sport-500)] text-white"
+            ? "bg-emerald-500 text-white shadow-sm"
             : "bg-slate-100 text-slate-400"
         }`}
       >

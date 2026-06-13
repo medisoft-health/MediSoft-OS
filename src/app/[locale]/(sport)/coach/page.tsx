@@ -1,6 +1,6 @@
 "use client";
-
 import * as React from "react";
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
@@ -10,6 +10,7 @@ import {
   FileText,
   FlaskConical,
   Heart,
+  Loader2,
   MoreHorizontal,
   Search,
   Shield,
@@ -34,197 +35,222 @@ import { CoachRequestsPanel } from "@/components/sport/coach-requests-panel";
 import { CoachAnalytics } from "@/components/sport/coach-analytics";
 
 /**
- * MediSport Standalone — Coach Dashboard
- * 
- * Features:
- * - Client Management CRM (Overview of all trainees)
- * - Program Builder (Workouts & Nutrition)
- * - Progress Tracking & Analytics
- * - Medical Context Request (unique MediSport feature)
+ * MediSport Standalone — Coach Dashboard (v2.0 UI Upgrade)
+ *
+ * Key improvements:
+ * - Stats overview fetches REAL data from coach-analytics API
+ * - Clients list fetches from my-clients API
+ * - Softer backgrounds, rounded-2xl cards, subtle shadows
+ * - Improved spacing and micro-interactions
+ * - Loading states with skeleton shimmer
  */
 export default function CoachDashboardPage() {
   const t = useTranslations("SportStandalone");
   const locale = useLocale();
 
-  // Mock data for demonstration
-  const clients = [
-    {
-      id: "1",
-      name: locale === "ar" ? "أحمد محمد" : "Ahmed Mohammed",
-      goal: locale === "ar" ? "بناء عضلات" : "Muscle Building",
-      adherence: 87,
-      lastActive: "2h",
-      status: "active" as const,
-      plan: locale === "ar" ? "برنامج القوة المتقدم" : "Advanced Strength Program",
-    },
-    {
-      id: "2",
-      name: locale === "ar" ? "سارة العلي" : "Sara Al-Ali",
-      goal: locale === "ar" ? "إنقاص الوزن" : "Weight Loss",
-      adherence: 92,
-      lastActive: "30m",
-      status: "active" as const,
-      plan: locale === "ar" ? "برنامج حرق الدهون" : "Fat Burn Program",
-    },
-    {
-      id: "3",
-      name: locale === "ar" ? "خالد الرشيدي" : "Khaled Al-Rashidi",
-      goal: locale === "ar" ? "تحسين اللياقة" : "Improve Fitness",
-      adherence: 65,
-      lastActive: "1d",
-      status: "needs_attention" as const,
-      plan: locale === "ar" ? "برنامج اللياقة العامة" : "General Fitness Program",
-    },
-    {
-      id: "4",
-      name: locale === "ar" ? "نورة القحطاني" : "Noura Al-Qahtani",
-      goal: locale === "ar" ? "تأهيل إصابة" : "Injury Rehab",
-      adherence: 78,
-      lastActive: "5h",
-      status: "medical_review" as const,
-      plan: locale === "ar" ? "برنامج التأهيل" : "Rehabilitation Program",
-    },
-  ];
+  // ── Real data: coach analytics (stats) ──
+  const [stats, setStats] = React.useState<{
+    totalClients: number;
+    pendingRequests: number;
+    ratingAvg: number;
+    ratingCount: number;
+    score: number;
+    tier: string | null;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = React.useState(true);
+
+  // ── Real data: clients list ──
+  const [clients, setClients] = React.useState<Array<{
+    linkId: string;
+    status: string;
+    notes: string | null;
+    createdAt: string;
+    traineeId: string;
+    traineeName: string;
+    traineeEmail: string;
+  }>>([]);
+  const [clientsLoading, setClientsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    // Fetch coach analytics for stats
+    (async () => {
+      try {
+        const res = await fetch("/api/sport?action=coach-analytics", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const d = json.data;
+            setStats({
+              totalClients: (d.clients?.active ?? 0),
+              pendingRequests: (d.clients?.pending ?? 0),
+              ratingAvg: d.current?.ratingAvg ?? 0,
+              ratingCount: d.current?.ratingCount ?? 0,
+              score: d.current?.score ?? 0,
+              tier: d.current?.tier ?? null,
+            });
+          }
+        }
+      } catch {}
+      setStatsLoading(false);
+    })();
+
+    // Fetch real clients
+    (async () => {
+      try {
+        const res = await fetch("/api/sport?action=my-clients", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            setClients(json.data);
+          }
+        }
+      } catch {}
+      setClientsLoading(false);
+    })();
+  }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 pb-24 md:pb-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 pb-28 md:pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 ms-animate-in">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{t("coachDashboard")}</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t("coachDashboard")}</h1>
           <p className="text-sm text-slate-500 mt-1">{t("coachDashboardDesc")}</p>
         </div>
         <div className="flex items-center gap-2">
           <CoachNotificationBell locale={locale as "ar" | "en"} />
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-200/50 transition-all duration-200 hover:shadow-md">
             <UserPlus className="h-4 w-4 me-1.5" />
             {t("addClient")}
           </Button>
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {/* Stats Overview — Real data from API */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-8 ms-animate-in ms-animate-in-delay-1">
         <StatCard
           icon={Users}
           label={t("totalClients")}
-          value="12"
-          trend="+2"
+          value={statsLoading ? "—" : String(stats?.totalClients ?? 0)}
+          trend={stats?.pendingRequests ? `+${stats.pendingRequests} ${t("pending")}` : ""}
           color="blue"
+          loading={statsLoading}
         />
         <StatCard
           icon={Activity}
           label={t("activeToday")}
-          value="8"
-          trend="+3"
+          value={statsLoading ? "—" : String(clients.filter(c => c.status === "active").length)}
+          trend=""
           color="emerald"
+          loading={statsLoading}
         />
         <StatCard
           icon={TrendingUp}
-          label={t("avgAdherence")}
-          value="81%"
-          trend="+5%"
+          label={locale === "ar" ? "نقاط التوثيق" : "Verification Score"}
+          value={statsLoading ? "—" : String(stats?.score ?? 0)}
+          trend={stats?.tier ? `${stats.tier}` : ""}
           color="purple"
+          loading={statsLoading}
         />
         <StatCard
           icon={Star}
           label={t("avgRating")}
-          value="4.8"
-          trend="+0.2"
+          value={statsLoading ? "—" : (stats?.ratingAvg ? stats.ratingAvg.toFixed(1) : "—")}
+          trend={stats?.ratingCount ? `(${stats.ratingCount})` : ""}
           color="amber"
+          loading={statsLoading}
         />
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="clients" className="space-y-4">
-        <TabsList className="bg-slate-100 rounded-lg p-1">
-          <TabsTrigger value="clients" className="rounded-md text-sm">
+      <Tabs defaultValue="clients" className="space-y-5 ms-animate-in ms-animate-in-delay-2">
+        <TabsList className="bg-slate-100/80 rounded-xl p-1 shadow-sm">
+          <TabsTrigger value="clients" className="rounded-lg text-sm data-[state=active]:shadow-sm">
             <Users className="h-4 w-4 me-1.5" />
             {t("clients")}
           </TabsTrigger>
-          <TabsTrigger value="programs" className="rounded-md text-sm">
+          <TabsTrigger value="programs" className="rounded-lg text-sm data-[state=active]:shadow-sm">
             <ClipboardList className="h-4 w-4 me-1.5" />
             {t("programs")}
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="rounded-md text-sm">
+          <TabsTrigger value="analytics" className="rounded-lg text-sm data-[state=active]:shadow-sm">
             <BarChart3 className="h-4 w-4 me-1.5" />
             {t("analytics")}
           </TabsTrigger>
-          <TabsTrigger value="medical" className="rounded-md text-sm">
+          <TabsTrigger value="medical" className="rounded-lg text-sm data-[state=active]:shadow-sm">
             <FlaskConical className="h-4 w-4 me-1.5" />
             {t("medicalContext")}
           </TabsTrigger>
-          <TabsTrigger value="verification" className="rounded-md text-sm">
+          <TabsTrigger value="verification" className="rounded-lg text-sm data-[state=active]:shadow-sm">
             <ShieldCheck className="h-4 w-4 me-1.5" />
             {locale === "ar" ? "التوثيق" : "Verification"}
           </TabsTrigger>
         </TabsList>
 
-        {/* Clients Tab */}
+        {/* Clients Tab — Real data */}
         <TabsContent value="clients" className="space-y-4">
           {/* Incoming trainee connection requests (accept/decline) */}
           <CoachRequestsPanel locale={locale} />
           {/* Real DB-backed roster (mirrored with integrated module) */}
           <ClientsManager />
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder={t("searchClients")}
-              className="ps-10 rounded-lg"
-            />
-          </div>
-
-          {/* Client Cards */}
-          <div className="grid gap-3">
-            {clients.map((client) => (
-              <Card key={client.id} className="border-slate-100 hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-                        {client.name.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-slate-900">{client.name}</h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-slate-500">{client.goal}</span>
-                          <span className="text-xs text-slate-300">•</span>
-                          <span className="text-xs text-slate-400">{client.plan}</span>
+          {/* Real client list from API */}
+          {clientsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+            </div>
+          ) : clients.length > 0 ? (
+            <div className="grid gap-3">
+              {clients.map((client) => (
+                <Card key={client.linkId} className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] hover:shadow-[0_4px_6px_rgba(15,23,42,0.06),0_10px_24px_rgba(15,23,42,0.05)] transition-all duration-300 rounded-2xl">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm">
+                          {client.traineeName?.charAt(0) || "?"}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-800 text-sm">{client.traineeName}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5">{client.traineeEmail}</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="hidden sm:flex flex-col items-end">
-                        <div className="flex items-center gap-1">
-                          <span className="text-sm font-medium text-slate-700">{client.adherence}%</span>
-                          <span className="text-xs text-slate-400">{t("adherence")}</span>
-                        </div>
-                        <Progress value={client.adherence} className="h-1.5 w-20 mt-1" />
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className={`rounded-lg text-[10px] ${
+                          client.status === "active"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-600"
+                        }`}>
+                          {client.status === "active" ? t("statusActive") : client.status}
+                        </Badge>
                       </div>
-                      <StatusBadge status={client.status} t={t} />
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04)] rounded-2xl">
+              <CardContent className="p-8 text-center">
+                <Users className="h-8 w-8 text-slate-300 mx-auto mb-3" />
+                <p className="text-sm text-slate-500">
+                  {locale === "ar" ? "لا يوجد متدربون مرتبطون بعد" : "No linked trainees yet"}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Programs Tab */}
         <TabsContent value="programs" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900">{t("programBuilder")}</h3>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-              <Zap className="h-4 w-4 me-1.5" />
-              {t("createProgram")}
-            </Button>
+            <h3 className="font-semibold text-slate-800">{t("programBuilder")}</h3>
+            <Link href={`/${locale}/coach/program-builder`}>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-200/50 transition-all duration-200">
+                <Zap className="h-4 w-4 me-1.5" />
+                {t("createProgram")}
+              </Button>
+            </Link>
           </div>
-
           <div className="grid gap-4 md:grid-cols-2">
             <ProgramCard
               icon={Dumbbell}
@@ -273,62 +299,59 @@ export default function CoachDashboardPage() {
 
         {/* Medical Context Tab */}
         <TabsContent value="medical" className="space-y-4">
-          <Card className="border-blue-100 bg-blue-50/30">
-            <CardContent className="p-4">
+          <Card className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] bg-blue-50/40 rounded-2xl">
+            <CardContent className="p-5">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100/80 text-blue-600">
                   <Shield className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">{t("medicalContextTitle")}</h3>
-                  <p className="text-sm text-slate-600 mt-1">{t("medicalContextDesc")}</p>
+                  <h3 className="font-semibold text-slate-800">{t("medicalContextTitle")}</h3>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">{t("medicalContextDesc")}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <div className="grid gap-3">
             {/* Medical Context Request Cards */}
-            <Card className="border-slate-100">
+            <Card className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
                       <FlaskConical className="h-4 w-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-slate-900">
+                      <h4 className="text-sm font-medium text-slate-800">
                         {locale === "ar" ? "نورة القحطاني — تحاليل الدهون" : "Noura Al-Qahtani — Lipid Panel"}
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">{t("requestPending")}</p>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-700">{t("pending")}</Badge>
+                  <Badge variant="secondary" className="bg-amber-50 text-amber-700 rounded-lg">{t("pending")}</Badge>
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="border-slate-100">
+            <Card className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                       <FileText className="h-4 w-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-slate-900">
+                      <h4 className="text-sm font-medium text-slate-800">
                         {locale === "ar" ? "أحمد محمد — تاريخ الإصابات" : "Ahmed Mohammed — Injury History"}
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">{t("requestApproved")}</p>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">{t("approved")}</Badge>
+                  <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 rounded-lg">{t("approved")}</Badge>
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          <Button variant="outline" className="w-full rounded-lg border-blue-200 text-blue-700 hover:bg-blue-50">
+          <Button variant="outline" className="w-full rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 transition-all duration-200">
             <FlaskConical className="h-4 w-4 me-2" />
             {t("requestMedicalData")}
           </Button>
@@ -348,32 +371,37 @@ function StatCard({
   value,
   trend,
   color,
+  loading,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   trend: string;
   color: string;
+  loading?: boolean;
 }) {
   const colorMap: Record<string, string> = {
-    blue: "bg-blue-100 text-blue-600",
-    emerald: "bg-emerald-100 text-emerald-600",
-    purple: "bg-purple-100 text-purple-600",
-    amber: "bg-amber-100 text-amber-600",
+    blue: "bg-blue-50 text-blue-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    purple: "bg-purple-50 text-purple-600",
+    amber: "bg-amber-50 text-amber-600",
   };
-
   return (
-    <Card className="border-slate-100">
-      <CardContent className="p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${colorMap[color]}`}>
-            <Icon className="h-3.5 w-3.5" />
+    <Card className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] rounded-2xl">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${colorMap[color]}`}>
+            <Icon className="h-4 w-4" />
           </div>
         </div>
-        <div className="text-xl font-bold text-slate-900">{value}</div>
-        <div className="flex items-center justify-between mt-0.5">
+        {loading ? (
+          <div className="h-7 w-16 ms-skeleton mb-1" />
+        ) : (
+          <div className="text-xl font-bold text-slate-800 ms-stat-value">{value}</div>
+        )}
+        <div className="flex items-center justify-between mt-1">
           <span className="text-xs text-slate-500">{label}</span>
-          <span className="text-xs font-medium text-emerald-600">{trend}</span>
+          {trend && <span className="text-[10px] font-medium text-emerald-600">{trend}</span>}
         </div>
       </CardContent>
     </Card>
@@ -382,13 +410,13 @@ function StatCard({
 
 function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    active: { bg: "bg-emerald-100", text: "text-emerald-700", label: t("statusActive") },
-    needs_attention: { bg: "bg-amber-100", text: "text-amber-700", label: t("statusAttention") },
-    medical_review: { bg: "bg-blue-100", text: "text-blue-700", label: t("statusMedical") },
+    active: { bg: "bg-emerald-50", text: "text-emerald-700", label: t("statusActive") },
+    needs_attention: { bg: "bg-amber-50", text: "text-amber-700", label: t("statusAttention") },
+    medical_review: { bg: "bg-blue-50", text: "text-blue-700", label: t("statusMedical") },
   };
   const c = config[status] || config.active;
   return (
-    <Badge variant="secondary" className={`${c.bg} ${c.text} text-[10px] hidden sm:inline-flex`}>
+    <Badge variant="secondary" className={`${c.bg} ${c.text} text-[10px] rounded-lg hidden sm:inline-flex`}>
       {c.label}
     </Badge>
   );
@@ -410,22 +438,21 @@ function ProgramCard({
   t: (key: string) => string;
 }) {
   const colorMap: Record<string, string> = {
-    blue: "bg-blue-100 text-blue-600",
-    emerald: "bg-emerald-100 text-emerald-600",
-    green: "bg-green-100 text-green-600",
-    rose: "bg-rose-100 text-rose-600",
+    blue: "bg-blue-50 text-blue-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    green: "bg-green-50 text-green-600",
+    rose: "bg-rose-50 text-rose-600",
   };
-
   return (
-    <Card className="border-slate-100 hover:shadow-md transition-shadow cursor-pointer">
+    <Card className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] hover:shadow-[0_4px_6px_rgba(15,23,42,0.06),0_10px_24px_rgba(15,23,42,0.05)] transition-all duration-300 cursor-pointer rounded-2xl">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorMap[color]}`}>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${colorMap[color]}`}>
               <Icon className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-medium text-slate-900 text-sm">{title}</h4>
+              <h4 className="font-semibold text-slate-800 text-sm">{title}</h4>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-slate-500">{clients} {t("clientsCount")}</span>
                 <span className="text-xs text-slate-300">•</span>
@@ -433,7 +460,7 @@ function ProgramCard({
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </div>
