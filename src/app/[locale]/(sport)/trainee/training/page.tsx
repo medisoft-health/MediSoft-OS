@@ -13,6 +13,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth-client";
 import LiveSession, { type SessionSummary } from "@/components/sport/live-session";
@@ -85,7 +86,8 @@ interface WeekDay {
 
 export default function TrainingPage() {
   const t = useTranslations("SportTraining");
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
   const [locale, setLocale] = useState("ar");
   const isRTL = locale === "ar";
 
@@ -108,13 +110,25 @@ export default function TrainingPage() {
     }
   }, []);
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.replace(`/${locale}/auth`);
+    }
+  }, [isPending, session, locale, router]);
+
   // Fetch training data
   useEffect(() => {
-    fetchTrainingData();
+    if (session?.user) {
+      fetchTrainingData();
+    }
   }, [session]);
 
   const fetchTrainingData = async () => {
-    if (!session?.user) return;
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/sport?action=my-training-plan");
