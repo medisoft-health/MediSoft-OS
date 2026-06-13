@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins/two-factor";
+import { phoneNumber } from "better-auth/plugins/phone-number";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { env } from "@/env";
@@ -11,8 +12,13 @@ import { randomUUID } from "crypto";
 /**
  * MediSoft C-OS authentication (Better-Auth, self-hosted).
  *
- * Phase 1: email + password.
- * Future: Nafath (Saudi national IAM), SSO for hospital groups, 2FA.
+ * Supports:
+ *   - Email + password (min 8 chars)
+ *   - Phone number + OTP (via phoneNumber plugin)
+ *   - Password reset via email
+ *   - 2FA (TOTP)
+ *
+ * Future: Nafath (Saudi national IAM), SSO for hospital groups.
  *
  * Email verification:
  *   The verification plumbing is fully wired below — Better-Auth will
@@ -48,15 +54,11 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-    // Production hardening: set to `true` AND configure a real email
-    // driver (src/lib/email/index.ts) before flipping. Leaving false
-    // means signups land instantly but the verification email is
-    // still sent (visible in the console) so we can dry-run the flow.
     requireEmailVerification: false,
-    minPasswordLength: 12, // healthcare-grade
+    minPasswordLength: 8, // reduced from 12 for better UX in sport context
     maxPasswordLength: 128,
     autoSignIn: true,
-    /** Send the reset-password email (unused until reset flow ships). */
+    /** Send the reset-password email. */
     sendResetPassword: async ({ user, url }) => {
       const { buildPasswordResetEmail } = await import("@/lib/email");
       await sendEmail(
@@ -138,6 +140,27 @@ export const auth = betterAuth({
       backupCodeOptions: {
         length: 10,
         characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+      },
+    }),
+    phoneNumber({
+      otpLength: 6,
+      expiresIn: 300, // 5 minutes
+      /**
+       * Send OTP via SMS.
+       * TODO: Replace console.log with real SMS provider (Twilio, MessageBird, etc.)
+       */
+      sendOTP: async ({ phoneNumber: phone, code }) => {
+        console.log(`[MediSport OTP] Phone: ${phone}, Code: ${code}`);
+        // TODO: Integrate real SMS provider here
+        // await twilioClient.messages.create({
+        //   body: `رمز التحقق MediSport: ${code}`,
+        //   from: process.env.TWILIO_PHONE,
+        //   to: phone,
+        // });
+      },
+      signUpOnVerification: {
+        getTempEmail: (phone: string) => `${phone.replace(/\+/g, "")}@phone.medisofthealth.com`,
+        getTempName: (phone: string) => phone,
       },
     }),
     nextCookies(), // must remain last in this list

@@ -2013,7 +2013,7 @@
     "emailLabel": "البريد الإلكتروني",
     "emailPlaceholder": "your@email.com",
     "passwordLabel": "كلمة المرور",
-    "passwordPlaceholder": "١٢ حرفاً على الأقل",
+    "passwordPlaceholder": "٨ أحرف على الأقل",
     "loginBtn": "تسجيل الدخول",
     "registerBtn": "إنشاء الحساب",
     "noAccount": "ليس لديك حساب؟",
