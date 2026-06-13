@@ -54,25 +54,36 @@ export function SportAuthGuard({ children, requiredRole }: SportAuthGuardProps) 
         const res = await fetch(`/api/sport?action=my-coach-profile`);
         if (res.ok) {
           const data = await res.json();
-          const profileRole = data?.data?.role;
-          if (profileRole === requiredRole) {
+          // API returns: { success: true, data: { profile: {...} | null, certifications: [...] } }
+          const profile = data?.data?.profile;
+          const profileRole = profile?.role;
+
+          if (!profile) {
+            // No sport profile yet — user just registered
+            // Allow access to the dashboard (they can still browse)
+            // The dashboard itself will prompt them to complete onboarding
+            setHasAccess(true);
+          } else if (profileRole === requiredRole) {
             setHasAccess(true);
           } else if (profileRole) {
             // User has a profile but wrong role — redirect to correct dashboard
             router.replace(`/${locale}/${profileRole}`);
             return;
           } else {
-            // No profile yet — send to onboarding
-            router.replace(`/${locale}/onboarding?role=${requiredRole}`);
-            return;
+            // Profile exists but no role field — allow access
+            setHasAccess(true);
           }
-        } else if (res.status === 404 || res.status === 401) {
-          // No profile — send to onboarding
-          router.replace(`/${locale}/onboarding?role=${requiredRole}`);
+        } else if (res.status === 401) {
+          // Session expired — redirect to auth
+          const returnUrl = encodeURIComponent(pathname);
+          router.replace(`/${locale}/auth?returnTo=${returnUrl}`);
           return;
+        } else {
+          // Other errors (404, 500) — allow access gracefully
+          setHasAccess(true);
         }
       } catch {
-        // On error, allow access (graceful degradation)
+        // On network error, allow access (graceful degradation)
         setHasAccess(true);
       }
       setProfileChecked(true);
@@ -96,11 +107,6 @@ export function SportAuthGuard({ children, requiredRole }: SportAuthGuardProps) 
         </div>
       </div>
     );
-  }
-
-  // Not authorized
-  if (!hasAccess && !requiredRole) {
-    return null;
   }
 
   if (!hasAccess) {
