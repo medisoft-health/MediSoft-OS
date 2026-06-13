@@ -26,6 +26,15 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
 
+  /**
+   * Trusted origins — allow the MediSport standalone subdomain
+   * to call /api/auth/* endpoints without "Invalid origin" errors.
+   */
+  trustedOrigins: [
+    "https://sport.medisofthealth.com",
+    "https://app.medisofthealth.com",
+  ],
+
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
