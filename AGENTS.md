@@ -38,6 +38,27 @@ MediSport is mirrored across the standalone `(sport)` route group and the integr
   - **Fixed broken nav** — all MediSport nav links in `sport-layout-shell.tsx` used a non-existent `/sport/...` prefix (404). Corrected to bare locale paths (`/ar/coach`, `/ar/trainee`, `/ar/auth`, `/ar/console-x7k2/coaches`). The `(sport)` route group adds NO URL prefix; `/sport` is only the landing page route.
   - **Verified** — `next build` Compiled successfully (114s, 97 pages, 0 TS errors); DB E2E (`scripts/test_phase9.mjs`) passed (history snapshots, bulk approve, notifications, analytics aggregation); live: `/ar/console-x7k2/coaches` 307, `/ar/coach`+`/ar/trainee`+`/ar/sport` 200, `coach-analytics` 401, `coach-directory` 200; DB confirms exactly 1 admin.
 
+- **Phase 13** (2ef166e): My Health Journey — Complete Experience System.
+  - **11 new DB tables:** `sport_journey_goals`, `sport_checkins`, `sport_streaks`, `sport_user_achievements`, `sport_journey_milestones`, `sport_journey_notes`, `sport_weekly_reports`, `sport_medical_prescriptions`, `sport_emergency_alerts`, `sport_xp_log`, `sport_achievements` (seeded with 16 achievements).
+  - **Migration:** `scripts/0011_journey_system.sql` (**applied to Cloud SQL**).
+  - **New API route:** `/api/sport/journey` — 15+ endpoints (checkin, my-journey, streaks, achievements, timeline, weekly-report, prescription, emergency-check, acknowledge-emergency, quick-note, etc.).
+  - **Journey Engine:** `src/lib/sport/journey-engine.ts` — XP system, streak logic, achievement checking, emergency threshold detection.
+  - **New Pages:**
+    - `/trainee/journey` — Main Journey Timeline (milestones, goals, stats, level display)
+    - `/trainee/journey/checkin` — Daily Check-in (30-second swipe UX: mood, sleep, energy, pain, weight, water)
+    - `/trainee/journey/achievements` — Gamification (levels, XP bar, earned/locked badges)
+    - `/trainee/journey/prescription` — Medical Sport Prescription (PDF-ready, lab-based)
+    - `/trainee/journey/weekly-report` — Auto-generated weekly summaries
+  - **New Components:**
+    - `emergency-mode.tsx` — Full-screen critical health alert (10 thresholds, emergency contacts, acknowledge flow)
+    - `journey-quick-actions.tsx` — Floating action button with bottom sheets (quick note, food ask, supplement ask, InBody data)
+  - **Journey Layout:** `journey/layout.tsx` wraps all journey pages with Emergency Mode + Quick Actions.
+  - **Navigation:** Journey (🧭 رحلتي) added to bottom nav, desktop nav, mobile menu. Hero card on trainee dashboard.
+  - **i18n:** `SportJourney` namespace (70 keys AR/EN).
+  - **Gamification:** 5 levels (Beginner→Legend), XP per action (check-in 10, workout 25, streak bonus 5×days), 16 achievements.
+  - **Emergency Mode:** 10 critical thresholds (BP>180, glucose>300/<54, Hb<7, K+>6/<2.5, HR>120, chest pain, creatinine>4). Blocks all training, shows emergency contacts (911, 997).
+  - **Verified:** Build compiled successfully, all 5 journey pages return 200, API requires auth (401 without).
+
 - **Phase 12** (1dde237): MuscleWiki Premium API Integration — 974 exercises with videos, difficulty, force type.
   - **API Key:** `MUSCLEWIKI_API_KEY` in `.env.local`
   - **Sync Scripts:** `scripts/sync-musclewiki.mjs` (full sync, rate-limited), `scripts/sync-musclewiki-retry.mjs` (retry missing)
