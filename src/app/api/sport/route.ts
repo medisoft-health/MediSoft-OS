@@ -1003,7 +1003,10 @@ export async function GET(request: NextRequest) {
           .from(sportWorkouts)
           .where(and(eq(sportWorkouts.planId, plan.id), eq(sportWorkouts.weekNumber, plan.currentWeek)))
           .orderBy(sportWorkouts.dayNumber);
-        const todayWorkout = workouts.find(w => w.dayNumber === (dayOfWeek === 0 ? 7 : dayOfWeek));
+        // Smart workout selection: show next pending workout instead of mapping to fixed weekday
+        // This ensures the trainee always sees their next workout regardless of which day it is
+        const pendingWorkouts = workouts.filter(w => w.status !== "completed");
+        const todayWorkout = pendingWorkouts.length > 0 ? pendingWorkouts[0] : null;
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const dayNamesAr = ["\u0627\u0644\u0623\u062d\u062f", "\u0627\u0644\u0625\u062b\u0646\u064a\u0646", "\u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621", "\u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621", "\u0627\u0644\u062e\u0645\u064a\u0633", "\u0627\u0644\u062c\u0645\u0639\u0629", "\u0627\u0644\u0633\u0628\u062a"];
         const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -1052,14 +1055,34 @@ export async function GET(request: NextRequest) {
             phases: structure?.phases || [],
             medicalAdjustments: Array.isArray(medAdj) ? medAdj : [],
           },
-          todayWorkout: todayWorkout ? {
-            dayNumber: todayWorkout.dayNumber,
-            title: todayWorkout.title,
-            titleAr: todayWorkout.title,
-            targetMuscles: todayWorkout.targetMuscles || [],
-            exercises: (todayWorkout.exercises as any[]) || [],
-            estimatedDuration: ((todayWorkout.exercises as any[]) || []).length * 5,
-          } : null,
+          todayWorkout: todayWorkout ? await (async () => {
+            // Enrich exercises with gifUrl/videoUrl from the exercise library
+            const rawExercises = (todayWorkout.exercises as any[]) || [];
+            const enrichedExercises = await Promise.all(rawExercises.map(async (ex: any) => {
+              if (ex.gifUrl || ex.videoUrl) return ex;
+              // Try to find matching exercise in library by name
+              const [match] = await db.select({
+                gifUrl: sportExerciseLibrary.gifUrl,
+                videoUrlMale: sportExerciseLibrary.videoUrlMale,
+                source: sportExerciseLibrary.source,
+              }).from(sportExerciseLibrary)
+                .where(ilike(sportExerciseLibrary.name, `%${ex.name}%`))
+                .limit(1);
+              return {
+                ...ex,
+                gifUrl: match?.gifUrl || null,
+                videoUrl: match?.videoUrlMale || null,
+              };
+            }));
+            return {
+              dayNumber: todayWorkout.dayNumber,
+              title: todayWorkout.title,
+              titleAr: todayWorkout.title,
+              targetMuscles: todayWorkout.targetMuscles || [],
+              exercises: enrichedExercises,
+              estimatedDuration: enrichedExercises.length * 5,
+            };
+          })() : null,
           weekDays,
           history,
           progressionTips: [],
@@ -1547,9 +1570,28 @@ export async function POST(request: NextRequest) {
       }
 
       case "coach-plan": {
-        const input = body.input as CoachInput;
+        const auth2 = await requireSessionApi();
+        if ("response" in auth2) return auth2.response;
+        let input = body.input as CoachInput;
+        // Auto-fill from profile if input is missing or incomplete
         if (!input || !input.sex || !input.height || !input.weight || !input.age) {
-          return NextResponse.json({ success: false, error: "Missing required coach input fields" }, { status: 400 });
+          const [prof] = await db.select().from(sportProfiles).where(eq(sportProfiles.userId, auth2.user.id)).limit(1);
+          if (prof) {
+            input = {
+              sex: (input?.sex || prof.sex || "male") as "male" | "female",
+              height: input?.height || (prof.height ? parseFloat(prof.height) : 175),
+              weight: input?.weight || (prof.weight ? parseFloat(prof.weight) : 75),
+              age: input?.age || prof.age || 25,
+              targetWeight: input?.targetWeight || (prof.targetWeight ? parseFloat(prof.targetWeight) : undefined),
+              activityLevel: input?.activityLevel || (prof.activityLevel as any) || "moderate",
+              bodyType: input?.bodyType || "mesomorph",
+              goal: input?.goal || (prof.goal as any) || "general_fitness",
+              bodyFat: input?.bodyFat || (prof.bodyFat ? parseFloat(prof.bodyFat) : undefined),
+              muscleMass: input?.muscleMass || (prof.muscleMass ? parseFloat(prof.muscleMass) : undefined),
+            };
+          } else {
+            return NextResponse.json({ success: false, error: "Missing required coach input fields and no profile found" }, { status: 400 });
+          }
         }
         const plan = generateCoachPlan(input);
         return NextResponse.json({ success: true, data: plan });
@@ -2213,7 +2255,19 @@ export async function POST(request: NextRequest) {
       case "generate-training-plan": {
         const auth = await requireSessionApi();
         if ("response" in auth) return auth.response;
-        const { goal, fitnessLevel, daysPerWeek, equipmentAccess, heightCm, weightKg, age, sex } = body;
+        // Auto-read profile data if not provided in request body
+        let { goal, fitnessLevel, daysPerWeek, equipmentAccess, heightCm, weightKg, age, sex } = body;
+        const [userProfile] = await db.select().from(sportProfiles).where(eq(sportProfiles.userId, auth.user.id)).limit(1);
+        if (userProfile) {
+          if (!goal) goal = userProfile.goal || "general_fitness";
+          if (!fitnessLevel) fitnessLevel = userProfile.fitnessLevel || "beginner";
+          if (!daysPerWeek) daysPerWeek = userProfile.daysPerWeek || 4;
+          if (!equipmentAccess) equipmentAccess = userProfile.equipmentAccess || "full_gym";
+          if (!heightCm) heightCm = userProfile.height ? parseFloat(userProfile.height) : 175;
+          if (!weightKg) weightKg = userProfile.weight ? parseFloat(userProfile.weight) : 75;
+          if (!age) age = userProfile.age || 25;
+          if (!sex) sex = userProfile.sex || "male";
+        }
         // Import training plan engine
         const { generateTrainingPlan } = await import("@/lib/sport/training-plan-engine");
         // Check for medical data from sport_lab_results
@@ -2247,6 +2301,8 @@ export async function POST(request: NextRequest) {
           weightKg: weightKg || 75,
           heightCm: heightCm || 175,
         });
+        // Deactivate any existing active plans for this user
+        await db.update(sportTrainingPlans).set({ status: "archived" }).where(and(eq(sportTrainingPlans.userId, auth.user.id), eq(sportTrainingPlans.status, "active")));
         // Save plan to DB
         const [newPlan] = await db.insert(sportTrainingPlans).values({
           userId: auth.user.id,

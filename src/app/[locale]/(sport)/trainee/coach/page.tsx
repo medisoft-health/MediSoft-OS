@@ -3,12 +3,16 @@
 import * as React from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { useSession } from "@/lib/auth-client";
 import {
   ArrowLeft,
   Apple,
-  Droplets,
+  Brain,
+  CheckCircle2,
   Dumbbell,
+  Droplets,
   Flame,
+  Loader2,
   Pill,
   Sparkles,
   Target,
@@ -16,11 +20,10 @@ import {
   TrendingUp,
   UserRound,
   Utensils,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   generateCoachPlan,
@@ -31,46 +34,200 @@ import {
   type Sex,
 } from "@/lib/sport/personal-coach";
 
-const ACTIVITY_OPTIONS: { key: ActivityLevel; ar: string; en: string }[] = [
-  { key: "sedentary", ar: "خامل", en: "Sedentary" },
-  { key: "light", ar: "نشاط خفيف", en: "Light" },
-  { key: "moderate", ar: "نشاط متوسط", en: "Moderate" },
-  { key: "active", ar: "نشيط", en: "Active" },
-  { key: "very_active", ar: "نشيط جداً", en: "Very Active" },
-];
-
-const GOAL_OPTIONS: { key: Goal; ar: string; en: string }[] = [
-  { key: "fat_loss", ar: "خسارة الدهون", en: "Fat Loss" },
-  { key: "muscle_gain", ar: "بناء العضلات", en: "Muscle Gain" },
-  { key: "maintain", ar: "الحفاظ على الوزن", en: "Maintain" },
-  { key: "performance", ar: "تحسين الأداء", en: "Performance" },
+const GOAL_OPTIONS: { key: Goal; ar: string; en: string; icon: string }[] = [
+  { key: "fat_loss", ar: "خسارة الدهون", en: "Fat Loss", icon: "🔥" },
+  { key: "muscle_gain", ar: "بناء العضلات", en: "Muscle Gain", icon: "💪" },
+  { key: "maintain", ar: "الحفاظ على الوزن", en: "Maintain", icon: "⚖️" },
+  { key: "performance", ar: "تحسين الأداء", en: "Performance", icon: "🏆" },
 ];
 
 /**
- * MediSport Personal Coach
- * Nutrition + ideal-weight guidance, meal & supplement suggestions.
+ * MediSport Personal Coach — v2
+ * Auto-reads profile data, generates food + training plan together.
+ * The coach "knows" the trainee already.
  */
 export default function PersonalCoachPage() {
   const t = useTranslations("SportCoach");
   const locale = useLocale();
   const isRtl = locale === "ar";
+  const { data: session } = useSession();
 
-  const [form, setForm] = React.useState<CoachInput>({
-    sex: "male",
-    age: 28,
-    height: 175,
-    weight: 80,
-    activityLevel: "moderate",
-    goal: "fat_loss",
-  });
+  // Profile data
+  const [profileLoaded, setProfileLoaded] = React.useState(false);
+  const [profileData, setProfileData] = React.useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = React.useState(true);
+
+  // Coach state
+  const [selectedGoal, setSelectedGoal] = React.useState<Goal | null>(null);
+  const [generating, setGenerating] = React.useState(false);
   const [result, setResult] = React.useState<CoachResult | null>(null);
+  const [trainingPlanCreated, setTrainingPlanCreated] = React.useState(false);
+  const [creatingPlan, setCreatingPlan] = React.useState(false);
 
-  const update = <K extends keyof CoachInput>(key: K, value: CoachInput[K]) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
+  // Auto-load profile on mount
+  React.useEffect(() => {
+    if (session?.user) {
+      loadProfile();
+    }
+  }, [session]);
 
-  const handleGenerate = () => {
-    setResult(generateCoachPlan(form));
+  const loadProfile = async () => {
+    setLoadingProfile(true);
+    try {
+      const res = await fetch("/api/sport?action=my-sport-profile");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          setProfileData(json.data);
+          setProfileLoaded(true);
+          // Auto-set goal from profile if available
+          if (json.data.goal) {
+            const mappedGoal = mapGoal(json.data.goal);
+            setSelectedGoal(mappedGoal);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load profile:", err);
+    } finally {
+      setLoadingProfile(false);
+    }
   };
+
+  // Map profile goal to coach goal
+  const mapGoal = (profileGoal: string): Goal => {
+    const mapping: Record<string, Goal> = {
+      fat_loss: "fat_loss",
+      weight_loss: "fat_loss",
+      muscle_gain: "muscle_gain",
+      strength: "muscle_gain",
+      maintain: "maintain",
+      general_fitness: "maintain",
+      performance: "performance",
+      endurance: "performance",
+    };
+    return mapping[profileGoal] || "maintain";
+  };
+
+  // Map activity level
+  const mapActivityLevel = (level: string): ActivityLevel => {
+    const mapping: Record<string, ActivityLevel> = {
+      sedentary: "sedentary",
+      light: "light",
+      lightly_active: "light",
+      moderate: "moderate",
+      moderately_active: "moderate",
+      active: "active",
+      very_active: "very_active",
+    };
+    return mapping[level] || "moderate";
+  };
+
+  // Calculate age from birth_date
+  const calcAge = (birthDate: string): number => {
+    if (!birthDate) return 28;
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
+
+  // Generate the plan using profile data
+  const handleGenerate = () => {
+    if (!profileData || !selectedGoal) return;
+    setGenerating(true);
+
+    const input: CoachInput = {
+      sex: (profileData.sex || "male") as Sex,
+      age: calcAge(profileData.birthDate),
+      height: parseFloat(profileData.heightCm) || 175,
+      weight: parseFloat(profileData.weightKg) || 80,
+      activityLevel: mapActivityLevel(profileData.activityLevel || "moderate"),
+      goal: selectedGoal,
+      bodyFatPercentage: profileData.bodyFatPct ? parseFloat(profileData.bodyFatPct) : undefined,
+      muscleMass: profileData.muscleMassKg ? parseFloat(profileData.muscleMassKg) : undefined,
+    };
+
+    // Simulate brief loading for UX
+    setTimeout(() => {
+      setResult(generateCoachPlan(input));
+      setGenerating(false);
+    }, 1200);
+  };
+
+  // Create training plan using profile data
+  const handleCreateTrainingPlan = async () => {
+    if (!profileData) return;
+    setCreatingPlan(true);
+    try {
+      const res = await fetch("/api/sport", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate-training-plan",
+          goal: selectedGoal === "fat_loss" ? "weight_loss" : 
+                selectedGoal === "muscle_gain" ? "muscle_gain" :
+                selectedGoal === "performance" ? "endurance" : "general_fitness",
+          fitnessLevel: profileData.fitnessLevel || "beginner",
+          daysPerWeek: profileData.daysPerWeek || 4,
+          equipmentAccess: profileData.equipmentAccess || "full_gym",
+          sex: profileData.sex || "male",
+          age: calcAge(profileData.birthDate),
+          heightCm: parseFloat(profileData.heightCm) || 175,
+          weightKg: parseFloat(profileData.weightKg) || 80,
+        }),
+      });
+      if (res.ok) {
+        setTrainingPlanCreated(true);
+      }
+    } catch (err) {
+      console.error("Failed to create training plan:", err);
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
+
+  // ─── Loading State ───
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto">
+            <Brain className="h-8 w-8 text-white animate-pulse" />
+          </div>
+          <p className="text-gray-500">{isRtl ? "جارٍ تحميل بياناتك..." : "Loading your data..."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── No Profile — Redirect to complete it ───
+  if (!profileData || !profileData.heightCm || !profileData.weightKg) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center mx-auto">
+            <UserRound className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">
+            {isRtl ? "أكمل ملفك الشخصي أولاً" : "Complete Your Profile First"}
+          </h2>
+          <p className="text-sm text-gray-500">
+            {isRtl 
+              ? "المدرب الذكي يحتاج بياناتك (الطول، الوزن، العمر) ليقدم لك خطة مخصصة"
+              : "The smart coach needs your data (height, weight, age) to create a personalized plan"}
+          </p>
+          <Link href={`/${locale}/trainee`}>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6">
+              {isRtl ? "أكمل الملف الشخصي" : "Complete Profile"}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 pb-24 md:pb-6">
@@ -83,7 +240,7 @@ export default function PersonalCoachPage() {
         </Link>
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
-            <UserRound className="h-5 w-5 text-white" />
+            <Brain className="h-5 w-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900">{t("title")}</h1>
@@ -92,147 +249,98 @@ export default function PersonalCoachPage() {
         </div>
       </div>
 
-      {/* Input Form */}
-      <Card className="border-slate-100 mb-4">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Target className="h-4 w-4 text-emerald-500" />
-            {t("yourData")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Sex */}
-          <div>
-            <Label className="text-sm">{t("sex")}</Label>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              {(["male", "female"] as Sex[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => update("sex", s)}
-                  className={`py-2 rounded-lg text-sm font-medium border ${
-                    form.sex === s
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 text-slate-600"
-                  }`}
-                >
-                  {t(s)}
-                </button>
-              ))}
+      {/* Profile Summary — Coach "knows" you */}
+      <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-teal-50/40 mb-4">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+            <p className="text-sm font-medium text-emerald-800">
+              {isRtl ? "أنا أعرفك بالفعل! بياناتك محمّلة تلقائياً" : "I already know you! Your data is loaded automatically"}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white/70 rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-gray-900">{profileData.displayName || "—"}</div>
+              <div className="text-[10px] text-gray-500">{isRtl ? "الاسم" : "Name"}</div>
+            </div>
+            <div className="bg-white/70 rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-gray-900">{calcAge(profileData.birthDate)} {isRtl ? "سنة" : "y"}</div>
+              <div className="text-[10px] text-gray-500">{isRtl ? "العمر" : "Age"}</div>
+            </div>
+            <div className="bg-white/70 rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-gray-900">{parseFloat(profileData.heightCm).toFixed(0)} {isRtl ? "سم" : "cm"}</div>
+              <div className="text-[10px] text-gray-500">{isRtl ? "الطول" : "Height"}</div>
+            </div>
+            <div className="bg-white/70 rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-gray-900">{parseFloat(profileData.weightKg).toFixed(0)} {isRtl ? "كجم" : "kg"}</div>
+              <div className="text-[10px] text-gray-500">{isRtl ? "الوزن" : "Weight"}</div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Age / Height / Weight */}
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <Label className="text-xs">{t("age")}</Label>
-              <Input
-                type="number"
-                value={form.age}
-                onChange={(e) => update("age", Number(e.target.value))}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">{t("height")}</Label>
-              <Input
-                type="number"
-                value={form.height}
-                onChange={(e) => update("height", Number(e.target.value))}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">{t("weight")}</Label>
-              <Input
-                type="number"
-                value={form.weight}
-                onChange={(e) => update("weight", Number(e.target.value))}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          {/* Optional body composition */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs text-slate-500">{t("bodyFatOptional")}</Label>
-              <Input
-                type="number"
-                value={form.bodyFatPercentage ?? ""}
-                onChange={(e) =>
-                  update("bodyFatPercentage", e.target.value ? Number(e.target.value) : undefined)
-                }
-                placeholder="—"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-slate-500">{t("muscleMassOptional")}</Label>
-              <Input
-                type="number"
-                value={form.muscleMass ?? ""}
-                onChange={(e) =>
-                  update("muscleMass", e.target.value ? Number(e.target.value) : undefined)
-                }
-                placeholder="—"
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          {/* Activity level */}
-          <div>
-            <Label className="text-sm">{t("activityLevel")}</Label>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {ACTIVITY_OPTIONS.map((a) => (
-                <button
-                  key={a.key}
-                  onClick={() => update("activityLevel", a.key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
-                    form.activityLevel === a.key
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 text-slate-600"
-                  }`}
-                >
-                  {locale === "ar" ? a.ar : a.en}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Goal */}
-          <div>
-            <Label className="text-sm">{t("goal")}</Label>
-            <div className="grid grid-cols-2 gap-2 mt-1">
+      {/* Goal Selection — only if not yet generated */}
+      {!result && (
+        <Card className="border-slate-100 mb-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Target className="h-4 w-4 text-emerald-500" />
+              {isRtl ? "ما هدفك اليوم؟" : "What's your goal today?"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
               {GOAL_OPTIONS.map((g) => (
                 <button
                   key={g.key}
-                  onClick={() => update("goal", g.key)}
-                  className={`py-2 rounded-lg text-sm font-medium border ${
-                    form.goal === g.key
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 text-slate-600"
+                  onClick={() => setSelectedGoal(g.key)}
+                  className={`p-3 rounded-xl text-sm font-medium border-2 transition-all ${
+                    selectedGoal === g.key
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-700 scale-[1.02]"
+                      : "border-slate-200 text-slate-600 hover:border-slate-300"
                   }`}
                 >
+                  <span className="text-xl block mb-1">{g.icon}</span>
                   {locale === "ar" ? g.ar : g.en}
                 </button>
               ))}
             </div>
-          </div>
 
-          <Button
-            onClick={handleGenerate}
-            className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            <Sparkles className="h-4 w-4 me-1.5" />
-            {t("generatePlan")}
-          </Button>
-        </CardContent>
-      </Card>
+            <Button
+              onClick={handleGenerate}
+              disabled={!selectedGoal || generating}
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-6 text-base"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="h-5 w-5 me-2 animate-spin" />
+                  {isRtl ? "جارٍ تحليل بياناتك..." : "Analyzing your data..."}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 me-2" />
+                  {isRtl ? "ابدأ خطتي الشاملة (أكل + تدريب)" : "Generate My Full Plan (Food + Training)"}
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Results */}
       {result && (
         <div className="space-y-4">
+          {/* Success Banner */}
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4 text-white">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-5 w-5" />
+              <span className="font-bold">{isRtl ? "خطتك الشاملة جاهزة!" : "Your Full Plan is Ready!"}</span>
+            </div>
+            <p className="text-sm text-emerald-100">
+              {isRtl ? "خطة غذائية + تدريبية مبنية على بياناتك الطبية" : "Nutrition + Training plan built on your medical data"}
+            </p>
+          </div>
+
           {/* Ideal Weight */}
           <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-teal-50/30">
             <CardContent className="p-4">
@@ -356,6 +464,60 @@ export default function PersonalCoachPage() {
                 </div>
               ))}
               <p className="text-[10px] text-slate-400 pt-1">{t("supplementDisclaimer")}</p>
+            </CardContent>
+          </Card>
+
+          {/* Training Plan CTA */}
+          <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center">
+                  <Dumbbell className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">
+                    {isRtl ? "خطة التدريب" : "Training Plan"}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {isRtl ? "خطة تدريبية مخصصة بناءً على هدفك وبياناتك" : "Custom training plan based on your goal and data"}
+                  </p>
+                </div>
+              </div>
+
+              {trainingPlanCreated ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-700 bg-emerald-100 rounded-lg p-3">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span className="text-sm font-medium">
+                      {isRtl ? "تم إنشاء خطة التدريب بنجاح!" : "Training plan created successfully!"}
+                    </span>
+                  </div>
+                  <Link href={`/${locale}/trainee/training`}>
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl">
+                      <Zap className="h-4 w-4 me-2" />
+                      {isRtl ? "ابدأ التدريب الآن" : "Start Training Now"}
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleCreateTrainingPlan}
+                  disabled={creatingPlan}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-5"
+                >
+                  {creatingPlan ? (
+                    <>
+                      <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                      {isRtl ? "جارٍ إنشاء خطة التدريب..." : "Creating training plan..."}
+                    </>
+                  ) : (
+                    <>
+                      <Dumbbell className="h-4 w-4 me-2" />
+                      {isRtl ? "أنشئ خطة التدريب المخصصة" : "Create Custom Training Plan"}
+                    </>
+                  )}
+                </Button>
+              )}
             </CardContent>
           </Card>
 
