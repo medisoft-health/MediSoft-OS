@@ -890,6 +890,42 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: rows });
       }
 
+      // --- Trainee/Coach full profile with completion % ---
+      case "my-sport-profile": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const [profile] = await db
+          .select()
+          .from(sportProfiles)
+          .where(eq(sportProfiles.userId, auth.user.id))
+          .limit(1);
+        if (!profile) {
+          return NextResponse.json({ success: true, data: null, completion: 0 });
+        }
+        // Calculate profile completion %
+        const traineeFields = [
+          profile.displayName, profile.sex, profile.birthDate,
+          profile.heightCm, profile.weightKg, profile.goal,
+          profile.activityLevel, profile.avatarUrl, profile.fitnessLevel,
+          profile.equipmentAccess, profile.daysPerWeek, profile.phone,
+          profile.bodyFatPct, profile.muscleMassKg, profile.preferredTrainingTime,
+        ];
+        const medicalFields = [
+          (profile.injuries as unknown[])?.length > 0 ? "filled" : null,
+          (profile.medicalConditions as unknown[])?.length > 0 ? "filled" : null,
+          (profile.medications as unknown[])?.length > 0 ? "filled" : null,
+          (profile.emergencyContact as Record<string, unknown>)?.name ? "filled" : null,
+        ];
+        const allFields = [...traineeFields, ...medicalFields];
+        const filled = allFields.filter((f) => f !== null && f !== undefined && f !== "").length;
+        const completion = Math.round((filled / allFields.length) * 100);
+        // Update stored completion
+        if (completion !== profile.profileCompletion) {
+          await db.update(sportProfiles).set({ profileCompletion: completion }).where(eq(sportProfiles.userId, auth.user.id));
+        }
+        return NextResponse.json({ success: true, data: { ...profile, profileCompletion: completion }, completion });
+      }
+
       case "my-training-plan": {
         const auth = await requireSessionApi();
         if ("response" in auth) return auth.response;
@@ -978,7 +1014,7 @@ export async function GET(request: NextRequest) {
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests, my-training-plan",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests, my-sport-profile, my-training-plan",
           },
           { status: 400 }
         );
@@ -1752,6 +1788,61 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      // --- Update full sport profile (trainee comprehensive) ---
+      case "update-sport-profile": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const p = body.profile || {};
+        const set: Record<string, unknown> = {};
+        // Basic info
+        if (p.displayName !== undefined) set.displayName = p.displayName || null;
+        if (p.sex !== undefined) set.sex = p.sex || null;
+        if (p.birthDate !== undefined) set.birthDate = p.birthDate || null;
+        if (p.heightCm !== undefined) set.heightCm = p.heightCm || null;
+        if (p.weightKg !== undefined) set.weightKg = p.weightKg || null;
+        if (p.goal !== undefined) set.goal = p.goal || null;
+        if (p.activityLevel !== undefined) set.activityLevel = p.activityLevel || null;
+        if (p.bio !== undefined) set.bio = p.bio || null;
+        if (p.avatarUrl !== undefined) set.avatarUrl = p.avatarUrl || null;
+        // Trainee-specific fields
+        if (p.fitnessLevel !== undefined) set.fitnessLevel = p.fitnessLevel || "beginner";
+        if (p.equipmentAccess !== undefined) set.equipmentAccess = p.equipmentAccess || "full_gym";
+        if (p.daysPerWeek !== undefined) set.daysPerWeek = Number(p.daysPerWeek) || 4;
+        if (p.injuries !== undefined) set.injuries = Array.isArray(p.injuries) ? p.injuries : [];
+        if (p.medicalConditions !== undefined) set.medicalConditions = Array.isArray(p.medicalConditions) ? p.medicalConditions : [];
+        if (p.medications !== undefined) set.medications = Array.isArray(p.medications) ? p.medications : [];
+        if (p.emergencyContact !== undefined) set.emergencyContact = p.emergencyContact || {};
+        if (p.phone !== undefined) set.phone = p.phone || null;
+        if (p.bodyFatPct !== undefined) set.bodyFatPct = p.bodyFatPct ? String(p.bodyFatPct) : null;
+        if (p.muscleMassKg !== undefined) set.muscleMassKg = p.muscleMassKg ? String(p.muscleMassKg) : null;
+        if (p.preferredTrainingTime !== undefined) set.preferredTrainingTime = p.preferredTrainingTime || null;
+        // Upsert
+        await db
+          .insert(sportProfiles)
+          .values({ userId: auth.user.id, role: "trainee", ...set } as typeof sportProfiles.$inferInsert)
+          .onConflictDoUpdate({ target: sportProfiles.userId, set });
+        // Recalculate completion
+        const [updated] = await db.select().from(sportProfiles).where(eq(sportProfiles.userId, auth.user.id)).limit(1);
+        const traineeFields = [
+          updated.displayName, updated.sex, updated.birthDate,
+          updated.heightCm, updated.weightKg, updated.goal,
+          updated.activityLevel, updated.avatarUrl, updated.fitnessLevel,
+          updated.equipmentAccess, updated.daysPerWeek, updated.phone,
+          updated.bodyFatPct, updated.muscleMassKg, updated.preferredTrainingTime,
+        ];
+        const medicalFields = [
+          (updated.injuries as unknown[])?.length > 0 ? "filled" : null,
+          (updated.medicalConditions as unknown[])?.length > 0 ? "filled" : null,
+          (updated.medications as unknown[])?.length > 0 ? "filled" : null,
+          (updated.emergencyContact as Record<string, unknown>)?.name ? "filled" : null,
+        ];
+        const allFields = [...traineeFields, ...medicalFields];
+        const filled = allFields.filter((f) => f !== null && f !== undefined && f !== "").length;
+        const completion = Math.round((filled / allFields.length) * 100);
+        await db.update(sportProfiles).set({ profileCompletion: completion }).where(eq(sportProfiles.userId, auth.user.id));
+        return NextResponse.json({ success: true, completion, data: { ...updated, profileCompletion: completion } });
+      }
+
       case "generate-training-plan": {
         const auth = await requireSessionApi();
         if ("response" in auth) return auth.response;
@@ -1882,7 +1973,7 @@ export async function POST(request: NextRequest) {
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review, trainee-profile-save, generate-training-plan, save-training-session",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review, trainee-profile-save, update-sport-profile, generate-training-plan, save-training-session",
           },
           { status: 400 }
         );

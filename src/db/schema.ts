@@ -1839,6 +1839,19 @@ export const sportProfiles = pgTable(
     ratingAvg: numeric("rating_avg", { precision: 3, scale: 2 }).notNull().default("0"),
     ratingCount: integer("rating_count").notNull().default(0),
     activeClients: integer("active_clients").notNull().default(0),
+    // --- Trainee comprehensive profile fields ---
+    fitnessLevel: varchar("fitness_level", { length: 32 }).default("beginner"),
+    equipmentAccess: varchar("equipment_access", { length: 32 }).default("full_gym"),
+    daysPerWeek: integer("days_per_week").default(4),
+    injuries: jsonb("injuries").default([]),
+    medicalConditions: jsonb("medical_conditions").default([]),
+    medications: jsonb("medications").default([]),
+    emergencyContact: jsonb("emergency_contact").default({}),
+    phone: varchar("phone", { length: 32 }),
+    bodyFatPct: numeric("body_fat_pct", { precision: 5, scale: 1 }),
+    muscleMassKg: numeric("muscle_mass_kg", { precision: 5, scale: 1 }),
+    preferredTrainingTime: varchar("preferred_training_time", { length: 32 }),
+    profileCompletion: integer("profile_completion").default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

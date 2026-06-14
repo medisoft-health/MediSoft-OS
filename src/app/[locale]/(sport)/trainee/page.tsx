@@ -20,6 +20,7 @@ import {
   Users,
   Dumbbell,
   Droplets,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +59,30 @@ export default function TraineeDashboardPage() {
           {t("streak")}: 7
         </Badge>
       </div>
+
+      {/* Profile Completion Prompt */}
+      <Link href={`/${locale}/trainee/profile`}>
+        <Card className="border-0 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] bg-gradient-to-r from-orange-50/80 to-amber-50/60 mb-5 overflow-hidden relative ms-animate-in ms-animate-in-delay-1 rounded-2xl hover:shadow-md transition-all duration-300 cursor-pointer">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+                <User className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  {locale === "ar" ? "أكمل ملفك الشخصي" : "Complete Your Profile"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {locale === "ar"
+                    ? "أكمل بياناتك للحصول على تجربة تدريبية مخصصة بالكامل"
+                    : "Complete your data for a fully personalized training experience"}
+                </p>
+              </div>
+              <ChevronRight className={`h-4 w-4 text-orange-400 ${isRtl ? "rotate-180" : ""}`} />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* Linked coach (DB-backed, mirrored) */}
       <div className="mb-5 ms-animate-in ms-animate-in-delay-1">

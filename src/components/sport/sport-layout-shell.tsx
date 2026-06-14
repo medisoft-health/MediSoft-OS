@@ -15,6 +15,7 @@ import {
   Globe,
   Activity,
   ShieldCheck,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 /**
- * MediSport Standalone Layout Shell — v2.0 UI Upgrade
+ * MediSport Standalone Layout Shell — v2.1 (Profile Avatar + Completion Badge)
  *
  * Brand identity v2.0 (June 2026):
  * - Official wordmark logo (Medi=pink, Sport=blue, plum runner)
@@ -35,6 +36,11 @@ import {
  * - Confident-glide motion, .medisport-scope for brand fonts (Exo 2 / Cairo)
  * - Full RTL support via logical properties
  * - Softer backgrounds (#F8FAFC), improved spacing, refined shadows
+ *
+ * v2.1 additions:
+ * - Avatar image in header (from sport_profiles.avatarUrl)
+ * - Orange dot badge if profileCompletion < 80%
+ * - Profile link in dropdown and bottom nav
  */
 export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("SportStandalone");
@@ -42,6 +48,31 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const { data: session } = useSession();
+
+  // Profile state (avatar + completion)
+  const [profileData, setProfileData] = React.useState<{
+    avatarUrl?: string;
+    completion?: number;
+    displayName?: string;
+  } | null>(null);
+
+  // Fetch profile for avatar + completion badge
+  React.useEffect(() => {
+    if (session?.user) {
+      fetch("/api/sport?action=my-sport-profile")
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.success && json.data) {
+            setProfileData({
+              avatarUrl: json.data.avatarUrl || undefined,
+              completion: json.data.profileCompletion || json.completion || 0,
+              displayName: json.data.displayName || undefined,
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session?.user]);
 
   // Platform-owner gate: BOTH role=admin AND the pinned owner email.
   // (UI-only convenience; real enforcement is server-side + API.)
@@ -51,6 +82,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
     (su?.email ?? "").trim().toLowerCase() === "medisoft2022@gmail.com";
 
   const isRtl = locale === "ar";
+  const showCompletionBadge = profileData && (profileData.completion || 0) < 80;
 
   // The auth/login screen is rendered full-screen without the app chrome
   // (no top-nav, footer, or bottom-nav) for a clean, focused entry point.
@@ -125,16 +157,51 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-xl h-9 w-9 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all duration-200"
+                    className="relative rounded-xl h-9 w-9 overflow-hidden bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all duration-200"
                   >
-                    <User className="h-4 w-4" />
+                    {profileData?.avatarUrl ? (
+                      <Image
+                        src={profileData.avatarUrl}
+                        alt="Avatar"
+                        width={36}
+                        height={36}
+                        className="h-full w-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
+                    {/* Orange dot if profile < 80% */}
+                    {showCompletionBadge && (
+                      <span className="absolute top-0 end-0 h-2.5 w-2.5 rounded-full bg-orange-500 border-2 border-white" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align={isRtl ? "start" : "end"} className="w-56 rounded-xl shadow-lg border-slate-200/80 p-1">
                   <div className="px-3 py-2.5 border-b border-slate-100 mb-1">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{session.user.name}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate">
+                      {profileData?.displayName || session.user.name}
+                    </p>
                     <p className="text-xs text-slate-500 truncate">{session.user.email}</p>
+                    {profileData && (
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500 transition-all"
+                            style={{ width: `${profileData.completion || 0}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          {profileData.completion || 0}%
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  <DropdownMenuItem asChild className="rounded-lg">
+                    <Link href={`/${locale}/trainee/profile`} className="flex items-center gap-2">
+                      <UserCircle className="h-4 w-4" />
+                      {isRtl ? "ملفي الشخصي" : "My Profile"}
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg">
                     <Link href={`/${locale}/trainee`} className="flex items-center gap-2">
                       <Activity className="h-4 w-4" />
@@ -201,6 +268,10 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                 <Users className="h-4 w-4" />
                 {t("coach")}
               </MobileNavLink>
+              <MobileNavLink href={`/${locale}/trainee/profile`} onClick={() => setMobileMenuOpen(false)}>
+                <UserCircle className="h-4 w-4" />
+                {isRtl ? "ملفي الشخصي" : "My Profile"}
+              </MobileNavLink>
             </nav>
           </div>
         )}
@@ -245,9 +316,9 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
       <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden border-t border-slate-200/60 bg-white/90 backdrop-blur-xl safe-area-bottom shadow-[0_-1px_3px_rgba(15,23,42,0.04)]">
         <div className="flex items-center justify-around py-2 px-2">
           <BottomNavItem href={`/${locale}/sport`} icon={Home} label={t("home")} active={pathname === `/${locale}/sport`} />
-          <BottomNavItem href={`/${locale}/trainee`} icon={Activity} label={t("trainee")} active={pathname.includes("/trainee")} />
+          <BottomNavItem href={`/${locale}/trainee`} icon={Activity} label={t("trainee")} active={pathname.includes("/trainee") && !pathname.includes("/profile")} />
+          <BottomNavItem href={`/${locale}/trainee/profile`} icon={UserCircle} label={isRtl ? "ملفي" : "Profile"} active={pathname.includes("/profile")} badge={showCompletionBadge} />
           <BottomNavItem href={`/${locale}/coach`} icon={Users} label={t("coach")} active={pathname.includes("/coach")} />
-          <BottomNavItem href={`/${locale}/auth`} icon={User} label={t("account")} active={pathname.includes("/auth")} />
         </div>
       </nav>
     </div>
@@ -306,11 +377,13 @@ function BottomNavItem({
   icon: Icon,
   label,
   active,
+  badge,
 }: {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   active: boolean;
+  badge?: boolean;
 }) {
   return (
     <Link
@@ -321,8 +394,8 @@ function BottomNavItem({
     >
       <div className="relative">
         <Icon className={`h-5 w-5 ${active ? "text-emerald-600" : ""}`} />
-        {active && (
-          <div className="absolute -top-0.5 -end-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        {(active || badge) && (
+          <div className={`absolute -top-0.5 -end-0.5 h-1.5 w-1.5 rounded-full ${badge ? "bg-orange-500" : "bg-emerald-500"}`} />
         )}
       </div>
       <span className={`text-[10px] font-semibold ${active ? "text-emerald-700" : ""}`}>{label}</span>
