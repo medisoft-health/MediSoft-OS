@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   UserCircle,
   Dumbbell,
+  Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
@@ -132,6 +133,10 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                 <NavLink href={`/${locale}/trainee/profile`} active={pathname.includes("/profile")}>
                   <UserCircle className="h-4 w-4" />
                   <span>{isRtl ? "ملفي" : "Profile"}</span>
+                </NavLink>
+                <NavLink href={`/${locale}/trainee/journey`} active={pathname.includes("/journey")}>
+                  <Compass className="h-4 w-4" />
+                  <span>{isRtl ? "رحلتي" : "Journey"}</span>
                 </NavLink>
                 <NavLink href={`/${locale}/trainee/exercises`} active={pathname.includes("/exercises")}>
                   <Dumbbell className="h-4 w-4" />
@@ -299,6 +304,10 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                     <UserCircle className="h-4 w-4" />
                     {isRtl ? "ملفي الشخصي" : "My Profile"}
                   </MobileNavLink>
+                  <MobileNavLink href={`/${locale}/trainee/journey`} onClick={() => setMobileMenuOpen(false)}>
+                    <Compass className="h-4 w-4" />
+                    {isRtl ? "رحلتي" : "My Journey"}
+                  </MobileNavLink>
                   <MobileNavLink href={`/${locale}/trainee/exercises`} onClick={() => setMobileMenuOpen(false)}>
                     <Dumbbell className="h-4 w-4" />
                     {isRtl ? "مكتبة التمارين" : "Exercise Library"}
@@ -386,6 +395,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
             <>
               {/* LOGGED IN: Private bottom nav */}
               <BottomNavItem href={`/${locale}/trainee`} icon={Home} label={isRtl ? "الرئيسية" : "Home"} active={pathname === `/${locale}/trainee`} />
+              <BottomNavItem href={`/${locale}/trainee/journey`} icon={Compass} label={isRtl ? "رحلتي" : "Journey"} active={pathname.includes("/journey")} />
               <BottomNavItem href={`/${locale}/trainee/exercises`} icon={Dumbbell} label={isRtl ? "التمارين" : "Exercises"} active={pathname.includes("/exercises")} />
               <BottomNavItem href={`/${locale}/trainee/profile`} icon={UserCircle} label={isRtl ? "ملفي" : "Profile"} active={pathname.includes("/profile")} badge={showCompletionBadge} />
               <BottomNavItem href={`/${locale}/trainee/community`} icon={Users} label={isRtl ? "المجتمع" : "Community"} active={pathname.includes("/community")} />

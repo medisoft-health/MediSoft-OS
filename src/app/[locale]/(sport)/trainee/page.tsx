@@ -20,6 +20,7 @@ import {
   Users,
   Dumbbell,
   Droplets,
+  Compass,
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,22 @@ export default function TraineeDashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Journey Hero Card */}
+      <Link href={`/${locale}/trainee/journey`} className="block mb-5 ms-animate-in ms-animate-in-delay-3">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 p-5 text-white shadow-lg shadow-emerald-200/30">
+          <div className="absolute top-0 end-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+          <div className="absolute bottom-0 start-0 w-24 h-24 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">{locale === "ar" ? "🧭 رحلتي الصحية" : "🧭 My Health Journey"}</h3>
+              <ChevronRight className="h-5 w-5 opacity-70" />
+            </div>
+            <p className="text-sm text-white/80 leading-relaxed">
+              {locale === "ar" ? "تابع رحلتك، سجّل يومك، واكسب نقاط — كل شيء في مكان واحد" : "Track your journey, log your day, earn XP — all in one place"}
+            </p>
+          </div>
+        </div>
+      </Link>
       {/* Feature Grid — improved cards */}
       <div className="grid grid-cols-2 gap-3.5 mb-5 ms-animate-in ms-animate-in-delay-4">
         <FeatureButton
