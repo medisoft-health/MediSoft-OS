@@ -2454,19 +2454,26 @@ export const sportExerciseProgress = pgTable(
   (t) => [uniqueIndex("sport_progress_user_exercise_idx").on(t.userId, t.exerciseName)]
 );
 
-// ─── ExerciseDB Library (1324 exercises synced from ExerciseDB) ───
+// ─── Exercise Library (ExerciseDB + MuscleWiki Premium — 2298+ exercises) ───
 export const sportExerciseLibrary = pgTable(
   "sport_exercise_library",
   {
     id: serial("id").primaryKey(),
     exerciseId: varchar("exercise_id", { length: 20 }).notNull().unique(),
     name: varchar("name", { length: 255 }).notNull(),
-    gifUrl: text("gif_url").notNull(),
+    gifUrl: text("gif_url"),
     bodyParts: jsonb("body_parts").notNull().default([]),
     equipments: jsonb("equipments").notNull().default([]),
     targetMuscles: jsonb("target_muscles").notNull().default([]),
     secondaryMuscles: jsonb("secondary_muscles").notNull().default([]),
     instructions: jsonb("instructions").notNull().default([]),
+    source: varchar("source", { length: 20 }).default("exercisedb"),
+    difficulty: varchar("difficulty", { length: 20 }),
+    forceType: varchar("force_type", { length: 20 }),
+    mechanic: varchar("mechanic", { length: 20 }),
+    category: varchar("category", { length: 50 }),
+    grips: jsonb("grips").default([]),
+    videoUrl: text("video_url"),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

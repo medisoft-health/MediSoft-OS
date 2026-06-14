@@ -276,10 +276,13 @@ export async function GET(request: NextRequest) {
       }
 
       case "exercise-library-filters": {
-        const [bodyPartsRes, equipmentsRes, targetsRes] = await Promise.all([
+        const [bodyPartsRes, equipmentsRes, targetsRes, sourcesRes, difficultiesRes, forceTypesRes] = await Promise.all([
           db.execute(sql`SELECT DISTINCT bp FROM sport_exercise_library, jsonb_array_elements_text(body_parts) as bp ORDER BY bp`),
           db.execute(sql`SELECT DISTINCT eq FROM sport_exercise_library, jsonb_array_elements_text(equipments) as eq ORDER BY eq`),
           db.execute(sql`SELECT DISTINCT tg FROM sport_exercise_library, jsonb_array_elements_text(target_muscles) as tg ORDER BY tg`),
+          db.execute(sql`SELECT DISTINCT source FROM sport_exercise_library WHERE source IS NOT NULL ORDER BY source`),
+          db.execute(sql`SELECT DISTINCT difficulty FROM sport_exercise_library WHERE difficulty IS NOT NULL ORDER BY difficulty`),
+          db.execute(sql`SELECT DISTINCT force_type FROM sport_exercise_library WHERE force_type IS NOT NULL ORDER BY force_type`),
         ]);
         return NextResponse.json({
           success: true,
@@ -287,6 +290,9 @@ export async function GET(request: NextRequest) {
             bodyParts: (Array.isArray(bodyPartsRes) ? bodyPartsRes : (bodyPartsRes as any).rows || []).map((r: any) => r.bp),
             equipments: (Array.isArray(equipmentsRes) ? equipmentsRes : (equipmentsRes as any).rows || []).map((r: any) => r.eq),
             targets: (Array.isArray(targetsRes) ? targetsRes : (targetsRes as any).rows || []).map((r: any) => r.tg),
+            sources: (Array.isArray(sourcesRes) ? sourcesRes : (sourcesRes as any).rows || []).map((r: any) => r.source),
+            difficulties: (Array.isArray(difficultiesRes) ? difficultiesRes : (difficultiesRes as any).rows || []).map((r: any) => r.difficulty),
+            forceTypes: (Array.isArray(forceTypesRes) ? forceTypesRes : (forceTypesRes as any).rows || []).map((r: any) => r.force_type),
           },
         });
       }
@@ -294,6 +300,9 @@ export async function GET(request: NextRequest) {
         const q = searchParams.get("q") || "";
         const bodyPart = searchParams.get("bodyPart") || "";
         const equipment = searchParams.get("equipment") || "";
+        const source = searchParams.get("source") || "";
+        const difficulty = searchParams.get("difficulty") || "";
+        const forceType = searchParams.get("forceType") || "";
         const target = searchParams.get("target") || "";
         const page = parseInt(searchParams.get("page") || "1");
         const limit = Math.min(parseInt(searchParams.get("limit") || "24"), 100);
@@ -304,6 +313,9 @@ export async function GET(request: NextRequest) {
         if (bodyPart) conditions.push(sql`${sportExerciseLibrary.bodyParts} @> ${JSON.stringify([bodyPart])}::jsonb`);
         if (equipment) conditions.push(sql`${sportExerciseLibrary.equipments} @> ${JSON.stringify([equipment])}::jsonb`);
         if (target) conditions.push(sql`${sportExerciseLibrary.targetMuscles} @> ${JSON.stringify([target])}::jsonb`);
+        if (source) conditions.push(sql`${sportExerciseLibrary.source} = ${source}`);
+        if (difficulty) conditions.push(sql`${sportExerciseLibrary.difficulty} = ${difficulty}`);
+        if (forceType) conditions.push(sql`${sportExerciseLibrary.forceType} = ${forceType}`);
         
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
         

@@ -27,8 +27,8 @@ import { Badge } from "@/components/ui/badge";
 // ─── Types ───
 
 interface DBExercise {
-  id: string;
-  externalId: string;
+  id: number;
+  exerciseId: string;
   name: string;
   gifUrl: string | null;
   bodyParts: string[];
@@ -36,6 +36,10 @@ interface DBExercise {
   secondaryMuscles: string[];
   equipments: string[];
   instructions: string[];
+  source?: string;
+  difficulty?: string | null;
+  forceType?: string | null;
+  videoUrl?: string | null;
 }
 
 interface ProgramExercise {
@@ -110,13 +114,15 @@ export default function ProgramBuilderPage() {
     setLibraryLoading(true);
     try {
       const params = new URLSearchParams({ action: "exercise-library", page: String(page), limit: "20" });
-      if (query) params.set("search", query);
+      if (query) params.set("q", query);
       if (bodyPart && bodyPart !== "all") params.set("bodyPart", bodyPart);
       const res = await fetch(`/api/sport?${params}`);
       if (res.ok) {
-        const data = await res.json();
-        setLibraryExercises(data.exercises || []);
-        setLibraryTotal(data.total || 0);
+        const json = await res.json();
+        if (json.success) {
+          setLibraryExercises(json.data || []);
+          setLibraryTotal(json.meta?.total || 0);
+        }
       }
     } catch {
       /* silent */
@@ -147,8 +153,8 @@ export default function ProgramBuilderPage() {
     setProgramExercises((prev) => [
       ...prev,
       {
-        uid: `${ex.id}_${Date.now()}`,
-        exerciseId: ex.id,
+        uid: `${ex.exerciseId}_${Date.now()}`,
+        exerciseId: ex.exerciseId,
         name: ex.name,
         gifUrl: ex.gifUrl,
         bodyParts: ex.bodyParts,
@@ -491,11 +497,11 @@ export default function ProgramBuilderPage() {
                 </div>
               ) : (
                 libraryExercises.map((ex) => {
-                  const isExpanded = expandedExercise === ex.id;
+                  const isExpanded = expandedExercise === String(ex.id);
                   return (
                     <div key={ex.id} className="rounded-xl border border-slate-100 overflow-hidden hover:border-emerald-200 transition-all">
                       <button
-                        onClick={() => setExpandedExercise(isExpanded ? null : ex.id)}
+                        onClick={() => setExpandedExercise(isExpanded ? null : String(ex.id))}
                         className="w-full text-start p-3 flex items-center gap-3"
                       >
                         {/* GIF Preview */}
@@ -526,21 +532,26 @@ export default function ProgramBuilderPage() {
                             ))}
                           </div>
                         </div>
+                        {ex.source === "musclewiki" && (<span className="text-[8px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Premium</span>)}
                         <Plus className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                       </button>
                       {/* Expanded view */}
                       {isExpanded && (
                         <div className="px-3 pb-3 border-t border-slate-100 bg-slate-50/50">
-                          {ex.gifUrl && (
-                            <div className="w-full h-48 rounded-lg overflow-hidden my-2 bg-white border border-gray-200">
-                              <Image
-                                src={ex.gifUrl}
-                                alt={ex.name}
-                                width={300}
-                                height={200}
-                                className="w-full h-full object-contain"
-                                unoptimized
-                              />
+                          {(ex.videoUrl || ex.gifUrl) && (
+                            <div className="w-full h-48 rounded-lg overflow-hidden my-2 bg-slate-900 border border-gray-200">
+                              {ex.videoUrl ? (
+                                <video src={ex.videoUrl} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                              ) : (
+                                <Image
+                                  src={ex.gifUrl!}
+                                  alt={ex.name}
+                                  width={300}
+                                  height={200}
+                                  className="w-full h-full object-contain"
+                                  unoptimized
+                                />
+                              )}
                             </div>
                           )}
                           {ex.instructions.length > 0 && (

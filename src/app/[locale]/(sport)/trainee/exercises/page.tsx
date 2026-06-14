@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useLocale } from "next-intl";
-import Image from "next/image";
 import {
   Search,
   Dumbbell,
@@ -17,6 +16,10 @@ import {
   RotateCcw,
   Loader2,
   X,
+  Play,
+  Crown,
+  Gauge,
+  ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,12 +31,19 @@ interface ExerciseFromDB {
   id: number;
   exerciseId: string;
   name: string;
-  gifUrl: string;
+  gifUrl: string | null;
   bodyParts: string[];
   equipments: string[];
   targetMuscles: string[];
   secondaryMuscles: string[];
   instructions: string[];
+  source: string;
+  difficulty: string | null;
+  forceType: string | null;
+  mechanic: string | null;
+  category: string | null;
+  grips: string[];
+  videoUrl: string | null;
   syncedAt: string;
 }
 
@@ -41,6 +51,9 @@ interface FiltersData {
   bodyParts: string[];
   equipments: string[];
   targets: string[];
+  sources: string[];
+  difficulties: string[];
+  forceTypes: string[];
 }
 
 interface PaginationMeta {
@@ -62,6 +75,7 @@ const BODY_PART_NAMES: Record<string, { ar: string; en: string; icon: string }> 
   "lower arms": { ar: "الذراعين السفلية", en: "Lower Arms", icon: "✊" },
   cardio: { ar: "الكارديو", en: "Cardio", icon: "❤️" },
   neck: { ar: "الرقبة", en: "Neck", icon: "🧣" },
+  "full body": { ar: "الجسم الكامل", en: "Full Body", icon: "🏃" },
 };
 
 // ─── Equipment display names (AR/EN) ───
@@ -72,27 +86,38 @@ const EQUIPMENT_NAMES: Record<string, { ar: string; en: string }> = {
   barbell: { ar: "بار", en: "Barbell" },
   "leverage machine": { ar: "جهاز رافعة", en: "Leverage Machine" },
   band: { ar: "حبل مقاومة", en: "Band" },
+  "resistance band": { ar: "حبل مقاومة", en: "Resistance Band" },
   "smith machine": { ar: "جهاز سميث", en: "Smith Machine" },
   kettlebell: { ar: "كيتل بيل", en: "Kettlebell" },
   weighted: { ar: "أوزان", en: "Weighted" },
   "stability ball": { ar: "كرة توازن", en: "Stability Ball" },
   "ez barbell": { ar: "بار EZ", en: "EZ Barbell" },
   "olympic barbell": { ar: "بار أولمبي", en: "Olympic Barbell" },
-  medicine_ball: { ar: "كرة طبية", en: "Medicine Ball" },
-  bosu_ball: { ar: "كرة بوسو", en: "Bosu Ball" },
+  machine: { ar: "جهاز", en: "Machine" },
+  "medicine ball": { ar: "كرة طبية", en: "Medicine Ball" },
+  "bosu ball": { ar: "كرة بوسو", en: "Bosu Ball" },
   rope: { ar: "حبل", en: "Rope" },
   roller: { ar: "رولر", en: "Roller" },
-  "resistance band": { ar: "حبل مقاومة", en: "Resistance Band" },
+  "foam roller": { ar: "فوم رولر", en: "Foam Roller" },
   assisted: { ar: "مساعد", en: "Assisted" },
-  "upper body ergometer": { ar: "جهاز الجزء العلوي", en: "Upper Body Ergometer" },
-  "tire": { ar: "إطار", en: "Tire" },
-  "hammer": { ar: "مطرقة", en: "Hammer" },
-  "trap bar": { ar: "بار ترابيزيوس", en: "Trap Bar" },
-  "skierg machine": { ar: "جهاز التزلج", en: "SkiErg Machine" },
-  "sled machine": { ar: "جهاز زلاجة", en: "Sled Machine" },
-  "elliptical machine": { ar: "جهاز بيضاوي", en: "Elliptical Machine" },
-  "stationary bike": { ar: "دراجة ثابتة", en: "Stationary Bike" },
-  "stepmill machine": { ar: "جهاز الدرج", en: "Stepmill Machine" },
+  trx: { ar: "TRX", en: "TRX" },
+  plate: { ar: "صفيحة", en: "Plate" },
+  cardio: { ar: "كارديو", en: "Cardio" },
+};
+
+// ─── Difficulty display ───
+const DIFFICULTY_NAMES: Record<string, { ar: string; en: string; color: string }> = {
+  beginner: { ar: "مبتدئ", en: "Beginner", color: "bg-green-50 text-green-700 border-green-200" },
+  intermediate: { ar: "متوسط", en: "Intermediate", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  advanced: { ar: "متقدم", en: "Advanced", color: "bg-red-50 text-red-700 border-red-200" },
+};
+
+// ─── Force type display ───
+const FORCE_NAMES: Record<string, { ar: string; en: string }> = {
+  push: { ar: "دفع", en: "Push" },
+  pull: { ar: "سحب", en: "Pull" },
+  static: { ar: "ثابت", en: "Static" },
+  compound: { ar: "مركب", en: "Compound" },
 };
 
 export default function ExerciseLibraryPage() {
@@ -116,6 +141,9 @@ function ExerciseLibraryContent() {
   const [selectedBodyPart, setSelectedBodyPart] = React.useState("all");
   const [selectedEquipment, setSelectedEquipment] = React.useState("all");
   const [selectedTarget, setSelectedTarget] = React.useState("all");
+  const [selectedSource, setSelectedSource] = React.useState("all");
+  const [selectedDifficulty, setSelectedDifficulty] = React.useState("all");
+  const [selectedForceType, setSelectedForceType] = React.useState("all");
   const [showFilters, setShowFilters] = React.useState(false);
   const [expandedExercise, setExpandedExercise] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
@@ -148,6 +176,9 @@ function ExerciseLibraryContent() {
     if (selectedBodyPart !== "all") params.set("bodyPart", selectedBodyPart);
     if (selectedEquipment !== "all") params.set("equipment", selectedEquipment);
     if (selectedTarget !== "all") params.set("target", selectedTarget);
+    if (selectedSource !== "all") params.set("source", selectedSource);
+    if (selectedDifficulty !== "all") params.set("difficulty", selectedDifficulty);
+    if (selectedForceType !== "all") params.set("forceType", selectedForceType);
 
     fetch(`/api/sport?${params}`)
       .then((r) => r.json())
@@ -159,14 +190,17 @@ function ExerciseLibraryContent() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [page, debouncedSearch, selectedBodyPart, selectedEquipment, selectedTarget]);
+  }, [page, debouncedSearch, selectedBodyPart, selectedEquipment, selectedTarget, selectedSource, selectedDifficulty, selectedForceType]);
 
-  const hasActiveFilters = selectedBodyPart !== "all" || selectedEquipment !== "all" || selectedTarget !== "all";
+  const hasActiveFilters = selectedBodyPart !== "all" || selectedEquipment !== "all" || selectedTarget !== "all" || selectedSource !== "all" || selectedDifficulty !== "all" || selectedForceType !== "all";
 
   const resetFilters = () => {
     setSelectedBodyPart("all");
     setSelectedEquipment("all");
     setSelectedTarget("all");
+    setSelectedSource("all");
+    setSelectedDifficulty("all");
+    setSelectedForceType("all");
     setSearchQuery("");
     setPage(1);
   };
@@ -185,10 +219,20 @@ function ExerciseLibraryContent() {
             </h1>
             <p className="text-sm text-slate-500">
               {isRtl
-                ? `${meta.total} تمرين • مدعوم بـ ExerciseDB`
-                : `${meta.total} exercises • Powered by ExerciseDB`}
+                ? `${meta.total} تمرين • Medical Intelligence`
+                : `${meta.total} exercises • Medical Intelligence`}
             </p>
           </div>
+        </div>
+        {/* Source stats */}
+        <div className="flex items-center gap-2 mt-3">
+          <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] gap-1">
+            <Crown className="h-3 w-3" />
+            {isRtl ? "MuscleWiki Premium" : "MuscleWiki Premium"}
+          </Badge>
+          <Badge className="bg-slate-50 text-slate-600 border border-slate-200 text-[10px]">
+            ExerciseDB
+          </Badge>
         </div>
       </div>
 
@@ -200,89 +244,193 @@ function ExerciseLibraryContent() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={isRtl ? "ابحث عن تمرين..." : "Search exercises..."}
-          className="w-full rounded-xl border border-slate-200 bg-white py-3 ps-10 pe-4 text-sm shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
+          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 ps-10 pe-10 text-sm focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          dir={isRtl ? "rtl" : "ltr"}
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute end-3 top-1/2 -translate-y-1/2"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-slate-400" />
           </button>
         )}
       </div>
 
-      {/* Body Part Quick Filters — Horizontal scroll */}
-      <div className="mb-4 -mx-4 px-4">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      {/* Body Part Quick Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide">
+        <button
+          onClick={() => { setSelectedBodyPart("all"); setPage(1); }}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+            selectedBodyPart === "all"
+              ? "bg-emerald-500 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          {isRtl ? "الكل" : "All"}
+        </button>
+        {Object.entries(BODY_PART_NAMES).map(([key, val]) => (
           <button
-            onClick={() => { setSelectedBodyPart("all"); setPage(1); }}
-            className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
-              selectedBodyPart === "all"
-                ? "bg-emerald-600 text-white shadow-sm"
+            key={key}
+            onClick={() => { setSelectedBodyPart(key); setPage(1); }}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap ${
+              selectedBodyPart === key
+                ? "bg-emerald-500 text-white shadow-sm"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            {isRtl ? "الكل" : "All"}
+            {val.icon} {isRtl ? val.ar : val.en}
           </button>
-          {(filters?.bodyParts || []).map((bp) => {
-            const info = BODY_PART_NAMES[bp] || { ar: bp, en: bp, icon: "💪" };
-            return (
-              <button
-                key={bp}
-                onClick={() => { setSelectedBodyPart(bp); setPage(1); }}
-                className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all flex items-center gap-1 ${
-                  selectedBodyPart === bp
-                    ? "bg-emerald-600 text-white shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <span>{info.icon}</span>
-                <span>{isRtl ? info.ar : info.en}</span>
-              </button>
-            );
-          })}
-        </div>
+        ))}
       </div>
 
-      {/* Advanced Filters Toggle */}
-      <div className="mb-4 flex items-center gap-2">
+      {/* Filter Toggle + Active Filters */}
+      <div className="flex items-center justify-between mb-3">
         <Button
           variant="outline"
           size="sm"
-          className="rounded-xl text-xs"
+          className="rounded-xl gap-1.5 text-xs"
           onClick={() => setShowFilters(!showFilters)}
         >
-          <Filter className="h-3.5 w-3.5 me-1" />
+          <Filter className="h-3.5 w-3.5" />
           {isRtl ? "فلاتر متقدمة" : "Advanced Filters"}
-          {showFilters ? <ChevronUp className="h-3 w-3 ms-1" /> : <ChevronDown className="h-3 w-3 ms-1" />}
+          {hasActiveFilters && (
+            <span className="ms-1 rounded-full bg-emerald-500 text-white text-[9px] px-1.5 py-0.5">
+              {[selectedEquipment, selectedTarget, selectedSource, selectedDifficulty, selectedForceType].filter(f => f !== "all").length}
+            </span>
+          )}
         </Button>
         {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="rounded-xl text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+          <button
             onClick={resetFilters}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 transition-colors"
           >
-            <RotateCcw className="h-3 w-3 me-1" />
-            {isRtl ? "إعادة ضبط" : "Reset"}
-          </Button>
+            <RotateCcw className="h-3 w-3" />
+            {isRtl ? "إعادة تعيين" : "Reset"}
+          </button>
         )}
-        <span className="ms-auto text-xs text-slate-400">
-          {loading ? "..." : `${meta.total} ${isRtl ? "تمرين" : "exercises"}`}
-        </span>
       </div>
 
       {/* Advanced Filters Panel */}
       {showFilters && (
         <Card className="mb-4 border-slate-200/80 shadow-sm">
           <CardContent className="p-4 space-y-4">
+            {/* Source Filter */}
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-2 block flex items-center gap-1">
+                <Crown className="h-3 w-3" />
+                {isRtl ? "المصدر" : "Source"}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setSelectedSource("all"); setPage(1); }}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    selectedSource === "all"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {isRtl ? "الكل" : "All"}
+                </button>
+                <button
+                  onClick={() => { setSelectedSource("musclewiki"); setPage(1); }}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all flex items-center gap-1 ${
+                    selectedSource === "musclewiki"
+                      ? "bg-amber-100 text-amber-700 border border-amber-200"
+                      : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  <Crown className="h-3 w-3" /> MuscleWiki Premium
+                </button>
+                <button
+                  onClick={() => { setSelectedSource("exercisedb"); setPage(1); }}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    selectedSource === "exercisedb"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  ExerciseDB
+                </button>
+              </div>
+            </div>
+
+            {/* Difficulty Filter */}
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-2 block flex items-center gap-1">
+                <Gauge className="h-3 w-3" />
+                {isRtl ? "مستوى الصعوبة" : "Difficulty"}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setSelectedDifficulty("all"); setPage(1); }}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    selectedDifficulty === "all"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {isRtl ? "الكل" : "All"}
+                </button>
+                {(filters?.difficulties || ["beginner", "intermediate", "advanced"]).map((d) => {
+                  const info = DIFFICULTY_NAMES[d] || { ar: d, en: d, color: "bg-slate-50 text-slate-600 border-slate-200" };
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => { setSelectedDifficulty(d); setPage(1); }}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all border ${
+                        selectedDifficulty === d ? info.color : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {isRtl ? info.ar : info.en}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Force Type Filter */}
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-2 block flex items-center gap-1">
+                <ArrowUpDown className="h-3 w-3" />
+                {isRtl ? "نوع القوة" : "Force Type"}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setSelectedForceType("all"); setPage(1); }}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    selectedForceType === "all"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {isRtl ? "الكل" : "All"}
+                </button>
+                {(filters?.forceTypes || []).map((ft) => {
+                  const info = FORCE_NAMES[ft] || { ar: ft, en: ft };
+                  return (
+                    <button
+                      key={ft}
+                      onClick={() => { setSelectedForceType(ft); setPage(1); }}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                        selectedForceType === ft
+                          ? "bg-purple-100 text-purple-700 border border-purple-200"
+                          : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {isRtl ? info.ar : info.en}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Equipment Filter */}
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-2 block">
                 {isRtl ? "المعدات" : "Equipment"}
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                 <button
                   onClick={() => { setSelectedEquipment("all"); setPage(1); }}
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
@@ -436,25 +584,55 @@ function ExerciseCard({
   const target = exercise.targetMuscles?.[0] || "";
   const bpInfo = BODY_PART_NAMES[bodyPart] || { ar: bodyPart, en: bodyPart, icon: "💪" };
   const eqInfo = EQUIPMENT_NAMES[equipment] || { ar: equipment, en: equipment };
+  const isPremium = exercise.source === "musclewiki";
+  const diffInfo = exercise.difficulty ? DIFFICULTY_NAMES[exercise.difficulty] : null;
+  const forceInfo = exercise.forceType ? FORCE_NAMES[exercise.forceType] : null;
+
+  const mediaUrl = exercise.videoUrl || exercise.gifUrl;
+  const hasVideo = !!exercise.videoUrl;
 
   return (
     <Card
       className={`border-slate-200/80 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer overflow-hidden ${
         expanded ? "ring-2 ring-emerald-200 border-emerald-300 col-span-1 sm:col-span-2" : ""
-      }`}
+      } ${isPremium ? "border-amber-200/60" : ""}`}
       onClick={onToggle}
     >
       <CardContent className="p-0">
-        {/* Card Header with GIF thumbnail */}
+        {/* Card Header with thumbnail */}
         <div className="flex items-start gap-3 p-3">
-          {/* GIF thumbnail */}
+          {/* Thumbnail */}
           <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-slate-100">
-            <img
-              src={exercise.gifUrl}
-              alt={exercise.name}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
+            {mediaUrl ? (
+              hasVideo && !expanded ? (
+                <div className="h-full w-full bg-gradient-to-br from-slate-200 to-slate-100 flex items-center justify-center">
+                  <Play className="h-6 w-6 text-slate-400" />
+                </div>
+              ) : (
+                <img
+                  src={exercise.gifUrl || ""}
+                  alt={exercise.name}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              )
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center">
+                <Dumbbell className="h-6 w-6 text-emerald-400" />
+              </div>
+            )}
+            {/* Premium badge overlay */}
+            {isPremium && (
+              <div className="absolute top-0.5 start-0.5 bg-amber-400 rounded-md p-0.5">
+                <Crown className="h-2.5 w-2.5 text-white" />
+              </div>
+            )}
+            {/* Video indicator */}
+            {hasVideo && !expanded && (
+              <div className="absolute bottom-0.5 end-0.5 bg-black/60 rounded-md p-0.5">
+                <Play className="h-2.5 w-2.5 text-white" />
+              </div>
+            )}
           </div>
 
           {/* Exercise info */}
@@ -469,6 +647,11 @@ function ExerciseCard({
               <Badge variant="secondary" className="text-[10px] rounded-md bg-blue-50 text-blue-700 px-1.5 py-0">
                 {isRtl ? eqInfo.ar : eqInfo.en}
               </Badge>
+              {diffInfo && (
+                <Badge variant="secondary" className={`text-[10px] rounded-md px-1.5 py-0 border ${diffInfo.color}`}>
+                  {isRtl ? diffInfo.ar : diffInfo.en}
+                </Badge>
+              )}
             </div>
             {target && (
               <p className="text-[11px] text-slate-500 mt-1 capitalize">
@@ -491,13 +674,41 @@ function ExerciseCard({
         {/* Expanded details */}
         {expanded && (
           <div className="border-t border-slate-100 p-4 space-y-4">
-            {/* Large GIF */}
-            <div className="relative w-full aspect-square max-h-72 rounded-xl overflow-hidden bg-slate-50 mx-auto max-w-xs">
-              <img
-                src={exercise.gifUrl}
-                alt={exercise.name}
-                className="h-full w-full object-contain"
-              />
+            {/* Video or Large GIF */}
+            <div className="relative w-full aspect-video max-h-72 rounded-xl overflow-hidden bg-slate-900 mx-auto">
+              {hasVideo ? (
+                <video
+                  src={exercise.videoUrl!}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="h-full w-full object-contain"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : exercise.gifUrl ? (
+                <img
+                  src={exercise.gifUrl}
+                  alt={exercise.name}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center">
+                  <Dumbbell className="h-12 w-12 text-slate-600" />
+                </div>
+              )}
+              {/* Source badge on media */}
+              <div className="absolute top-2 end-2">
+                {isPremium ? (
+                  <Badge className="bg-amber-400/90 text-white text-[9px] gap-0.5 backdrop-blur-sm">
+                    <Crown className="h-2.5 w-2.5" /> MuscleWiki
+                  </Badge>
+                ) : (
+                  <Badge className="bg-slate-700/80 text-white text-[9px] backdrop-blur-sm">
+                    ExerciseDB
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {/* Tags */}
@@ -517,6 +728,16 @@ function ExerciseCard({
                   <Zap className="h-3 w-3 me-0.5" /> {sm}
                 </Badge>
               ))}
+              {forceInfo && (
+                <Badge variant="secondary" className="text-[10px] rounded-lg bg-purple-50 text-purple-700">
+                  <ArrowUpDown className="h-3 w-3 me-0.5" /> {isRtl ? forceInfo.ar : forceInfo.en}
+                </Badge>
+              )}
+              {exercise.mechanic && (
+                <Badge variant="secondary" className="text-[10px] rounded-lg bg-indigo-50 text-indigo-700 capitalize">
+                  {exercise.mechanic}
+                </Badge>
+              )}
             </div>
 
             {/* Instructions */}
@@ -529,7 +750,7 @@ function ExerciseCard({
                 <ol className="space-y-1.5 list-decimal list-inside">
                   {exercise.instructions.map((step, i) => (
                     <li key={i} className="text-xs text-slate-700 leading-relaxed">
-                      {step.replace(/^Step:\d+\s*/, "")}
+                      {typeof step === "string" ? step.replace(/^Step:\d+\s*/, "") : String(step)}
                     </li>
                   ))}
                 </ol>
