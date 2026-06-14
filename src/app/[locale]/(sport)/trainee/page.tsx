@@ -202,6 +202,13 @@ export default function TraineeDashboardPage() {
           color="blue"
           href={`/${locale}/trainee/coaches`}
         />
+        <FeatureButton
+          icon={Dumbbell}
+          label={locale === "ar" ? "مكتبة التمارين" : "Exercise Library"}
+          description={locale === "ar" ? "تصفح جميع التمارين" : "Browse all exercises"}
+          color="emerald"
+          href={`/${locale}/trainee/exercises`}
+        />
       </div>
 
       {/* Body Composition Tracker (snapshot — full history at /trainee/body) */}
