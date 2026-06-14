@@ -25,7 +25,7 @@ import {
   sportExerciseLibrary,
   users,
 } from "@/db/schema";
-import { and, desc, eq, gte, sql, inArray, ilike, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, sql, inArray, ilike, or } from "drizzle-orm";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { isPlatformAdmin } from "@/lib/sport/admin-guard";
 import { sendEmail, buildCoachDecisionEmail } from "@/lib/email";
@@ -1054,12 +1054,322 @@ export async function GET(request: NextRequest) {
         });
       }
 
+      // ─── Progressive Overload & Session History ───
+      case "exercise-history": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const exerciseName = url.searchParams.get("exerciseName") || "";
+        if (!exerciseName) return NextResponse.json({ success: false, error: "exerciseName required" }, { status: 400 });
+        // Get last 10 sessions for this exercise
+        const exSessions = await db
+          .select({
+            exId: sportSessionExercises.id,
+            sessionId: sportSessionExercises.sessionId,
+            exerciseName: sportSessionExercises.exerciseName,
+            createdAt: sportSessionExercises.createdAt,
+          })
+          .from(sportSessionExercises)
+          .innerJoin(sportWorkoutSessions, eq(sportSessionExercises.sessionId, sportWorkoutSessions.id))
+          .where(and(
+            eq(sportWorkoutSessions.userId, auth.user.id),
+            eq(sportSessionExercises.exerciseName, exerciseName)
+          ))
+          .orderBy(desc(sportSessionExercises.createdAt))
+          .limit(10);
+        // Get sets for each session
+        const exHistory = [];
+        for (const s of exSessions) {
+          const sets = await db
+            .select()
+            .from(sportSessionSets)
+            .where(eq(sportSessionSets.sessionExerciseId, s.exId))
+            .orderBy(asc(sportSessionSets.setNumber));
+          exHistory.push({
+            date: s.createdAt?.toISOString() || "",
+            sets: sets.map(st => ({
+              setNumber: st.setNumber,
+              weightKg: parseFloat(st.weightKg || "0"),
+              reps: st.reps || 0,
+              rpe: st.rpe,
+              volume: parseFloat(st.weightKg || "0") * (st.reps || 0),
+            })),
+          });
+        }
+        // Get progressive overload data
+        const [progress] = await db
+          .select()
+          .from(sportExerciseProgress)
+          .where(and(
+            eq(sportExerciseProgress.userId, auth.user.id),
+            eq(sportExerciseProgress.exerciseName, exerciseName)
+          ))
+          .limit(1);
+        // Get personal records
+        const prs = await db
+          .select()
+          .from(sportPersonalRecords)
+          .where(and(
+            eq(sportPersonalRecords.userId, auth.user.id),
+            eq(sportPersonalRecords.exerciseName, exerciseName)
+          ))
+          .orderBy(desc(sportPersonalRecords.achievedAt))
+          .limit(5);
+        return NextResponse.json({
+          success: true,
+          history: exHistory,
+          progress: progress ? {
+            currentWeightKg: parseFloat(progress.currentWeightKg || "0"),
+            currentRepMin: progress.currentRepMin,
+            currentRepMax: progress.currentRepMax,
+            lastAchievedReps: progress.lastAchievedReps,
+            nextWeightKg: parseFloat(progress.nextWeightKg || "0"),
+            progressionStatus: progress.progressionStatus,
+            consecutiveSuccesses: progress.consecutiveSuccesses,
+          } : null,
+          personalRecords: prs.map(pr => ({
+            recordType: pr.recordType,
+            value: parseFloat(pr.value),
+            previousValue: pr.previousValue ? parseFloat(pr.previousValue) : null,
+            achievedAt: pr.achievedAt?.toISOString() || "",
+          })),
+        });
+      }
+
+      case "my-session-history": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const histLimit = parseInt(url.searchParams.get("limit") || "20");
+        const allSessions = await db
+          .select()
+          .from(sportWorkoutSessions)
+          .where(eq(sportWorkoutSessions.userId, auth.user.id))
+          .orderBy(desc(sportWorkoutSessions.startedAt))
+          .limit(histLimit);
+        const sessionResult = [];
+        for (const s of allSessions) {
+          const exs = await db
+            .select()
+            .from(sportSessionExercises)
+            .where(eq(sportSessionExercises.sessionId, s.id))
+            .orderBy(asc(sportSessionExercises.exerciseOrder));
+          sessionResult.push({
+            id: s.id,
+            startedAt: s.startedAt?.toISOString() || "",
+            endedAt: s.endedAt?.toISOString() || null,
+            durationSeconds: s.durationSeconds || 0,
+            totalVolume: parseFloat(s.totalVolume || "0"),
+            totalSets: s.totalSets || 0,
+            caloriesBurned: s.caloriesBurned || 0,
+            moodRating: s.moodRating || 3,
+            status: s.status,
+            exercises: exs.map(e => e.exerciseName),
+          });
+        }
+        return NextResponse.json({ success: true, sessions: sessionResult });
+      }
+
+      case "medical-training-adjustments": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        // Fetch latest lab results
+        const medLabResults = await db
+          .select()
+          .from(sportLabResults)
+          .where(eq(sportLabResults.userId, auth.user.id))
+          .orderBy(desc(sportLabResults.createdAt))
+          .limit(5);
+        // Analyze markers and generate training adjustments
+        const medAdjustments: any[] = [];
+        for (const lab of medLabResults) {
+          const markersArr = (lab.markers as any[]) || [];
+          const markers: Record<string, string> = {};
+          for (const m of markersArr) { if (m.name && m.value !== undefined) markers[m.name.toLowerCase().replace(/[^a-z0-9]/g, "")] = String(m.value); }
+          // Iron/Hemoglobin check
+          if (markers.hemoglobin && parseFloat(markers.hemoglobin) < 12) {
+            medAdjustments.push({
+              marker: "hemoglobin", value: parseFloat(markers.hemoglobin), unit: "g/dL", status: "low",
+              condition: "Low Hemoglobin", conditionAr: "انخفاض الهيموجلوبين",
+              impact: "Reduced oxygen delivery to muscles", impactAr: "انخفاض توصيل الأكسجين للعضلات",
+              recommendation: "Reduce high-intensity cardio by 30%, increase rest periods by 30s, focus on strength training with moderate loads",
+              recommendationAr: "تقليل تمارين الكارديو المكثفة بنسبة 30%، زيادة فترات الراحة 30 ثانية، التركيز على تمارين القوة بأوزان معتدلة",
+              severity: parseFloat(markers.hemoglobin) < 10 ? "critical" : "warning",
+              adjustments: { maxIntensity: 70, increaseRestBy: 30, avoidExerciseTypes: ["hiit", "sprints"] },
+            });
+          }
+          // Ferritin (iron stores)
+          if (markers.ferritin && parseFloat(markers.ferritin) < 30) {
+            medAdjustments.push({
+              marker: "ferritin", value: parseFloat(markers.ferritin), unit: "ng/mL", status: "low",
+              condition: "Low Iron Stores", conditionAr: "نقص مخزون الحديد",
+              impact: "Fatigue and reduced endurance capacity", impactAr: "إرهاق وانخفاض قدرة التحمل",
+              recommendation: "Reduce endurance training volume by 20%, prioritize recovery days, avoid training on empty stomach",
+              recommendationAr: "تقليل حجم تمارين التحمل بنسبة 20%، إعطاء أولوية لأيام الاستشفاء، تجنب التمرين على معدة فارغة",
+              severity: parseFloat(markers.ferritin) < 15 ? "critical" : "warning",
+              adjustments: { maxIntensity: 75, reduceSetsBy: 20 },
+            });
+          }
+          // Vitamin D
+          if (markers.vitamind && parseFloat(markers.vitamind) < 30) {
+            medAdjustments.push({
+              marker: "vitaminD", value: parseFloat(markers.vitamind), unit: "ng/mL", status: "low",
+              condition: "Vitamin D Deficiency", conditionAr: "نقص فيتامين د",
+              impact: "Increased injury risk, poor bone density, muscle weakness", impactAr: "زيادة خطر الإصابة، ضعف كثافة العظام، ضعف العضلات",
+              recommendation: "Reduce heavy compound lifts by 15%, add joint mobility work, avoid high-impact plyometrics",
+              recommendationAr: "تقليل الأوزان الثقيلة المركبة بنسبة 15%، إضافة تمارين مرونة المفاصل، تجنب تمارين البليومتريك عالية التأثير",
+              severity: parseFloat(markers.vitamind) < 15 ? "critical" : "warning",
+              adjustments: { maxIntensity: 80, avoidExerciseTypes: ["plyometrics", "heavy_compound"], preferExerciseTypes: ["mobility", "stretching"] },
+            });
+          }
+          // Testosterone (male)
+          if (markers.testosterone && parseFloat(markers.testosterone) < 300) {
+            medAdjustments.push({
+              marker: "testosterone", value: parseFloat(markers.testosterone), unit: "ng/dL", status: "low",
+              condition: "Low Testosterone", conditionAr: "انخفاض التستوستيرون",
+              impact: "Slower muscle recovery, reduced strength gains", impactAr: "بطء استشفاء العضلات، انخفاض مكاسب القوة",
+              recommendation: "Prioritize compound movements, reduce training volume by 15%, ensure 48h recovery between muscle groups",
+              recommendationAr: "إعطاء أولوية للتمارين المركبة، تقليل حجم التمرين 15%، ضمان 48 ساعة استشفاء بين المجموعات العضلية",
+              severity: parseFloat(markers.testosterone) < 200 ? "critical" : "warning",
+              adjustments: { reduceSetsBy: 15, increaseRestBy: 60, preferExerciseTypes: ["compound"] },
+            });
+          }
+          // Cortisol (high = overtraining)
+          if (markers.cortisol && parseFloat(markers.cortisol) > 20) {
+            medAdjustments.push({
+              marker: "cortisol", value: parseFloat(markers.cortisol), unit: "μg/dL", status: "high",
+              condition: "Elevated Cortisol (Overtraining Risk)", conditionAr: "ارتفاع الكورتيزول (خطر الإفراط في التدريب)",
+              impact: "Muscle breakdown, impaired recovery, increased injury risk", impactAr: "هدم العضلات، ضعف الاستشفاء، زيادة خطر الإصابة",
+              recommendation: "Reduce training frequency to max 4 days/week, cap session duration at 45min, add deload week immediately",
+              recommendationAr: "تقليل تكرار التمرين لـ 4 أيام/أسبوع كحد أقصى، تحديد مدة الجلسة بـ 45 دقيقة، إضافة أسبوع تخفيف فوراً",
+              severity: parseFloat(markers.cortisol) > 25 ? "critical" : "warning",
+              adjustments: { maxIntensity: 65, maxDaysPerWeek: 4, reduceSetsBy: 30 },
+            });
+          }
+          // TSH (thyroid)
+          if (markers.tsh && parseFloat(markers.tsh) > 4.5) {
+            medAdjustments.push({
+              marker: "tsh", value: parseFloat(markers.tsh), unit: "mIU/L", status: "high",
+              condition: "Hypothyroidism Indicators", conditionAr: "مؤشرات قصور الغدة الدرقية",
+              impact: "Slower metabolism, fatigue, weight gain tendency", impactAr: "بطء الأيض، إرهاق، ميل لزيادة الوزن",
+              recommendation: "Focus on metabolic conditioning, include HIIT 2x/week, prioritize morning training sessions",
+              recommendationAr: "التركيز على تمارين التكييف الأيضي، تضمين HIIT مرتين/أسبوع، إعطاء أولوية لجلسات التمرين الصباحية",
+              severity: "info",
+              adjustments: { preferExerciseTypes: ["hiit", "metabolic_conditioning"] },
+            });
+          }
+          // CRP (inflammation)
+          if (markers.crphs && parseFloat(markers.crphs) > 3) {
+            medAdjustments.push({
+              marker: "crp", value: parseFloat(markers.crphs), unit: "mg/L", status: "high",
+              condition: "Systemic Inflammation", conditionAr: "التهاب جهازي",
+              impact: "Impaired recovery, joint pain risk, overtraining susceptibility", impactAr: "ضعف الاستشفاء، خطر آلام المفاصل، قابلية للإفراط في التدريب",
+              recommendation: "Reduce training intensity by 25%, avoid eccentric-heavy exercises, add active recovery sessions (yoga, swimming)",
+              recommendationAr: "تقليل شدة التمرين بنسبة 25%، تجنب التمارين اللامركزية الثقيلة، إضافة جلسات استشفاء نشط (يوغا، سباحة)",
+              severity: parseFloat(markers.crphs) > 10 ? "critical" : "warning",
+              adjustments: { maxIntensity: 70, avoidExerciseTypes: ["eccentric_heavy"], preferExerciseTypes: ["yoga", "swimming", "walking"] },
+            });
+          }
+          // HbA1c (blood sugar)
+          if (markers.hba1c && parseFloat(markers.hba1c) > 5.7) {
+            medAdjustments.push({
+              marker: "hba1c", value: parseFloat(markers.hba1c), unit: "%", status: "high",
+              condition: "Prediabetic / Insulin Resistance", conditionAr: "مقاومة الأنسولين / ما قبل السكري",
+              impact: "Impaired glucose utilization during exercise", impactAr: "ضعف استخدام الجلوكوز أثناء التمرين",
+              recommendation: "Include 30min moderate cardio daily, prioritize resistance training for insulin sensitivity",
+              recommendationAr: "تضمين 30 دقيقة كارديو معتدل يومياً، إعطاء أولوية لتمارين المقاومة لتحسين حساسية الأنسولين",
+              severity: parseFloat(markers.hba1c) > 6.5 ? "critical" : "warning",
+              adjustments: { preferExerciseTypes: ["resistance", "moderate_cardio"] },
+            });
+          }
+          // Blood Pressure
+          if (markers.bloodpressuresystolic && parseFloat(markers.bloodpressuresystolic) > 140) {
+            medAdjustments.push({
+              marker: "bloodPressureSystolic", value: parseFloat(markers.bloodpressuresystolic), unit: "mmHg", status: "high",
+              condition: "Hypertension", conditionAr: "ارتفاع ضغط الدم",
+              impact: "Cardiovascular risk during intense exercise", impactAr: "خطر قلبي وعائي أثناء التمرين المكثف",
+              recommendation: "Avoid heavy isometric holds, Valsalva maneuver, and max-effort lifts. Focus on moderate resistance with controlled breathing",
+              recommendationAr: "تجنب الثبات الأيزومتري الثقيل ومناورة فالسالفا والرفع بأقصى جهد. التركيز على مقاومة معتدلة مع تنفس منتظم",
+              severity: parseFloat(markers.bloodpressuresystolic) > 160 ? "critical" : "warning",
+              adjustments: { maxIntensity: 70, avoidExerciseTypes: ["isometric_heavy", "max_effort"] },
+            });
+          }
+          // Cholesterol LDL
+          if (markers.cholesterolldl && parseFloat(markers.cholesterolldl) > 130) {
+            medAdjustments.push({
+              marker: "cholesterolLDL", value: parseFloat(markers.cholesterolldl), unit: "mg/dL", status: "high",
+              condition: "High LDL Cholesterol", conditionAr: "ارتفاع الكوليسترول الضار",
+              impact: "Cardiovascular risk, benefit from aerobic exercise", impactAr: "خطر قلبي وعائي، فائدة من التمارين الهوائية",
+              recommendation: "Include 150min/week moderate aerobic exercise, add interval training 2x/week for lipid improvement",
+              recommendationAr: "تضمين 150 دقيقة/أسبوع تمارين هوائية معتدلة، إضافة تمارين فترات مرتين/أسبوع لتحسين الدهون",
+              severity: "info",
+              adjustments: { preferExerciseTypes: ["aerobic", "interval_training"] },
+            });
+          }
+        }
+        // Get current training plan to show how adjustments apply
+        const [medActivePlan] = await db
+          .select()
+          .from(sportTrainingPlans)
+          .where(and(eq(sportTrainingPlans.userId, auth.user.id), eq(sportTrainingPlans.status, "active")))
+          .limit(1);
+        return NextResponse.json({
+          success: true,
+          adjustments: medAdjustments,
+          activePlanId: medActivePlan?.id || null,
+          labResultsCount: medLabResults.length,
+          lastLabDate: medLabResults[0]?.createdAt?.toISOString() || null,
+          summary: {
+            totalAdjustments: medAdjustments.length,
+            criticalCount: medAdjustments.filter(a => a.severity === "critical").length,
+            warningCount: medAdjustments.filter(a => a.severity === "warning").length,
+            infoCount: medAdjustments.filter(a => a.severity === "info").length,
+            overallMaxIntensity: medAdjustments.length > 0 ? Math.min(...medAdjustments.map(a => a.adjustments?.maxIntensity || 100)) : 100,
+            avoidExerciseTypes: [...new Set(medAdjustments.flatMap(a => a.adjustments?.avoidExerciseTypes || []))],
+            preferExerciseTypes: [...new Set(medAdjustments.flatMap(a => a.adjustments?.preferExerciseTypes || []))],
+          },
+        });
+      }
+
+      case "workout-previous-best": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const exerciseNames = url.searchParams.get("exercises")?.split(",") || [];
+        if (exerciseNames.length === 0) return NextResponse.json({ success: true, previousBests: {} });
+        const previousBests: Record<string, { weight: number; reps: number }[]> = {};
+        for (const name of exerciseNames) {
+          const trimmed = name.trim();
+          // Get the latest session for this exercise
+          const [latestExLog] = await db
+            .select({ exId: sportSessionExercises.id })
+            .from(sportSessionExercises)
+            .innerJoin(sportWorkoutSessions, eq(sportSessionExercises.sessionId, sportWorkoutSessions.id))
+            .where(and(
+              eq(sportWorkoutSessions.userId, auth.user.id),
+              eq(sportSessionExercises.exerciseName, trimmed)
+            ))
+            .orderBy(desc(sportSessionExercises.createdAt))
+            .limit(1);
+          if (latestExLog) {
+            const sets = await db
+              .select()
+              .from(sportSessionSets)
+              .where(eq(sportSessionSets.sessionExerciseId, latestExLog.exId))
+              .orderBy(asc(sportSessionSets.setNumber));
+            previousBests[trimmed] = sets.map(s => ({
+              weight: parseFloat(s.weightKg || "0"),
+              reps: s.reps || 0,
+            }));
+          }
+        }
+        return NextResponse.json({ success: true, previousBests });
+      }
+
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-library, exercise-library-filters, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests, my-sport-profile, my-training-plan",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-library, exercise-library-filters, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests, my-sport-profile, my-training-plan, exercise-history, my-session-history, medical-training-adjustments, workout-previous-best",
           },
           { status: 400 }
         );
@@ -1904,11 +2214,13 @@ export async function POST(request: NextRequest) {
         // Build medical context
         const medicalContext: any[] = [];
         for (const lab of labResults) {
-          const results = lab.results as any;
+          const markersArr2 = (lab.markers as any[]) || [];
+          const results: Record<string, string> = {};
+          for (const m of markersArr2) { if (m.name && m.value !== undefined) results[m.name.toLowerCase().replace(/[^a-z0-9]/g, "")] = String(m.value); }
           if (results?.hemoglobin && parseFloat(results.hemoglobin) < 12) {
             medicalContext.push({ condition: "Low Iron/Hemoglobin", conditionAr: "\u0646\u0642\u0635 \u0627\u0644\u062d\u062f\u064a\u062f", severity: "moderate", adjustment: "Reduce high-intensity endurance", adjustmentAr: "\u062a\u0642\u0644\u064a\u0644 \u062a\u0645\u0627\u0631\u064a\u0646 \u0627\u0644\u062a\u062d\u0645\u0644 \u0627\u0644\u0645\u0643\u062b\u0641\u0629" });
           }
-          if (results?.vitaminD && parseFloat(results.vitaminD) < 20) {
+          if (results?.vitamind && parseFloat(results.vitamind) < 20) {
             medicalContext.push({ condition: "Vitamin D Deficiency", conditionAr: "\u0646\u0642\u0635 \u0641\u064a\u062a\u0627\u0645\u064a\u0646 \u062f", severity: "moderate", adjustment: "Focus on joint strengthening, reduce heavy loads", adjustmentAr: "\u0627\u0644\u062a\u0631\u0643\u064a\u0632 \u0639\u0644\u0649 \u062a\u0642\u0648\u064a\u0629 \u0627\u0644\u0645\u0641\u0627\u0635\u0644 \u0648\u062a\u062e\u0641\u064a\u0641 \u0627\u0644\u0623\u0648\u0632\u0627\u0646" });
           }
         }
@@ -1967,7 +2279,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, planId: newPlan.id });
       }
 
-      case "save-training-session": {
+      case "save-training-session, update-progressive-overload, apply-medical-adjustments": {
         const auth = await requireSessionApi();
         if ("response" in auth) return auth.response;
         const { workoutId, exercises, durationSeconds, moodRating, totalVolume, totalSets, caloriesBurned } = body;
@@ -2013,12 +2325,182 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, sessionId: session.id });
       }
 
+
+      // ─── Progressive Overload Update ───
+      case "update-progressive-overload": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const { exerciseName, weightKg, reps, sets } = body;
+        if (!exerciseName) return NextResponse.json({ success: false, error: "exerciseName required" }, { status: 400 });
+        // Get or create progress record
+        const [existing] = await db
+          .select()
+          .from(sportExerciseProgress)
+          .where(and(
+            eq(sportExerciseProgress.userId, auth.user.id),
+            eq(sportExerciseProgress.exerciseName, exerciseName)
+          ))
+          .limit(1);
+        const repMin = 8;
+        const repMax = 12;
+        const currentWeight = weightKg || 0;
+        const achievedReps = reps || 0;
+        // Progressive overload logic:
+        // If all sets hit repMax → increase weight by 2.5kg, reset reps to repMin
+        // If sets hit between repMin-repMax → maintain, increment consecutive successes
+        // If sets below repMin → deload (reduce weight by 10%)
+        let nextWeight = currentWeight;
+        let progressionStatus = "maintain";
+        let consecutiveSuccesses = existing?.consecutiveSuccesses || 0;
+        if (achievedReps >= repMax) {
+          // Ready to progress
+          nextWeight = currentWeight + 2.5;
+          progressionStatus = "progress";
+          consecutiveSuccesses += 1;
+        } else if (achievedReps >= repMin) {
+          // Maintaining — good
+          progressionStatus = "maintain";
+          consecutiveSuccesses += 1;
+        } else {
+          // Failed — deload
+          nextWeight = Math.max(0, currentWeight * 0.9);
+          progressionStatus = "deload";
+          consecutiveSuccesses = 0;
+        }
+        // Double progression: if 3 consecutive successes at same weight, force progression
+        if (consecutiveSuccesses >= 3 && progressionStatus === "maintain") {
+          nextWeight = currentWeight + 2.5;
+          progressionStatus = "progress";
+          consecutiveSuccesses = 0;
+        }
+        const lastAchievedReps = existing?.lastAchievedReps as number[] || [];
+        lastAchievedReps.push(achievedReps);
+        if (lastAchievedReps.length > 10) lastAchievedReps.shift();
+        if (existing) {
+          await db.update(sportExerciseProgress)
+            .set({
+              currentWeightKg: String(currentWeight),
+              currentRepMin: repMin,
+              currentRepMax: repMax,
+              lastAchievedReps,
+              nextWeightKg: String(nextWeight),
+              progressionStatus,
+              consecutiveSuccesses,
+              lastUpdated: new Date(),
+            })
+            .where(eq(sportExerciseProgress.id, existing.id));
+        } else {
+          await db.insert(sportExerciseProgress).values({
+            userId: auth.user.id,
+            exerciseName,
+            currentWeightKg: String(currentWeight),
+            currentRepMin: repMin,
+            currentRepMax: repMax,
+            lastAchievedReps: [achievedReps],
+            nextWeightKg: String(nextWeight),
+            progressionStatus,
+            consecutiveSuccesses,
+          });
+        }
+        // Check for personal record (1RM estimate using Epley formula: 1RM = weight × (1 + reps/30))
+        const estimated1RM = currentWeight * (1 + achievedReps / 30);
+        const [currentPR] = await db
+          .select()
+          .from(sportPersonalRecords)
+          .where(and(
+            eq(sportPersonalRecords.userId, auth.user.id),
+            eq(sportPersonalRecords.exerciseName, exerciseName),
+            eq(sportPersonalRecords.recordType, "estimated_1rm")
+          ))
+          .orderBy(desc(sportPersonalRecords.achievedAt))
+          .limit(1);
+        let isNewPR = false;
+        if (!currentPR || estimated1RM > parseFloat(currentPR.value)) {
+          await db.insert(sportPersonalRecords).values({
+            userId: auth.user.id,
+            exerciseName,
+            recordType: "estimated_1rm",
+            value: String(Math.round(estimated1RM * 10) / 10),
+            previousValue: currentPR ? currentPR.value : null,
+          });
+          isNewPR = true;
+        }
+        return NextResponse.json({
+          success: true,
+          progressionStatus,
+          nextWeightKg: nextWeight,
+          consecutiveSuccesses,
+          estimated1RM: Math.round(estimated1RM * 10) / 10,
+          isNewPR,
+          suggestion: progressionStatus === "progress"
+            ? { en: `Increase to ${nextWeight}kg next session`, ar: `زيادة الوزن إلى ${nextWeight} كجم في الجلسة القادمة` }
+            : progressionStatus === "deload"
+            ? { en: `Reduce to ${nextWeight.toFixed(1)}kg and rebuild`, ar: `تخفيف الوزن إلى ${nextWeight.toFixed(1)} كجم وإعادة البناء` }
+            : { en: `Maintain ${currentWeight}kg, aim for ${repMax} reps`, ar: `حافظ على ${currentWeight} كجم، استهدف ${repMax} تكرار` },
+        });
+      }
+
+      case "apply-medical-adjustments": {
+        const auth = await requireSessionApi();
+        if ("response" in auth) return auth.response;
+        const { planId } = body;
+        if (!planId) return NextResponse.json({ success: false, error: "planId required" }, { status: 400 });
+        // Verify plan belongs to user
+        const [plan] = await db
+          .select()
+          .from(sportTrainingPlans)
+          .where(and(eq(sportTrainingPlans.id, planId), eq(sportTrainingPlans.userId, auth.user.id)))
+          .limit(1);
+        if (!plan) return NextResponse.json({ success: false, error: "Plan not found" }, { status: 404 });
+        // Fetch latest lab results
+        const applyLabResults = await db
+          .select()
+          .from(sportLabResults)
+          .where(eq(sportLabResults.userId, auth.user.id))
+          .orderBy(desc(sportLabResults.createdAt))
+          .limit(5);
+        // Generate medical adjustments
+        const applyAdjustments: any[] = [];
+        for (const lab of applyLabResults) {
+          const markersArr = (lab.markers as any[]) || [];
+          const markers: Record<string, string> = {};
+          for (const m of markersArr) { if (m.name && m.value !== undefined) markers[m.name.toLowerCase().replace(/[^a-z0-9]/g, "")] = String(m.value); }
+          if (markers.hemoglobin && parseFloat(markers.hemoglobin) < 12) {
+            applyAdjustments.push({ condition: "Low Hemoglobin", conditionAr: "انخفاض الهيموجلوبين", severity: "warning", adjustment: "Reduce HIIT, increase rest", adjustmentAr: "تقليل الكارديو المكثف، زيادة الراحة" });
+          }
+          if (markers.vitamind && parseFloat(markers.vitamind) < 30) {
+            applyAdjustments.push({ condition: "Vitamin D Deficiency", conditionAr: "نقص فيتامين د", severity: "warning", adjustment: "Reduce heavy loads, add mobility", adjustmentAr: "تخفيف الأوزان الثقيلة، إضافة تمارين مرونة" });
+          }
+          if (markers.cortisol && parseFloat(markers.cortisol) > 20) {
+            applyAdjustments.push({ condition: "Elevated Cortisol", conditionAr: "ارتفاع الكورتيزول", severity: "critical", adjustment: "Reduce frequency, add deload", adjustmentAr: "تقليل التكرار، إضافة أسبوع تخفيف" });
+          }
+          if (markers.crphs && parseFloat(markers.crphs) > 3) {
+            applyAdjustments.push({ condition: "Systemic Inflammation", conditionAr: "التهاب جهازي", severity: "warning", adjustment: "Reduce intensity, add recovery sessions", adjustmentAr: "تقليل الشدة، إضافة جلسات استشفاء" });
+          }
+          if (markers.bloodpressuresystolic && parseFloat(markers.bloodpressuresystolic) > 140) {
+            applyAdjustments.push({ condition: "Hypertension", conditionAr: "ارتفاع ضغط الدم", severity: "critical", adjustment: "Avoid max-effort, controlled breathing", adjustmentAr: "تجنب أقصى جهد، تنفس منتظم" });
+          }
+        }
+        // Update plan with medical adjustments
+        const existingAdj = (plan.medicalAdjustments as any[]) || [];
+        const mergedAdj = [...existingAdj.filter((a: any) => !applyAdjustments.find(n => n.condition === a.condition)), ...applyAdjustments];
+        await db.update(sportTrainingPlans)
+          .set({ medicalAdjustments: mergedAdj, updatedAt: new Date() })
+          .where(eq(sportTrainingPlans.id, planId));
+        return NextResponse.json({
+          success: true,
+          appliedAdjustments: applyAdjustments.length,
+          totalAdjustments: mergedAdj.length,
+          adjustments: mergedAdj,
+        });
+      }
+
       default:
         return NextResponse.json(
           {
             success: false,
             error:
-              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review, trainee-profile-save, update-sport-profile, generate-training-plan, save-training-session",
+              "Unknown action. Available POST: bio-age, food-log, activity-log, coach-plan, program-save, medical-bridge-link, medical-bridge-consent, coach-add-client, coach-remove-client, body-measurement, lab-result, mark-notifications-read, coach-profile-save, coach-cert-add, coach-cert-remove, coach-submit-verification, admin-verify-decision, request-coach, respond-coach-request, coach-review, trainee-profile-save, update-sport-profile, generate-training-plan, save-training-session, update-progressive-overload, apply-medical-adjustments",
           },
           { status: 400 }
         );

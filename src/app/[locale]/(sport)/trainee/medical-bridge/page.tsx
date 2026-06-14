@@ -15,6 +15,7 @@ import {
   Stethoscope,
   TestTube,
 } from "lucide-react";
+import { MedicalTrainingAdjustments } from "@/components/sport/medical-training-adjustments";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -216,6 +217,21 @@ export default function MedicalBridgePage() {
                 t("saveConsents")
               )}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Medical Training Adjustments */}
+      {linked && (
+        <Card className="border-slate-100 mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4 text-emerald-500" />
+              {isRtl ? "تعديلات التدريب الطبية" : "Medical Training Adjustments"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MedicalTrainingAdjustments locale={locale} showApplyButton={true} />
           </CardContent>
         </Card>
       )}

@@ -154,6 +154,30 @@ export default function TrainingPage() {
     }
   };
 
+  // Fetch previous best data for exercises before starting session
+  const startSession = useCallback(async () => {
+    if (!todayWorkout) return;
+    // Fetch previous best for each exercise
+    try {
+      const exerciseNames = todayWorkout.exercises.map(e => e.name).join(",");
+      const res = await fetch(`/api/sport?action=workout-previous-best&exercises=${encodeURIComponent(exerciseNames)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.previousBests) {
+          // Attach previousBest to each exercise
+          const enriched = todayWorkout.exercises.map(ex => ({
+            ...ex,
+            previousBest: data.previousBests[ex.name] || undefined,
+          }));
+          setTodayWorkout({ ...todayWorkout, exercises: enriched });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch previous bests:", err);
+    }
+    setInSession(true);
+  }, [todayWorkout]);
+
   // Handle session complete
   const handleSessionComplete = useCallback(async (summary: SessionSummary) => {
     setInSession(false);
@@ -164,6 +188,25 @@ export default function TrainingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "save-training-session", ...summary }),
       });
+      // Update progressive overload for each exercise
+      for (const exLog of summary.exerciseLogs) {
+        const completedSets = exLog.sets.filter(s => s.completed);
+        if (completedSets.length > 0) {
+          const avgReps = Math.round(completedSets.reduce((sum, s) => sum + (s.reps || 0), 0) / completedSets.length);
+          const maxWeight = Math.max(...completedSets.map(s => s.weightKg || 0));
+          await fetch("/api/sport", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "update-progressive-overload",
+              exerciseName: exLog.exerciseName,
+              weightKg: maxWeight,
+              reps: avgReps,
+              sets: completedSets.length,
+            }),
+          });
+        }
+      }
       // Refresh data
       fetchTrainingData();
     } catch (err) {
@@ -313,7 +356,7 @@ export default function TrainingPage() {
               {/* Start Session Button */}
               <div className="p-4 pt-0">
                 <button
-                  onClick={() => setInSession(true)}
+                  onClick={startSession}
                   className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
                 >
                   {isRTL ? "🚀 ابدأ الجلسة" : "🚀 Start Session"}
