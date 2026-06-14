@@ -22,9 +22,10 @@ import {
   sportSessionSets,
   sportPersonalRecords,
   sportExerciseProgress,
+  sportExerciseLibrary,
   users,
 } from "@/db/schema";
-import { and, desc, eq, gte, sql, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, sql, inArray, ilike, or } from "drizzle-orm";
 import { requireSessionApi } from "@/lib/auth-helpers";
 import { isPlatformAdmin } from "@/lib/sport/admin-guard";
 import { sendEmail, buildCoachDecisionEmail } from "@/lib/email";
@@ -274,6 +275,50 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: { food, grams, nutrition } });
       }
 
+      case "exercise-library-filters": {
+        const [bodyPartsRes, equipmentsRes, targetsRes] = await Promise.all([
+          db.execute(sql`SELECT DISTINCT bp FROM sport_exercise_library, jsonb_array_elements_text(body_parts) as bp ORDER BY bp`),
+          db.execute(sql`SELECT DISTINCT eq FROM sport_exercise_library, jsonb_array_elements_text(equipments) as eq ORDER BY eq`),
+          db.execute(sql`SELECT DISTINCT tg FROM sport_exercise_library, jsonb_array_elements_text(target_muscles) as tg ORDER BY tg`),
+        ]);
+        return NextResponse.json({
+          success: true,
+          data: {
+            bodyParts: (Array.isArray(bodyPartsRes) ? bodyPartsRes : (bodyPartsRes as any).rows || []).map((r: any) => r.bp),
+            equipments: (Array.isArray(equipmentsRes) ? equipmentsRes : (equipmentsRes as any).rows || []).map((r: any) => r.eq),
+            targets: (Array.isArray(targetsRes) ? targetsRes : (targetsRes as any).rows || []).map((r: any) => r.tg),
+          },
+        });
+      }
+      case "exercise-library": {
+        const q = searchParams.get("q") || "";
+        const bodyPart = searchParams.get("bodyPart") || "";
+        const equipment = searchParams.get("equipment") || "";
+        const target = searchParams.get("target") || "";
+        const page = parseInt(searchParams.get("page") || "1");
+        const limit = Math.min(parseInt(searchParams.get("limit") || "24"), 100);
+        const offset = (page - 1) * limit;
+        
+        const conditions = [];
+        if (q) conditions.push(ilike(sportExerciseLibrary.name, `%${q}%`));
+        if (bodyPart) conditions.push(sql`${sportExerciseLibrary.bodyParts} @> ${JSON.stringify([bodyPart])}::jsonb`);
+        if (equipment) conditions.push(sql`${sportExerciseLibrary.equipments} @> ${JSON.stringify([equipment])}::jsonb`);
+        if (target) conditions.push(sql`${sportExerciseLibrary.targetMuscles} @> ${JSON.stringify([target])}::jsonb`);
+        
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        
+        const [exercises, countResult] = await Promise.all([
+          db.select().from(sportExerciseLibrary).where(whereClause).orderBy(sportExerciseLibrary.name).limit(limit).offset(offset),
+          db.select({ count: sql<number>`count(*)::int` }).from(sportExerciseLibrary).where(whereClause),
+        ]);
+        
+        const total = countResult[0]?.count || 0;
+        return NextResponse.json({
+          success: true,
+          data: exercises,
+          meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        });
+      }
       case "exercise-search": {
         const query = searchParams.get("q") || "";
         const locale = (searchParams.get("locale") || "en") as "ar" | "en";
@@ -1014,7 +1059,7 @@ export async function GET(request: NextRequest) {
           {
             success: false,
             error:
-              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests, my-sport-profile, my-training-plan",
+              "Unknown action. Available GET: food-search, food-category, food-all, food-nutrition, exercise-library, exercise-library-filters, exercise-search, program-templates, wada-search, lessons, my-food-logs, my-activities, my-bio-age, my-programs, my-consent, my-clients, my-coach, my-body-measurements, my-lab-results, my-notifications, my-coach-profile, admin-verification-queue, coach-directory, coach-public-profile, my-coach-requests, my-trainee-requests, my-sport-profile, my-training-plan",
           },
           { status: 400 }
         );

@@ -2453,3 +2453,24 @@ export const sportExerciseProgress = pgTable(
   },
   (t) => [uniqueIndex("sport_progress_user_exercise_idx").on(t.userId, t.exerciseName)]
 );
+
+// ─── ExerciseDB Library (1324 exercises synced from ExerciseDB) ───
+export const sportExerciseLibrary = pgTable(
+  "sport_exercise_library",
+  {
+    id: serial("id").primaryKey(),
+    exerciseId: varchar("exercise_id", { length: 20 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    gifUrl: text("gif_url").notNull(),
+    bodyParts: jsonb("body_parts").notNull().default([]),
+    equipments: jsonb("equipments").notNull().default([]),
+    targetMuscles: jsonb("target_muscles").notNull().default([]),
+    secondaryMuscles: jsonb("secondary_muscles").notNull().default([]),
+    instructions: jsonb("instructions").notNull().default([]),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_sport_exercise_lib_name_drizzle").on(t.name),
+  ]
+);

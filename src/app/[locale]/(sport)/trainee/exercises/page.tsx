@@ -2,59 +2,98 @@
 
 import * as React from "react";
 import { useLocale } from "next-intl";
+import Image from "next/image";
 import {
   Search,
   Dumbbell,
   Filter,
   ChevronDown,
   ChevronUp,
-  Flame,
+  ChevronLeft,
+  ChevronRight,
   Target,
   Zap,
   Star,
   RotateCcw,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SportAuthGuard } from "@/components/sport/sport-auth-guard";
-import {
-  EXERCISE_LIBRARY,
-  type Exercise,
-  type MuscleGroup,
-  type Equipment,
-  type ExerciseDifficulty,
-} from "@/lib/sport/exercise-library";
 
-// ─── Muscle group metadata ───
-const MUSCLE_GROUPS: { id: MuscleGroup; nameAr: string; nameEn: string; icon: string }[] = [
-  { id: "chest", nameAr: "الصدر", nameEn: "Chest", icon: "💪" },
-  { id: "back", nameAr: "الظهر", nameEn: "Back", icon: "🔙" },
-  { id: "shoulders", nameAr: "الأكتاف", nameEn: "Shoulders", icon: "🏋️" },
-  { id: "arms", nameAr: "الذراعين", nameEn: "Arms", icon: "💪" },
-  { id: "legs", nameAr: "الأرجل", nameEn: "Legs", icon: "🦵" },
-  { id: "glutes", nameAr: "الألوية", nameEn: "Glutes", icon: "🍑" },
-  { id: "core", nameAr: "البطن", nameEn: "Core", icon: "🎯" },
-  { id: "full_body", nameAr: "الجسم الكامل", nameEn: "Full Body", icon: "⚡" },
-  { id: "cardio", nameAr: "الكارديو", nameEn: "Cardio", icon: "❤️" },
-];
+// ─── Types ───
+interface ExerciseFromDB {
+  id: number;
+  exerciseId: string;
+  name: string;
+  gifUrl: string;
+  bodyParts: string[];
+  equipments: string[];
+  targetMuscles: string[];
+  secondaryMuscles: string[];
+  instructions: string[];
+  syncedAt: string;
+}
 
-const EQUIPMENT_LIST: { id: Equipment; nameAr: string; nameEn: string }[] = [
-  { id: "barbell", nameAr: "بار", nameEn: "Barbell" },
-  { id: "dumbbell", nameAr: "دمبل", nameEn: "Dumbbell" },
-  { id: "machine", nameAr: "جهاز", nameEn: "Machine" },
-  { id: "cable", nameAr: "كابل", nameEn: "Cable" },
-  { id: "bodyweight", nameAr: "وزن الجسم", nameEn: "Bodyweight" },
-  { id: "kettlebell", nameAr: "كيتل بيل", nameEn: "Kettlebell" },
-  { id: "resistance_band", nameAr: "حبل مقاومة", nameEn: "Resistance Band" },
-  { id: "cardio_machine", nameAr: "جهاز كارديو", nameEn: "Cardio Machine" },
-];
+interface FiltersData {
+  bodyParts: string[];
+  equipments: string[];
+  targets: string[];
+}
 
-const DIFFICULTY_LIST: { id: ExerciseDifficulty; nameAr: string; nameEn: string; color: string }[] = [
-  { id: "beginner", nameAr: "مبتدئ", nameEn: "Beginner", color: "bg-green-100 text-green-700 border-green-200" },
-  { id: "intermediate", nameAr: "متوسط", nameEn: "Intermediate", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  { id: "advanced", nameAr: "متقدم", nameEn: "Advanced", color: "bg-red-100 text-red-700 border-red-200" },
-];
+interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+// ─── Body part display names (AR/EN) ───
+const BODY_PART_NAMES: Record<string, { ar: string; en: string; icon: string }> = {
+  "upper arms": { ar: "الذراعين العلوية", en: "Upper Arms", icon: "💪" },
+  "upper legs": { ar: "الأرجل العلوية", en: "Upper Legs", icon: "🦵" },
+  back: { ar: "الظهر", en: "Back", icon: "🔙" },
+  waist: { ar: "الخصر", en: "Waist", icon: "🎯" },
+  chest: { ar: "الصدر", en: "Chest", icon: "🏋️" },
+  shoulders: { ar: "الأكتاف", en: "Shoulders", icon: "🤸" },
+  "lower legs": { ar: "الأرجل السفلية", en: "Lower Legs", icon: "🦶" },
+  "lower arms": { ar: "الذراعين السفلية", en: "Lower Arms", icon: "✊" },
+  cardio: { ar: "الكارديو", en: "Cardio", icon: "❤️" },
+  neck: { ar: "الرقبة", en: "Neck", icon: "🧣" },
+};
+
+// ─── Equipment display names (AR/EN) ───
+const EQUIPMENT_NAMES: Record<string, { ar: string; en: string }> = {
+  "body weight": { ar: "وزن الجسم", en: "Body Weight" },
+  dumbbell: { ar: "دمبل", en: "Dumbbell" },
+  cable: { ar: "كابل", en: "Cable" },
+  barbell: { ar: "بار", en: "Barbell" },
+  "leverage machine": { ar: "جهاز رافعة", en: "Leverage Machine" },
+  band: { ar: "حبل مقاومة", en: "Band" },
+  "smith machine": { ar: "جهاز سميث", en: "Smith Machine" },
+  kettlebell: { ar: "كيتل بيل", en: "Kettlebell" },
+  weighted: { ar: "أوزان", en: "Weighted" },
+  "stability ball": { ar: "كرة توازن", en: "Stability Ball" },
+  "ez barbell": { ar: "بار EZ", en: "EZ Barbell" },
+  "olympic barbell": { ar: "بار أولمبي", en: "Olympic Barbell" },
+  medicine_ball: { ar: "كرة طبية", en: "Medicine Ball" },
+  bosu_ball: { ar: "كرة بوسو", en: "Bosu Ball" },
+  rope: { ar: "حبل", en: "Rope" },
+  roller: { ar: "رولر", en: "Roller" },
+  "resistance band": { ar: "حبل مقاومة", en: "Resistance Band" },
+  assisted: { ar: "مساعد", en: "Assisted" },
+  "upper body ergometer": { ar: "جهاز الجزء العلوي", en: "Upper Body Ergometer" },
+  "tire": { ar: "إطار", en: "Tire" },
+  "hammer": { ar: "مطرقة", en: "Hammer" },
+  "trap bar": { ar: "بار ترابيزيوس", en: "Trap Bar" },
+  "skierg machine": { ar: "جهاز التزلج", en: "SkiErg Machine" },
+  "sled machine": { ar: "جهاز زلاجة", en: "Sled Machine" },
+  "elliptical machine": { ar: "جهاز بيضاوي", en: "Elliptical Machine" },
+  "stationary bike": { ar: "دراجة ثابتة", en: "Stationary Bike" },
+  "stepmill machine": { ar: "جهاز الدرج", en: "Stepmill Machine" },
+};
 
 export default function ExerciseLibraryPage() {
   return (
@@ -68,54 +107,68 @@ function ExerciseLibraryContent() {
   const locale = useLocale();
   const isRtl = locale === "ar";
 
+  // State
+  const [exercises, setExercises] = React.useState<ExerciseFromDB[]>([]);
+  const [filters, setFilters] = React.useState<FiltersData | null>(null);
+  const [meta, setMeta] = React.useState<PaginationMeta>({ total: 0, page: 1, limit: 24, totalPages: 0 });
+  const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedMuscle, setSelectedMuscle] = React.useState<MuscleGroup | "all">("all");
-  const [selectedEquipment, setSelectedEquipment] = React.useState<Equipment | "all">("all");
-  const [selectedDifficulty, setSelectedDifficulty] = React.useState<ExerciseDifficulty | "all">("all");
+  const [selectedBodyPart, setSelectedBodyPart] = React.useState("all");
+  const [selectedEquipment, setSelectedEquipment] = React.useState("all");
+  const [selectedTarget, setSelectedTarget] = React.useState("all");
   const [showFilters, setShowFilters] = React.useState(false);
   const [expandedExercise, setExpandedExercise] = React.useState<string | null>(null);
+  const [page, setPage] = React.useState(1);
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
 
-  // Filter exercises
-  const filteredExercises = React.useMemo(() => {
-    let results = [...EXERCISE_LIBRARY];
+  // Debounce search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      results = results.filter(
-        (e) =>
-          e.nameAr.includes(searchQuery) ||
-          e.nameEn.toLowerCase().includes(q) ||
-          e.muscleGroup.includes(q) ||
-          e.equipment.includes(q)
-      );
-    }
+  // Fetch filters on mount
+  React.useEffect(() => {
+    fetch("/api/sport?action=exercise-library-filters")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setFilters(d.data);
+      })
+      .catch(console.error);
+  }, []);
 
-    // Muscle group filter
-    if (selectedMuscle !== "all") {
-      results = results.filter((e) => e.muscleGroup === selectedMuscle);
-    }
+  // Fetch exercises
+  React.useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ action: "exercise-library", page: String(page), limit: "24" });
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (selectedBodyPart !== "all") params.set("bodyPart", selectedBodyPart);
+    if (selectedEquipment !== "all") params.set("equipment", selectedEquipment);
+    if (selectedTarget !== "all") params.set("target", selectedTarget);
 
-    // Equipment filter
-    if (selectedEquipment !== "all") {
-      results = results.filter((e) => e.equipment === selectedEquipment);
-    }
+    fetch(`/api/sport?${params}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) {
+          setExercises(d.data);
+          setMeta(d.meta);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [page, debouncedSearch, selectedBodyPart, selectedEquipment, selectedTarget]);
 
-    // Difficulty filter
-    if (selectedDifficulty !== "all") {
-      results = results.filter((e) => e.difficulty === selectedDifficulty);
-    }
-
-    return results;
-  }, [searchQuery, selectedMuscle, selectedEquipment, selectedDifficulty]);
-
-  const hasActiveFilters = selectedMuscle !== "all" || selectedEquipment !== "all" || selectedDifficulty !== "all";
+  const hasActiveFilters = selectedBodyPart !== "all" || selectedEquipment !== "all" || selectedTarget !== "all";
 
   const resetFilters = () => {
-    setSelectedMuscle("all");
+    setSelectedBodyPart("all");
     setSelectedEquipment("all");
-    setSelectedDifficulty("all");
+    setSelectedTarget("all");
     setSearchQuery("");
+    setPage(1);
   };
 
   return (
@@ -132,8 +185,8 @@ function ExerciseLibraryContent() {
             </h1>
             <p className="text-sm text-slate-500">
               {isRtl
-                ? `${EXERCISE_LIBRARY.length} تمرين • ${MUSCLE_GROUPS.length} مجموعات عضلية`
-                : `${EXERCISE_LIBRARY.length} exercises • ${MUSCLE_GROUPS.length} muscle groups`}
+                ? `${meta.total} تمرين • مدعوم بـ ExerciseDB`
+                : `${meta.total} exercises • Powered by ExerciseDB`}
             </p>
           </div>
         </div>
@@ -149,35 +202,46 @@ function ExerciseLibraryContent() {
           placeholder={isRtl ? "ابحث عن تمرين..." : "Search exercises..."}
           className="w-full rounded-xl border border-slate-200 bg-white py-3 ps-10 pe-4 text-sm shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
         />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      {/* Muscle Group Quick Filters — Horizontal scroll */}
+      {/* Body Part Quick Filters — Horizontal scroll */}
       <div className="mb-4 -mx-4 px-4">
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
-            onClick={() => setSelectedMuscle("all")}
+            onClick={() => { setSelectedBodyPart("all"); setPage(1); }}
             className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
-              selectedMuscle === "all"
+              selectedBodyPart === "all"
                 ? "bg-emerald-600 text-white shadow-sm"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
             {isRtl ? "الكل" : "All"}
           </button>
-          {MUSCLE_GROUPS.map((mg) => (
-            <button
-              key={mg.id}
-              onClick={() => setSelectedMuscle(mg.id)}
-              className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all flex items-center gap-1 ${
-                selectedMuscle === mg.id
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              <span>{mg.icon}</span>
-              <span>{isRtl ? mg.nameAr : mg.nameEn}</span>
-            </button>
-          ))}
+          {(filters?.bodyParts || []).map((bp) => {
+            const info = BODY_PART_NAMES[bp] || { ar: bp, en: bp, icon: "💪" };
+            return (
+              <button
+                key={bp}
+                onClick={() => { setSelectedBodyPart(bp); setPage(1); }}
+                className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all flex items-center gap-1 ${
+                  selectedBodyPart === bp
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <span>{info.icon}</span>
+                <span>{isRtl ? info.ar : info.en}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -205,7 +269,7 @@ function ExerciseLibraryContent() {
           </Button>
         )}
         <span className="ms-auto text-xs text-slate-400">
-          {filteredExercises.length} {isRtl ? "تمرين" : "exercises"}
+          {loading ? "..." : `${meta.total} ${isRtl ? "تمرين" : "exercises"}`}
         </span>
       </div>
 
@@ -220,7 +284,7 @@ function ExerciseLibraryContent() {
               </label>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setSelectedEquipment("all")}
+                  onClick={() => { setSelectedEquipment("all"); setPage(1); }}
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                     selectedEquipment === "all"
                       ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
@@ -229,47 +293,52 @@ function ExerciseLibraryContent() {
                 >
                   {isRtl ? "الكل" : "All"}
                 </button>
-                {EQUIPMENT_LIST.map((eq) => (
-                  <button
-                    key={eq.id}
-                    onClick={() => setSelectedEquipment(eq.id)}
-                    className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                      selectedEquipment === eq.id
-                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    {isRtl ? eq.nameAr : eq.nameEn}
-                  </button>
-                ))}
+                {(filters?.equipments || []).map((eq) => {
+                  const info = EQUIPMENT_NAMES[eq] || { ar: eq, en: eq };
+                  return (
+                    <button
+                      key={eq}
+                      onClick={() => { setSelectedEquipment(eq); setPage(1); }}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                        selectedEquipment === eq
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                          : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {isRtl ? info.ar : info.en}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Difficulty Filter */}
+            {/* Target Muscle Filter */}
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-2 block">
-                {isRtl ? "المستوى" : "Difficulty"}
+                {isRtl ? "العضلة المستهدفة" : "Target Muscle"}
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                 <button
-                  onClick={() => setSelectedDifficulty("all")}
+                  onClick={() => { setSelectedTarget("all"); setPage(1); }}
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                    selectedDifficulty === "all"
+                    selectedTarget === "all"
                       ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                       : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
                   }`}
                 >
                   {isRtl ? "الكل" : "All"}
                 </button>
-                {DIFFICULTY_LIST.map((d) => (
+                {(filters?.targets || []).map((tg) => (
                   <button
-                    key={d.id}
-                    onClick={() => setSelectedDifficulty(d.id)}
-                    className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all border ${
-                      selectedDifficulty === d.id ? d.color : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    key={tg}
+                    onClick={() => { setSelectedTarget(tg); setPage(1); }}
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all capitalize ${
+                      selectedTarget === tg
+                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                        : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
                     }`}
                   >
-                    {isRtl ? d.nameAr : d.nameEn}
+                    {tg}
                   </button>
                 ))}
               </div>
@@ -278,32 +347,74 @@ function ExerciseLibraryContent() {
         </Card>
       )}
 
-      {/* Exercise List */}
-      <div className="space-y-3">
-        {filteredExercises.length === 0 ? (
-          <div className="text-center py-12">
-            <Dumbbell className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">
-              {isRtl ? "لا توجد تمارين مطابقة" : "No matching exercises"}
-            </p>
-            <p className="text-sm text-slate-400 mt-1">
-              {isRtl ? "جرب تغيير الفلاتر أو البحث" : "Try changing filters or search"}
-            </p>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 text-emerald-500 animate-spin" />
+        </div>
+      )}
+
+      {/* Exercise Grid */}
+      {!loading && exercises.length === 0 && (
+        <div className="text-center py-12">
+          <Dumbbell className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">
+            {isRtl ? "لا توجد تمارين مطابقة" : "No matching exercises"}
+          </p>
+          <p className="text-sm text-slate-400 mt-1">
+            {isRtl ? "جرب تغيير الفلاتر أو البحث" : "Try changing filters or search"}
+          </p>
+        </div>
+      )}
+
+      {!loading && exercises.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {exercises.map((exercise) => (
+              <ExerciseCard
+                key={exercise.exerciseId}
+                exercise={exercise}
+                isRtl={isRtl}
+                expanded={expandedExercise === exercise.exerciseId}
+                onToggle={() =>
+                  setExpandedExercise(
+                    expandedExercise === exercise.exerciseId ? null : exercise.exerciseId
+                  )
+                }
+              />
+            ))}
           </div>
-        ) : (
-          filteredExercises.map((exercise) => (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              isRtl={isRtl}
-              expanded={expandedExercise === exercise.id}
-              onToggle={() =>
-                setExpandedExercise(expandedExercise === exercise.id ? null : exercise.id)
-              }
-            />
-          ))
-        )}
-      </div>
+
+          {/* Pagination */}
+          {meta.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
+                {isRtl ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
+              <span className="text-sm text-slate-600 font-medium px-3">
+                {isRtl
+                  ? `صفحة ${page} من ${meta.totalPages}`
+                  : `Page ${page} of ${meta.totalPages}`}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                disabled={page >= meta.totalPages}
+                onClick={() => setPage(page + 1)}
+              >
+                {isRtl ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -315,101 +426,115 @@ function ExerciseCard({
   expanded,
   onToggle,
 }: {
-  exercise: Exercise;
+  exercise: ExerciseFromDB;
   isRtl: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const muscleGroup = MUSCLE_GROUPS.find((mg) => mg.id === exercise.muscleGroup);
-  const equipment = EQUIPMENT_LIST.find((eq) => eq.id === exercise.equipment);
-  const difficulty = DIFFICULTY_LIST.find((d) => d.id === exercise.difficulty);
+  const bodyPart = exercise.bodyParts?.[0] || "";
+  const equipment = exercise.equipments?.[0] || "";
+  const target = exercise.targetMuscles?.[0] || "";
+  const bpInfo = BODY_PART_NAMES[bodyPart] || { ar: bodyPart, en: bodyPart, icon: "💪" };
+  const eqInfo = EQUIPMENT_NAMES[equipment] || { ar: equipment, en: equipment };
 
   return (
     <Card
-      className={`border-slate-200/80 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer ${
-        expanded ? "ring-2 ring-emerald-200 border-emerald-300" : ""
+      className={`border-slate-200/80 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer overflow-hidden ${
+        expanded ? "ring-2 ring-emerald-200 border-emerald-300 col-span-1 sm:col-span-2" : ""
       }`}
       onClick={onToggle}
     >
-      <CardContent className="p-4">
-        {/* Main row */}
-        <div className="flex items-center gap-3">
-          {/* Muscle group icon */}
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg">
-            {muscleGroup?.icon || "💪"}
+      <CardContent className="p-0">
+        {/* Card Header with GIF thumbnail */}
+        <div className="flex items-start gap-3 p-3">
+          {/* GIF thumbnail */}
+          <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-slate-100">
+            <img
+              src={exercise.gifUrl}
+              alt={exercise.name}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
           </div>
 
           {/* Exercise info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-800 text-sm truncate">
-              {isRtl ? exercise.nameAr : exercise.nameEn}
+          <div className="flex-1 min-w-0 py-0.5">
+            <h3 className="font-semibold text-slate-800 text-sm leading-tight capitalize">
+              {exercise.name}
             </h3>
-            <p className="text-xs text-slate-500 truncate">
-              {isRtl ? exercise.nameEn : exercise.nameAr}
-            </p>
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <Badge variant="secondary" className="text-[10px] rounded-md bg-slate-100 px-1.5 py-0">
+                {bpInfo.icon} {isRtl ? bpInfo.ar : bpInfo.en}
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] rounded-md bg-blue-50 text-blue-700 px-1.5 py-0">
+                {isRtl ? eqInfo.ar : eqInfo.en}
+              </Badge>
+            </div>
+            {target && (
+              <p className="text-[11px] text-slate-500 mt-1 capitalize">
+                <Target className="inline h-3 w-3 me-0.5" />
+                {target}
+              </p>
+            )}
           </div>
 
-          {/* Difficulty badge */}
-          <Badge
-            variant="outline"
-            className={`shrink-0 text-[10px] px-2 py-0.5 rounded-lg border ${difficulty?.color || ""}`}
-          >
-            {isRtl ? difficulty?.nameAr : difficulty?.nameEn}
-          </Badge>
-
           {/* Expand icon */}
-          {expanded ? (
-            <ChevronUp className="h-4 w-4 text-slate-400 shrink-0" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
-          )}
+          <div className="shrink-0 pt-1">
+            {expanded ? (
+              <ChevronUp className="h-4 w-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-slate-400" />
+            )}
+          </div>
         </div>
 
         {/* Expanded details */}
         {expanded && (
-          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-            {/* Tags row */}
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="text-[10px] rounded-lg bg-slate-100">
-                <Target className="h-3 w-3 me-1" />
-                {isRtl ? muscleGroup?.nameAr : muscleGroup?.nameEn}
-              </Badge>
-              <Badge variant="secondary" className="text-[10px] rounded-lg bg-slate-100">
-                <Dumbbell className="h-3 w-3 me-1" />
-                {isRtl ? equipment?.nameAr : equipment?.nameEn}
-              </Badge>
-              <Badge variant="secondary" className="text-[10px] rounded-lg bg-orange-50 text-orange-700">
-                <Flame className="h-3 w-3 me-1" />
-                {exercise.caloriesPerSet} {isRtl ? "سعرة/مجموعة" : "cal/set"}
-              </Badge>
+          <div className="border-t border-slate-100 p-4 space-y-4">
+            {/* Large GIF */}
+            <div className="relative w-full aspect-square max-h-72 rounded-xl overflow-hidden bg-slate-50 mx-auto max-w-xs">
+              <img
+                src={exercise.gifUrl}
+                alt={exercise.name}
+                className="h-full w-full object-contain"
+              />
             </div>
 
-            {/* Default prescription */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-emerald-50 p-3 text-center">
-                <p className="text-lg font-bold text-emerald-700">{exercise.defaultSets}</p>
-                <p className="text-[10px] text-emerald-600 font-medium">
-                  {isRtl ? "مجموعات" : "Sets"}
-                </p>
-              </div>
-              <div className="rounded-xl bg-blue-50 p-3 text-center">
-                <p className="text-lg font-bold text-blue-700">{exercise.defaultReps}</p>
-                <p className="text-[10px] text-blue-600 font-medium">
-                  {isRtl ? "تكرارات" : "Reps"}
-                </p>
-              </div>
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2">
+              {exercise.bodyParts?.map((bp) => (
+                <Badge key={bp} variant="secondary" className="text-[10px] rounded-lg bg-emerald-50 text-emerald-700 capitalize">
+                  {BODY_PART_NAMES[bp]?.icon || "💪"} {isRtl ? (BODY_PART_NAMES[bp]?.ar || bp) : (BODY_PART_NAMES[bp]?.en || bp)}
+                </Badge>
+              ))}
+              {exercise.targetMuscles?.map((tm) => (
+                <Badge key={tm} variant="secondary" className="text-[10px] rounded-lg bg-orange-50 text-orange-700 capitalize">
+                  <Target className="h-3 w-3 me-0.5" /> {tm}
+                </Badge>
+              ))}
+              {exercise.secondaryMuscles?.filter(Boolean).map((sm) => (
+                <Badge key={sm} variant="secondary" className="text-[10px] rounded-lg bg-slate-100 text-slate-600 capitalize">
+                  <Zap className="h-3 w-3 me-0.5" /> {sm}
+                </Badge>
+              ))}
             </div>
 
             {/* Instructions */}
-            <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
-                <Star className="h-3 w-3" />
-                {isRtl ? "طريقة الأداء" : "Instructions"}
-              </p>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                {isRtl ? exercise.instructionsAr : exercise.instructionsEn}
-              </p>
-            </div>
+            {exercise.instructions && exercise.instructions.length > 0 && (
+              <div className="rounded-xl bg-slate-50 p-3">
+                <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
+                  <Star className="h-3 w-3" />
+                  {isRtl ? "طريقة الأداء" : "Instructions"}
+                </p>
+                <ol className="space-y-1.5 list-decimal list-inside">
+                  {exercise.instructions.map((step, i) => (
+                    <li key={i} className="text-xs text-slate-700 leading-relaxed">
+                      {step.replace(/^Step:\d+\s*/, "")}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
