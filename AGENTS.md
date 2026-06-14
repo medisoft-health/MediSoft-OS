@@ -38,6 +38,17 @@ MediSport is mirrored across the standalone `(sport)` route group and the integr
   - **Fixed broken nav** — all MediSport nav links in `sport-layout-shell.tsx` used a non-existent `/sport/...` prefix (404). Corrected to bare locale paths (`/ar/coach`, `/ar/trainee`, `/ar/auth`, `/ar/console-x7k2/coaches`). The `(sport)` route group adds NO URL prefix; `/sport` is only the landing page route.
   - **Verified** — `next build` Compiled successfully (114s, 97 pages, 0 TS errors); DB E2E (`scripts/test_phase9.mjs`) passed (history snapshots, bulk approve, notifications, analytics aggregation); live: `/ar/console-x7k2/coaches` 307, `/ar/coach`+`/ar/trainee`+`/ar/sport` 200, `coach-analytics` 401, `coach-directory` 200; DB confirms exactly 1 admin.
 
+- **Phase 11** (cb60082): Live Session Progressive Overload + Medical Training Adjustments + Coach Builder v2.
+  - **New GET API actions:** `exercise-history` (all logged sets for an exercise), `session-history` (completed sessions with stats), `progressive-overload-suggestion` (next-session recommendation), `medical-training-adjustments` (analyze lab markers → training recommendations).
+  - **New POST API actions:** `update-progressive-overload` (update exercise progress after session), `apply-medical-adjustments` (apply lab-driven adjustments to active plan).
+  - **Medical Intelligence Integration (9 markers):** Hemoglobin, Ferritin, Vitamin D, Testosterone, Cortisol, CRP, HbA1c, Blood Pressure, Cholesterol LDL. Each generates: condition, impact, recommendation (AR+EN), severity (critical/warning/info), specific adjustments (maxIntensity, reduceSetsBy, increaseRestBy, maxDaysPerWeek, avoidExerciseTypes, preferExerciseTypes).
+  - **New component** `src/components/sport/medical-training-adjustments.tsx` — shared reusable widget showing medical adjustments summary + detail cards + apply button.
+  - **Medical Bridge page** updated: shows real-time medical adjustments section when linked.
+  - **Training page** updated: fetches previousBest before session start, calls update-progressive-overload after session completion.
+  - **Coach Program Builder v2** — complete rewrite: uses real 1324 exercises from DB (not legacy static array), GIF previews in cards, search with debounce, body part filter chips, expandable exercise cards with full GIF + instructions, pagination (20/page).
+  - **Bug fixes:** `lab.results` → `lab.markers` (correct column), marker key normalization (vitaminD→vitamind, CRP(hs)→crphs).
+  - **Verified** — `next build` Compiled (2.4min, 0 errors); PM2 online; exercise-library API 200; auth-gated endpoints 401.
+
 - **Phase 10** (5d2b111): ExerciseDB Integration — 1324 real exercises with animated GIFs.
   - **Migration** `scripts/0010_sport_exercise_library.sql` (**applied to Cloud SQL**) — `sport_exercise_library` table (exercise_id UNIQUE, name, gif_url, body_parts JSONB, equipments JSONB, target_muscles JSONB, secondary_muscles JSONB, instructions JSONB, synced_at, created_at). GIN indexes on body_parts, equipments, target_muscles.
   - **Sync script** `scripts/sync-exercisedb.mjs` — downloads full dataset (1324 exercises) from GitHub `hasaneyldrm/exercises-dataset`, maps GIF URLs to ExerciseDB CDN (`https://static.exercisedb.dev/media/{id}.gif`), upserts into DB. Run: `node scripts/sync-exercisedb.mjs`.
