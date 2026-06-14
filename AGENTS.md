@@ -38,6 +38,15 @@ MediSport is mirrored across the standalone `(sport)` route group and the integr
   - **Fixed broken nav** — all MediSport nav links in `sport-layout-shell.tsx` used a non-existent `/sport/...` prefix (404). Corrected to bare locale paths (`/ar/coach`, `/ar/trainee`, `/ar/auth`, `/ar/console-x7k2/coaches`). The `(sport)` route group adds NO URL prefix; `/sport` is only the landing page route.
   - **Verified** — `next build` Compiled successfully (114s, 97 pages, 0 TS errors); DB E2E (`scripts/test_phase9.mjs`) passed (history snapshots, bulk approve, notifications, analytics aggregation); live: `/ar/console-x7k2/coaches` 307, `/ar/coach`+`/ar/trainee`+`/ar/sport` 200, `coach-analytics` 401, `coach-directory` 200; DB confirms exactly 1 admin.
 
+- **Phase 12** (1dde237): MuscleWiki Premium API Integration — 974 exercises with videos, difficulty, force type.
+  - **API Key:** `MUSCLEWIKI_API_KEY` in `.env.local`
+  - **Sync Scripts:** `scripts/sync-musclewiki.mjs` (full sync, rate-limited), `scripts/sync-musclewiki-retry.mjs` (retry missing)
+  - **Schema Updates:** `sport_exercise_library` extended: source, difficulty, force_type, mechanic, category, grips (JSONB), video_url
+  - **API Updates:** `exercise-library` GET: new filters (source, difficulty, forceType); `exercise-library-filters` GET: returns sources, difficulties, forceTypes
+  - **Frontend:** `/trainee/exercises` rewritten with Premium badge, video player (autoplay loop muted), difficulty/force badges, source/difficulty/forceType advanced filters. `/coach/program-builder` fixed API contract + Premium badge + video support.
+  - **Data:** 2298 total exercises (974 MuscleWiki Premium + 1324 ExerciseDB). MuscleWiki exercises include MP4 videos (male, front angle), difficulty levels, force types.
+  - **NOTE:** MuscleWiki API rate-limits at ~1000 requests. Remaining 925 exercises can be synced later with `node scripts/sync-musclewiki-retry.mjs`.
+
 - **Phase 11** (cb60082): Live Session Progressive Overload + Medical Training Adjustments + Coach Builder v2.
   - **New GET API actions:** `exercise-history` (all logged sets for an exercise), `session-history` (completed sessions with stats), `progressive-overload-suggestion` (next-session recommendation), `medical-training-adjustments` (analyze lab markers → training recommendations).
   - **New POST API actions:** `update-progressive-overload` (update exercise progress after session), `apply-medical-adjustments` (apply lab-driven adjustments to active plan).
