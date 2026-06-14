@@ -28,19 +28,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 /**
- * MediSport Standalone Layout Shell — v2.1 (Profile Avatar + Completion Badge)
+ * MediSport Standalone Layout Shell — v3.0 (Enclosed Post-Login Experience)
+ *
+ * After login, the user enters a fully personalized enclosed world:
+ * - Home/Logo → trainee dashboard (NOT the public landing page)
+ * - No links to the public marketing page while logged in
+ * - Sign Out is the ONLY way to exit the private environment
+ * - Public landing page is only shown to unauthenticated visitors
  *
  * Brand identity v2.0 (June 2026):
  * - Official wordmark logo (Medi=pink, Sport=blue, plum runner)
  * - Vital Green primary actions, sticky frosted-glass header
- * - Confident-glide motion, .medisport-scope for brand fonts (Exo 2 / Cairo)
  * - Full RTL support via logical properties
- * - Softer backgrounds (#F8FAFC), improved spacing, refined shadows
- *
- * v2.1 additions:
- * - Avatar image in header (from sport_profiles.avatarUrl)
- * - Orange dot badge if profileCompletion < 80%
- * - Profile link in dropdown and bottom nav
  */
 export function SportLayoutShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("SportStandalone");
@@ -74,19 +73,18 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
     }
   }, [session?.user]);
 
-  // Platform-owner gate: BOTH role=admin AND the pinned owner email.
-  // (UI-only convenience; real enforcement is server-side + API.)
+  // Platform-owner gate
   const su = session?.user as { role?: string; email?: string } | undefined;
   const isAdmin =
     su?.role === "admin" &&
     (su?.email ?? "").trim().toLowerCase() === "medisoft2022@gmail.com";
 
   const isRtl = locale === "ar";
+  const isLoggedIn = !!session?.user;
   const showCompletionBadge = profileData && (profileData.completion || 0) < 80;
 
-  // The auth/login screen is rendered full-screen without the app chrome
-  // (no top-nav, footer, or bottom-nav) for a clean, focused entry point.
-  const isAuthRoute = /\/(auth|login|register)(\/|$)/.test(pathname);
+  // The auth/login/onboarding screens are rendered full-screen without the app chrome
+  const isAuthRoute = /\/(auth|login|register|onboarding)(\/|$)/.test(pathname);
 
   // Build locale-switched path
   const switchLocalePath = React.useMemo(() => {
@@ -100,13 +98,17 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
     return <div className="medisport-scope min-h-screen bg-[#F8FAFC]">{children}</div>;
   }
 
+  // ─── ENCLOSED EXPERIENCE: When logged in, Home = trainee dashboard ───
+  // When NOT logged in, Home = public landing page (/sport)
+  const homeHref = isLoggedIn ? `/${locale}/trainee` : `/${locale}/sport`;
+
   return (
     <div className="medisport-scope flex min-h-screen flex-col bg-[#F8FAFC]">
       {/* Top Navigation — frosted glass with subtle shadow */}
       <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo — official wordmark */}
-          <Link href={`/${locale}/sport`} className="flex items-center" aria-label="MediSport">
+          {/* Logo — goes to private dashboard when logged in */}
+          <Link href={homeHref} className="flex items-center" aria-label="MediSport">
             <Image
               src="/images/medisport-wordmark.png"
               alt="MediSport"
@@ -119,23 +121,48 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            <NavLink href={`/${locale}/sport`} active={pathname === `/${locale}/sport`}>
-              <Home className="h-4 w-4" />
-              <span>{t("home")}</span>
-            </NavLink>
-            <NavLink href={`/${locale}/trainee`} active={pathname.includes("/trainee")}>
-              <Activity className="h-4 w-4" />
-              <span>{t("trainee")}</span>
-            </NavLink>
-            <NavLink href={`/${locale}/coach`} active={pathname.includes("/coach")}>
-              <Users className="h-4 w-4" />
-              <span>{t("coach")}</span>
-            </NavLink>
-            {isAdmin && (
-              <NavLink href={`/${locale}/console-x7k2`} active={pathname.includes("/console")}>
-                <ShieldCheck className="h-4 w-4" />
-                <span>Admin</span>
-              </NavLink>
+            {isLoggedIn ? (
+              <>
+                {/* LOGGED IN: Show only private navigation */}
+                <NavLink href={`/${locale}/trainee`} active={pathname === `/${locale}/trainee` || pathname === homeHref}>
+                  <Home className="h-4 w-4" />
+                  <span>{t("home")}</span>
+                </NavLink>
+                <NavLink href={`/${locale}/trainee/profile`} active={pathname.includes("/profile")}>
+                  <UserCircle className="h-4 w-4" />
+                  <span>{isRtl ? "ملفي" : "Profile"}</span>
+                </NavLink>
+                <NavLink href={`/${locale}/trainee/coaches`} active={pathname.includes("/coaches")}>
+                  <Users className="h-4 w-4" />
+                  <span>{isRtl ? "المدربين" : "Coaches"}</span>
+                </NavLink>
+                <NavLink href={`/${locale}/trainee/community`} active={pathname.includes("/community")}>
+                  <Activity className="h-4 w-4" />
+                  <span>{isRtl ? "المجتمع" : "Community"}</span>
+                </NavLink>
+                {isAdmin && (
+                  <NavLink href={`/${locale}/console-x7k2`} active={pathname.includes("/console")}>
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Admin</span>
+                  </NavLink>
+                )}
+              </>
+            ) : (
+              <>
+                {/* NOT LOGGED IN: Show public navigation */}
+                <NavLink href={`/${locale}/sport`} active={pathname === `/${locale}/sport`}>
+                  <Home className="h-4 w-4" />
+                  <span>{t("home")}</span>
+                </NavLink>
+                <NavLink href={`/${locale}/trainee`} active={pathname.includes("/trainee")}>
+                  <Activity className="h-4 w-4" />
+                  <span>{t("trainee")}</span>
+                </NavLink>
+                <NavLink href={`/${locale}/coach`} active={pathname.includes("/coach")}>
+                  <Users className="h-4 w-4" />
+                  <span>{t("coach")}</span>
+                </NavLink>
+              </>
             )}
           </nav>
 
@@ -151,7 +178,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
             </Link>
 
             {/* User Menu */}
-            {session?.user ? (
+            {isLoggedIn ? (
               <DropdownMenu dir={isRtl ? "rtl" : "ltr"}>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -179,9 +206,9 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenuContent align={isRtl ? "start" : "end"} className="w-56 rounded-xl shadow-lg border-slate-200/80 p-1">
                   <div className="px-3 py-2.5 border-b border-slate-100 mb-1">
                     <p className="text-sm font-semibold text-slate-800 truncate">
-                      {profileData?.displayName || session.user.name}
+                      {profileData?.displayName || session?.user?.name}
                     </p>
-                    <p className="text-xs text-slate-500 truncate">{session.user.email}</p>
+                    <p className="text-xs text-slate-500 truncate">{session?.user?.email}</p>
                     {profileData && (
                       <div className="mt-1.5 flex items-center gap-2">
                         <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
@@ -197,15 +224,15 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
                     )}
                   </div>
                   <DropdownMenuItem asChild className="rounded-lg">
-                    <Link href={`/${locale}/trainee/profile`} className="flex items-center gap-2">
-                      <UserCircle className="h-4 w-4" />
-                      {isRtl ? "ملفي الشخصي" : "My Profile"}
+                    <Link href={`/${locale}/trainee`} className="flex items-center gap-2">
+                      <Home className="h-4 w-4" />
+                      {isRtl ? "الرئيسية" : "Home"}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg">
-                    <Link href={`/${locale}/trainee`} className="flex items-center gap-2">
-                      <Activity className="h-4 w-4" />
-                      {t("myDashboard")}
+                    <Link href={`/${locale}/trainee/profile`} className="flex items-center gap-2">
+                      <UserCircle className="h-4 w-4" />
+                      {isRtl ? "ملفي الشخصي" : "My Profile"}
                     </Link>
                   </DropdownMenuItem>
                   {isAdmin && (
@@ -256,22 +283,49 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-100 bg-white/98 backdrop-blur-xl">
             <nav className="flex flex-col p-3 gap-0.5">
-              <MobileNavLink href={`/${locale}/sport`} onClick={() => setMobileMenuOpen(false)}>
-                <Home className="h-4 w-4" />
-                {t("home")}
-              </MobileNavLink>
-              <MobileNavLink href={`/${locale}/trainee`} onClick={() => setMobileMenuOpen(false)}>
-                <Activity className="h-4 w-4" />
-                {t("trainee")}
-              </MobileNavLink>
-              <MobileNavLink href={`/${locale}/coach`} onClick={() => setMobileMenuOpen(false)}>
-                <Users className="h-4 w-4" />
-                {t("coach")}
-              </MobileNavLink>
-              <MobileNavLink href={`/${locale}/trainee/profile`} onClick={() => setMobileMenuOpen(false)}>
-                <UserCircle className="h-4 w-4" />
-                {isRtl ? "ملفي الشخصي" : "My Profile"}
-              </MobileNavLink>
+              {isLoggedIn ? (
+                <>
+                  {/* LOGGED IN: Private mobile menu */}
+                  <MobileNavLink href={`/${locale}/trainee`} onClick={() => setMobileMenuOpen(false)}>
+                    <Home className="h-4 w-4" />
+                    {isRtl ? "الرئيسية" : "Home"}
+                  </MobileNavLink>
+                  <MobileNavLink href={`/${locale}/trainee/profile`} onClick={() => setMobileMenuOpen(false)}>
+                    <UserCircle className="h-4 w-4" />
+                    {isRtl ? "ملفي الشخصي" : "My Profile"}
+                  </MobileNavLink>
+                  <MobileNavLink href={`/${locale}/trainee/coaches`} onClick={() => setMobileMenuOpen(false)}>
+                    <Users className="h-4 w-4" />
+                    {isRtl ? "المدربين" : "Coaches"}
+                  </MobileNavLink>
+                  <MobileNavLink href={`/${locale}/trainee/community`} onClick={() => setMobileMenuOpen(false)}>
+                    <Activity className="h-4 w-4" />
+                    {isRtl ? "المجتمع" : "Community"}
+                  </MobileNavLink>
+                  {isAdmin && (
+                    <MobileNavLink href={`/${locale}/console-x7k2`} onClick={() => setMobileMenuOpen(false)}>
+                      <ShieldCheck className="h-4 w-4" />
+                      Admin
+                    </MobileNavLink>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* NOT LOGGED IN: Public mobile menu */}
+                  <MobileNavLink href={`/${locale}/sport`} onClick={() => setMobileMenuOpen(false)}>
+                    <Home className="h-4 w-4" />
+                    {t("home")}
+                  </MobileNavLink>
+                  <MobileNavLink href={`/${locale}/trainee`} onClick={() => setMobileMenuOpen(false)}>
+                    <Activity className="h-4 w-4" />
+                    {t("trainee")}
+                  </MobileNavLink>
+                  <MobileNavLink href={`/${locale}/coach`} onClick={() => setMobileMenuOpen(false)}>
+                    <Users className="h-4 w-4" />
+                    {t("coach")}
+                  </MobileNavLink>
+                </>
+              )}
             </nav>
           </div>
         )}
@@ -282,7 +336,7 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Footer — Powered by MediSoft Health endorsement */}
+      {/* Footer — minimal when logged in */}
       <footer className="border-t border-slate-200/60 bg-white/60 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
@@ -300,25 +354,41 @@ export function SportLayoutShell({ children }: { children: React.ReactNode }) {
               <span className="font-medium">Powered by MediSoft Health</span>
               <span aria-hidden className="text-slate-200">·</span>
               <span>© 2026</span>
-              <span aria-hidden className="text-slate-200">·</span>
-              <Link
-                href={`/${locale}/auth`}
-                className="ms-glide transition-colors hover:text-[var(--color-sport-600)]"
-              >
-                {t("login")}
-              </Link>
+              {!isLoggedIn && (
+                <>
+                  <span aria-hidden className="text-slate-200">·</span>
+                  <Link
+                    href={`/${locale}/auth`}
+                    className="ms-glide transition-colors hover:text-[var(--color-sport-600)]"
+                  >
+                    {t("login")}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation — frosted glass with refined shadow */}
+      {/* Mobile Bottom Navigation — enclosed experience when logged in */}
       <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden border-t border-slate-200/60 bg-white/90 backdrop-blur-xl safe-area-bottom shadow-[0_-1px_3px_rgba(15,23,42,0.04)]">
         <div className="flex items-center justify-around py-2 px-2">
-          <BottomNavItem href={`/${locale}/sport`} icon={Home} label={t("home")} active={pathname === `/${locale}/sport`} />
-          <BottomNavItem href={`/${locale}/trainee`} icon={Activity} label={t("trainee")} active={pathname.includes("/trainee") && !pathname.includes("/profile")} />
-          <BottomNavItem href={`/${locale}/trainee/profile`} icon={UserCircle} label={isRtl ? "ملفي" : "Profile"} active={pathname.includes("/profile")} badge={showCompletionBadge} />
-          <BottomNavItem href={`/${locale}/coach`} icon={Users} label={t("coach")} active={pathname.includes("/coach")} />
+          {isLoggedIn ? (
+            <>
+              {/* LOGGED IN: Private bottom nav */}
+              <BottomNavItem href={`/${locale}/trainee`} icon={Home} label={isRtl ? "الرئيسية" : "Home"} active={pathname === `/${locale}/trainee`} />
+              <BottomNavItem href={`/${locale}/trainee/food`} icon={Activity} label={isRtl ? "التغذية" : "Food"} active={pathname.includes("/food")} />
+              <BottomNavItem href={`/${locale}/trainee/profile`} icon={UserCircle} label={isRtl ? "ملفي" : "Profile"} active={pathname.includes("/profile")} badge={showCompletionBadge} />
+              <BottomNavItem href={`/${locale}/trainee/community`} icon={Users} label={isRtl ? "المجتمع" : "Community"} active={pathname.includes("/community")} />
+            </>
+          ) : (
+            <>
+              {/* NOT LOGGED IN: Public bottom nav */}
+              <BottomNavItem href={`/${locale}/sport`} icon={Home} label={t("home")} active={pathname === `/${locale}/sport`} />
+              <BottomNavItem href={`/${locale}/trainee`} icon={Activity} label={t("trainee")} active={pathname.includes("/trainee")} />
+              <BottomNavItem href={`/${locale}/coach`} icon={Users} label={t("coach")} active={pathname.includes("/coach")} />
+            </>
+          )}
         </div>
       </nav>
     </div>
@@ -398,7 +468,7 @@ function BottomNavItem({
           <div className={`absolute -top-0.5 -end-0.5 h-1.5 w-1.5 rounded-full ${badge ? "bg-orange-500" : "bg-emerald-500"}`} />
         )}
       </div>
-      <span className={`text-[10px] font-semibold ${active ? "text-emerald-700" : ""}`}>{label}</span>
+      <span className={`text-[10px] font-semibold ${active ? "text-emerald-600" : ""}`}>{label}</span>
     </Link>
   );
 }

@@ -111,10 +111,16 @@ export default function SportAuthPage() {
           throw new Error(data.message || t("authError"));
         }
         toast.success(t("loginSuccess"));
-        const savedRole = localStorage.getItem("medisport-role") || "trainee";
         const returnTo = searchParams.get("returnTo");
-        // Use window.location to ensure session cookie is set before navigation
-        const destination = returnTo ? decodeURIComponent(returnTo) : `/${locale}/${savedRole}`;
+        // Enclosed experience: always land inside the private world (trainee dashboard)
+        // Only allow returnTo if it's an internal trainee/coach/console path (not /sport landing)
+        let destination = `/${locale}/trainee`;
+        if (returnTo) {
+          const decoded = decodeURIComponent(returnTo);
+          if (decoded.includes("/trainee") || decoded.includes("/coach") || decoded.includes("/console")) {
+            destination = decoded;
+          }
+        }
         window.location.href = destination;
       }
     } catch (err: any) {
@@ -197,9 +203,15 @@ export default function SportAuthPage() {
         throw new Error(data.message || (isRtl ? "رمز التحقق غير صحيح" : "Invalid OTP"));
       }
       toast.success(t("loginSuccess"));
-      const savedRole = localStorage.getItem("medisport-role") || "trainee";
       const returnTo = searchParams.get("returnTo");
-      const destination = returnTo ? decodeURIComponent(returnTo) : `/${locale}/${savedRole}`;
+      // Enclosed experience: always land inside the private world
+      let destination = `/${locale}/trainee`;
+      if (returnTo) {
+        const decoded = decodeURIComponent(returnTo);
+        if (decoded.includes("/trainee") || decoded.includes("/coach") || decoded.includes("/console")) {
+          destination = decoded;
+        }
+      }
       window.location.href = destination;
     } catch (err: any) {
       toast.error(err.message || t("authError"));

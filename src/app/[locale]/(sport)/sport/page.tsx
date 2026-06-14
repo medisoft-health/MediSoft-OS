@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   Apple,
@@ -19,17 +20,31 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useSession } from "@/lib/auth-client";
 
 /**
  * MediSport Standalone — Landing Page
  * 
  * The world's first Clinical Fitness Coaching platform.
  * Showcases the dual-entry model (Coach/Trainee) and key features.
+ *
+ * ENCLOSED EXPERIENCE: If user is already logged in, redirect them
+ * to their private dashboard immediately. The public landing page
+ * is only for unauthenticated visitors.
  */
 export default function SportLandingPage() {
   const t = useTranslations("SportStandalone");
   const locale = useLocale();
   const isRtl = locale === "ar";
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  // Enclosed experience: redirect logged-in users to their private world
+  React.useEffect(() => {
+    if (!isPending && session?.user) {
+      router.replace(`/${locale}/trainee`);
+    }
+  }, [session, isPending, locale, router]);
 
   return (
     <div className="flex flex-col pb-20 md:pb-0">
