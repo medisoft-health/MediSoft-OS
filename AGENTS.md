@@ -38,6 +38,15 @@ MediSport is mirrored across the standalone `(sport)` route group and the integr
   - **Fixed broken nav** — all MediSport nav links in `sport-layout-shell.tsx` used a non-existent `/sport/...` prefix (404). Corrected to bare locale paths (`/ar/coach`, `/ar/trainee`, `/ar/auth`, `/ar/console-x7k2/coaches`). The `(sport)` route group adds NO URL prefix; `/sport` is only the landing page route.
   - **Verified** — `next build` Compiled successfully (114s, 97 pages, 0 TS errors); DB E2E (`scripts/test_phase9.mjs`) passed (history snapshots, bulk approve, notifications, analytics aggregation); live: `/ar/console-x7k2/coaches` 307, `/ar/coach`+`/ar/trainee`+`/ar/sport` 200, `coach-analytics` 401, `coach-directory` 200; DB confirms exactly 1 admin.
 
+- **Phase 10** (5d2b111): ExerciseDB Integration — 1324 real exercises with animated GIFs.
+  - **Migration** `scripts/0010_sport_exercise_library.sql` (**applied to Cloud SQL**) — `sport_exercise_library` table (exercise_id UNIQUE, name, gif_url, body_parts JSONB, equipments JSONB, target_muscles JSONB, secondary_muscles JSONB, instructions JSONB, synced_at, created_at). GIN indexes on body_parts, equipments, target_muscles.
+  - **Sync script** `scripts/sync-exercisedb.mjs` — downloads full dataset (1324 exercises) from GitHub `hasaneyldrm/exercises-dataset`, maps GIF URLs to ExerciseDB CDN (`https://static.exercisedb.dev/media/{id}.gif`), upserts into DB. Run: `node scripts/sync-exercisedb.mjs`.
+  - **New API actions** — `exercise-library` (GET, paginated, filterable by q/bodyPart/equipment/target), `exercise-library-filters` (GET, returns distinct body parts/equipments/targets for filter dropdowns).
+  - **Rewritten page** `/trainee/exercises` — fetches from DB API, displays exercises in responsive grid with animated GIF thumbnails, expandable cards with full-size GIF + instructions, server-side search/filter, pagination (24/page), body part quick-scroll chips, advanced equipment/target filters.
+  - **Drizzle schema** — `sportExerciseLibrary` added to `src/db/schema.ts`.
+  - **Data stats** — 1324 exercises: upper arms(292), upper legs(227), back(203), waist(169), chest(163), shoulders(143), lower legs(59), lower arms(37), cardio(29), neck(2). Equipment: body weight(325), dumbbell(294), cable(157), barbell(154), leverage machine(81), band(54), smith machine(48), kettlebell(41), +more.
+  - **Verified** — `next build` Compiled successfully (110s, 0 errors); API endpoints return correct data; GIF CDN URLs verified (HTTP 200); live at `https://sport.medisofthealth.com/ar/trainee/exercises`.
+
 ### System notes
 - DB: PostgreSQL on Google Cloud SQL; apply new `sport_*` migrations from `scripts/000N_*.sql` via `psql "$DATABASE_URL"`.
 - Deploy: `next build` then `pm2 restart all` (cluster, 2 instances, port 3000) behind Nginx → https://app.medisofthealth.com.
