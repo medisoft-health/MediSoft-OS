@@ -9,7 +9,8 @@ type BadgeVariant =
   | "warning"
   | "destructive"
   | "critical"
-  | "info";
+  | "info"
+  | "label";
 
 const variantStyles: Record<BadgeVariant, string> = {
   default: "bg-[color:var(--color-muted)] text-[color:var(--color-foreground)]",
@@ -21,6 +22,10 @@ const variantStyles: Record<BadgeVariant, string> = {
   destructive: "bg-rose-50 text-rose-700 border border-rose-200",
   critical: "bg-red-100 text-red-800 border border-red-300 font-bold",
   info: "bg-blue-50 text-blue-700 border border-blue-200",
+  // Editorial eyebrow label — coral, mono, uppercase (mirrors the site's
+  // module subtitles). Use for section/module labels rather than status.
+  label:
+    "bg-transparent text-[color:var(--color-label)] font-[family-name:var(--font-mono)] uppercase tracking-[0.12em] text-[10px] font-semibold px-0",
 };
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {

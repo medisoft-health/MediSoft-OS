@@ -14,27 +14,33 @@
   --color-brand-cyan: #3fc4d9;
   --color-brand-purple: #8b3fb8;
   --color-brand-orange: #f5a04a;
+  --color-brand-coral: #e85d3a; /* module/eyebrow labels — matches site */
   --color-brand-ink: #0f172a;
   --color-brand-mute: #64748b;
   --color-brand-line: #e5e7eb;
   --color-brand-cream: #fafafc;
+  --color-brand-paper: #f8f7f4; /* warm editorial paper — site background */
 
-  /* --- Semantic tokens (OKLCH for medical UI) --- */
-  --color-primary: oklch(0.55 0.15 230);
-  --color-primary-foreground: oklch(0.98 0.01 230);
+  /* --- Semantic tokens (OKLCH for medical UI) ---
+     Warm-paper editorial palette harmonized with medisofthealth.com:
+     warm off-white surfaces, deep-navy brand primary for dark CTAs,
+     coral reserved for labels. Brand colors stay as accents, not fills. */
+  --color-primary: oklch(0.417 0.093 248); /* deep navy #1B4F7C — editorial dark CTA */
+  --color-primary-foreground: oklch(0.98 0.01 250);
   --color-secondary: oklch(0.75 0.08 175);
   --color-secondary-foreground: oklch(0.2 0.05 175);
-  --color-background: oklch(0.99 0.003 240);
-  --color-foreground: oklch(0.15 0.02 250);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.15 0.02 250);
-  --color-muted: oklch(0.96 0.005 240);
-  --color-muted-foreground: oklch(0.5 0.015 240);
-  --color-border: oklch(0.91 0.008 240);
-  --color-input: oklch(0.91 0.008 240);
-  --color-ring: oklch(0.55 0.15 230);
-  --color-accent: oklch(0.95 0.02 320);
-  --color-accent-foreground: oklch(0.25 0.1 320);
+  --color-background: oklch(0.976 0.004 91); /* warm paper #f8f7f4 */
+  --color-foreground: oklch(0.22 0.008 250); /* near-black ink */
+  --color-card: oklch(1 0 0); /* crisp white cards on warm paper */
+  --color-card-foreground: oklch(0.22 0.008 250);
+  --color-muted: oklch(0.952 0.008 90); /* warm muted fill */
+  --color-muted-foreground: oklch(0.5 0.01 250);
+  --color-border: oklch(0.922 0.005 88); /* warm hairline */
+  --color-input: oklch(0.922 0.005 88);
+  --color-ring: oklch(0.52 0.1 248); /* navy focus ring */
+  --color-accent: oklch(0.952 0.006 80); /* calm warm hover surface */
+  --color-accent-foreground: oklch(0.417 0.093 248);
+  --color-label: oklch(0.652 0.18 35); /* coral #E85D3A — eyebrow labels */
 
   /* --- Clinical status colors --- */
   --color-success: oklch(0.65 0.15 145);
@@ -43,11 +49,11 @@
   --color-destructive-foreground: oklch(0.98 0.01 25);
   --color-critical: oklch(0.55 0.25 15);
 
-  /* --- Sidebar tokens --- */
-  --color-sidebar: oklch(1 0 0);
-  --color-sidebar-foreground: oklch(0.2 0.02 250);
-  --color-sidebar-accent: oklch(0.96 0.005 240);
-  --color-sidebar-border: oklch(0.91 0.008 240);
+  /* --- Sidebar tokens (warm-tinted to sit with the paper background) --- */
+  --color-sidebar: oklch(0.992 0.003 90);
+  --color-sidebar-foreground: oklch(0.25 0.008 250);
+  --color-sidebar-accent: oklch(0.952 0.008 90);
+  --color-sidebar-border: oklch(0.922 0.005 88);
 
   /* --- Radii --- */
   --radius-sm: 0.5rem;
@@ -57,6 +63,7 @@
 
   /* --- Fonts --- */
   --font-sans: var(--font-inter), var(--font-arabic), system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-playfair), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-script: var(--font-pacifico), cursive;
 }
@@ -81,6 +88,41 @@ body {
 }
 
 /* ============================================
+   Editorial typography
+   Serif display headings mirror the marketing
+   site (medisofthealth.com). Latin only — Arabic
+   headings fall back to the Arabic sans so فصحى
+   text stays crisp and legible (dir-aware below).
+   ============================================ */
+html[dir="ltr"] h1,
+html[dir="ltr"] h2 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+}
+
+/* Opt-in serif display for any element (e.g. card titles). */
+.font-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.015em;
+}
+html[dir="rtl"] .font-display {
+  /* Arabic keeps the sans — Playfair has no Arabic glyphs. */
+  font-family: var(--font-sans);
+  letter-spacing: normal;
+}
+
+/* Monospace, uppercase, letter-spaced eyebrow labels — the
+   editorial "01 THE PLATFORM" treatment from the site. */
+.label-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-label);
+}
+
+/* ============================================
    Dark mode — overrides for the .dark class
    toggled by AdaptiveProvider
    ============================================ */
@@ -100,6 +142,7 @@ body {
   --color-ring: oklch(0.65 0.12 230);
   --color-accent: oklch(0.25 0.02 320);
   --color-accent-foreground: oklch(0.88 0.06 320);
+  --color-label: oklch(0.72 0.15 38); /* coral, brightened for dark surfaces */
   --color-success: oklch(0.7 0.14 145);
   --color-warning: oklch(0.78 0.14 70);
   --color-destructive: oklch(0.65 0.2 25);
@@ -152,6 +195,10 @@ a:focus-visible,
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.text-coral {
+  color: var(--color-label);
 }
 
 .grad-soft {

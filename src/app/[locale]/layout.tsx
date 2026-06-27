@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { Inter, JetBrains_Mono, Noto_Sans_Arabic, Pacifico } from "next/font/google";
+import { Inter, JetBrains_Mono, Noto_Sans_Arabic, Pacifico, Playfair_Display } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { routing, isRtlLocale, type Locale } from "@/i18n/routing";
 
@@ -24,6 +24,16 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",
+});
+
+// Editorial serif for display headings — mirrors the marketing site
+// (medisofthealth.com). Latin-only; Arabic headings keep the Arabic
+// sans via the dir-aware rule in globals.css.
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["500", "600", "700", "800"],
 });
 
 const pacifico = Pacifico({
@@ -65,7 +75,7 @@ export default async function LocaleLayout({
     <html
       lang={typedLocale}
       dir={isRtlLocale(typedLocale) ? "rtl" : "ltr"}
-      className={`${inter.variable} ${jetbrainsMono.variable} ${pacifico.variable} ${notoSansArabic.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${playfair.variable} ${pacifico.variable} ${notoSansArabic.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <NextIntlClientProvider locale={typedLocale} messages={messages}>
