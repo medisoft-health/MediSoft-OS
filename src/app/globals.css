@@ -21,6 +21,7 @@
   --color-brand-mute: #6B7280;
   --color-brand-line: #E5E7EB;
   --color-brand-cream: #F8F7F4;
+  --color-brand-paper: #f8f7f4; /* warm editorial paper — site background */
 
   /* --- Semantic tokens (warm paper editorial theme) --- */
   --color-primary: oklch(0.42 0.10 230);
@@ -38,6 +39,7 @@
   --color-ring: oklch(0.42 0.10 230);
   --color-accent: oklch(0.95 0.02 320);
   --color-accent-foreground: oklch(0.25 0.10 320);
+  --color-label: oklch(0.652 0.18 35); /* coral #E85D3A — eyebrow labels */
 
   /* --- Clinical status colors --- */
   --color-success: oklch(0.60 0.16 145);
@@ -171,6 +173,33 @@ html[dir="rtl"] h3 {
   color: var(--color-muted-foreground);
 }
 
+/* Opt-in serif display for any element (e.g. card titles). */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+html[dir="rtl"] .font-display {
+  /* Arabic keeps the sans — Playfair has no Arabic glyphs. */
+  font-family: var(--font-sans);
+  letter-spacing: normal;
+}
+
+/* Monospace, uppercase, letter-spaced eyebrow labels —
+   editorial "01 THE PLATFORM" treatment from the site. */
+.label-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-label);
+}
+
+/* Coral text utility — for eyebrow/label text */
+.text-coral {
+  color: var(--color-label);
+}
+
 /* ============================================
    Dark mode — overrides for the .dark class
    toggled by AdaptiveProvider (Radiology context)
@@ -191,6 +220,7 @@ html[dir="rtl"] h3 {
   --color-ring: oklch(0.65 0.12 230);
   --color-accent: oklch(0.25 0.02 320);
   --color-accent-foreground: oklch(0.88 0.06 320);
+  --color-label: oklch(0.72 0.15 38); /* coral, brightened for dark surfaces */
   --color-success: oklch(0.7 0.14 145);
   --color-warning: oklch(0.78 0.14 70);
   --color-destructive: oklch(0.65 0.2 25);

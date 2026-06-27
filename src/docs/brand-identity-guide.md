@@ -1,140 +1,123 @@
-# MediSoft Brand Identity Analysis
+# MediSoft C-OS — Brand Identity Guide
 
-## Source: Logo (Slide33.webp)
-- **Logo Text:** "MediSoft" — "Medi" in PINK/MAGENTA (#E84C8A), "Soft" in DEEP NAVY BLUE (#1B4F7C)
-- **Tagline:** "Inspiring Minds" in navy blue cursive/script font
-- **Icon:** Pentagon shape with gradient colors — orange/amber at top, pink/magenta on right, purple at bottom, blue/teal on left
-- **Icon Style:** Overlapping curved petals forming a pentagon with a white center — modern, dynamic, colorful
+> Harmonized with the official marketing site **medisofthealth.com**.
+> Last updated: June 9, 2026 — `claude/ui-visual-identity`
 
-## Source: Icon Detail (Slide22.webp)
-- Pentagon icon enlarged — 5 overlapping petals/ribbons
-- Colors clockwise from top: Orange (#F5A623), Pink/Magenta (#E84C8A), Deep Rose/Maroon (#8B2252), Purple (#7B2D8B), Blue (#1565C0), Teal/Cyan (#00BCD4)
-- The icon represents integration, wholeness, innovation
-
-## Source: PDF Presentation (MediSoft_Healthcare_AI.pdf)
-### Page 1 — Cover:
-- Background: Deep navy/slate blue (#2C3E5A) with subtle geometric shapes
-- "MediSoft" logo: Pink "Medi" + Blue "Soft" on dark background
-- Globe graphic with medical crosses, DNA helix
-- Arabic text in white/light colors
-
-### Page 2 — Mission:
-- Background: Very light ice blue (#EFF6FA / #F0F8FF)
-- Left panel: White/cream with teal pentagon icons
-- Right panel: Light blue with bold dark text
-- Accent colors: Teal (#008B8B), Pink (#E84C8A)
-- Clean, minimal, lots of whitespace
-
-### Page 3 — Strategic Compass:
-- Background: Very light lavender/ice (#F5F0FF)
-- Central pentagon logo (colorful)
-- Accent text: Pink/Magenta for highlights
-- Clean radial layout
-
-### Page 4 — Comparison Table:
-- Background: White/off-white
-- Table gradient: Teal (#00BCD4) → Purple (#7B2D8B) → Pink (#E84C8A) for MediSoft column
-- Headers: Dark slate
-- Very clean, modern table design
-
-### Page 5 — AI Innovation Cycle:
-- Background: Very light ice blue (#F0F8FF)
-- Circle badges: Pink (predictive care), Navy blue (data), Teal (workflow), Purple (decisions)
-- Clean circular flow diagram
-
-## Source: Infographic (الرعاية_الصحية_الذكية_في_المنطقة.webp)
-- Background: White
-- Pentagon frames for content sections (matching logo shape)
-- Accent colors: Teal borders, Pink/Magenta borders, Orange borders
-- Central pentagon logo with robotic hand
-- Circuit board pattern at top (subtle tech feel)
-- Very clean, professional, medical
+The C-OS app and the marketing site are one brand. The site is calm, editorial,
+and minimal: warm paper background, near-black ink, serif display headings,
+monospace eyebrow labels, and the colorful pentagon logo as the *only* vibrant
+element. This guide encodes that language as design tokens so the app feels like
+a natural extension of the site.
 
 ---
 
-## EXTRACTED COLOR PALETTE:
+## Design principles
 
-### Primary Colors:
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Deep Navy Blue | #1B4F7C | Logo "Soft", headings, primary text |
-| Pink/Magenta | #E84C8A | Logo "Medi", accents, highlights |
-| Teal/Cyan | #00BCD4 | Secondary accent, icons, borders |
+1. **Keep it CALM.** Warm-paper / light surfaces, generous whitespace, few colors at a time.
+2. **Brand colors are ACCENTS, not backgrounds.** Pink, navy, teal, coral live in labels, links, indicators — never as page fills.
+3. **Typography-driven hierarchy.** Large serif display headings, clear monospace labels, calm sans body.
+4. **Subtle depth.** Thin hairline borders, barely-there shadows. No heavy elevation.
+5. **The pentagon logo is the single vibrant element** — let it carry the color energy.
+6. **Bilingual by construction.** Latin headings use the serif; Arabic (فصحى) headings stay on the Arabic sans for legibility. RTL uses logical properties only.
 
-### Secondary Colors:
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Purple | #7B2D8B | Gradient transitions, depth |
-| Orange/Amber | #F5A623 | Warm accent, alerts |
-| Deep Rose | #8B2252 | Dark pink variant |
+---
 
-### Background Colors:
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Ice Blue (Light) | #F0F8FF | Main app background |
-| Light Lavender | #F5F0FF | Alternate sections |
-| Deep Slate | #2C3E5A | Dark mode / headers |
-| White | #FFFFFF | Cards, content areas |
-| Off-white | #FAFBFC | Subtle contrast |
+## Color palette
 
-### Design Principles:
-1. **Calm & Professional** — Ice blue backgrounds, lots of whitespace
-2. **Colorful but Controlled** — Pentagon logo colors used as accents only
-3. **Modern & Clean** — Minimal borders, soft shadows, rounded corners
-4. **Medical Trust** — Navy blue dominates for professionalism
-5. **Innovation Accent** — Pink/Magenta for energy and modernity
-6. **Gradient Usage** — Teal→Purple→Pink for feature highlights
+### Brand colors (accents only)
 
-### Typography:
-- Headings: Bold, dark navy
-- Body: Regular weight, dark gray
-- Accents: Pink/Magenta for emphasis
-- Arabic: Clean sans-serif (likely Cairo or Tajawal)
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--color-brand-navy` | `#1e3a8c` / primary `#1B4F7C` | Logo "Soft", primary CTAs, headings ink |
+| `--color-brand-pink` | `#e84a8a` | Logo "Medi", active nav, highlights |
+| `--color-brand-magenta` | `#d63384` | Active-state text, links |
+| `--color-brand-cyan` | `#3fc4d9` | AI sparkles, icon accents, borders |
+| `--color-brand-purple` | `#8b3fb8` | Gradient transitions |
+| `--color-brand-orange` | `#f5a04a` | Warm accents |
+| `--color-brand-coral` | `#e85d3a` | **Eyebrow / module labels** (the site's signature label color) |
 
-### Reference Website: medisofthealth.com (ANALYZED)
+### Surfaces (light)
 
-**Overall Style:**
-- VERY clean, minimal, editorial design
-- White/off-white background (#FFFFFF / #FAFBFC)
-- Generous whitespace and breathing room
-- Serif + Sans-serif typography combination
-- Italic serif for emphasis words ("modern medicine", "clinical operating system", "intelligence")
-- Monospace/uppercase for labels ("01 THE PLATFORM", "INTELLIGENT CONSULTATION ENGINE")
+| Token | OKLCH | Hex ref | Use |
+|-------|-------|---------|-----|
+| `--color-background` | `oklch(0.976 0.004 91)` | `#f8f7f4` | Warm editorial paper — main app background |
+| `--color-card` | `oklch(1 0 0)` | `#ffffff` | Crisp white cards on the paper |
+| `--color-muted` | `oklch(0.952 0.008 90)` | warm `#f1efe9` | Subtle fills, hover surfaces |
+| `--color-border` | `oklch(0.922 0.005 88)` | warm hairline | Card / input borders |
+| `--color-foreground` | `oklch(0.22 0.008 250)` | `#1A1A1A`-ish | Near-black ink |
+| `--color-muted-foreground` | `oklch(0.5 0.01 250)` | `#4A4A4A`-ish | Secondary text |
 
-**Color Usage on Website:**
-- Background: Pure white
-- Text: Near-black (#1A1A1A) for headings
-- Body text: Dark gray (#4A4A4A)
-- Accent labels: Coral/Orange-Red (#E85D3A) for module subtitles
-- Section numbers: Light gray (#999)
-- Cards: White with very subtle border (#F0F0F0)
-- Icons: Light gray circles with dark icon
-- CTA Button "Enter the platform": Dark/black with white text
-- CTA Button "Explore MediSoft": White/outlined
-- Pentagon logo: Full color gradient (only place with vibrant color)
-- "Request a demo" button: Dark navy/black
+### Semantic
 
-**Typography:**
-- Headings: Large serif font (editorial style, possibly Playfair Display or similar)
-- Italic serif for key phrases
-- Body: Clean sans-serif (Inter or similar)
-- Labels: Monospace uppercase, letter-spaced
-- Very large heading sizes (display typography)
+| Token | Meaning |
+|-------|---------|
+| `--color-primary` | Deep navy `#1B4F7C` — dark editorial CTA buttons |
+| `--color-label` | Coral `#E85D3A` — eyebrow labels (see `.label-eyebrow`, Badge `variant="label"`) |
+| `--color-ring` | Navy focus ring |
+| `--color-success` / `warning` / `destructive` / `critical` | Clinical status (unchanged) |
 
-**Layout:**
-- Asymmetric hero (text left, pentagon logo right)
-- 2-column grid for module cards
-- Numbered sections (01, 02, 03...)
-- Minimal borders, no heavy shadows
-- Cards with very subtle rounded corners
-- Lots of vertical spacing between sections
+Dark mode keeps a neutral, slightly-cool slate base; `--color-label` brightens
+for contrast. Brand accents and status colors carry across both themes.
 
-**Key Design Principles for C-OS App:**
-1. Keep it CALM — white/light backgrounds, minimal color
-2. Use the brand colors (pink, blue, teal) as ACCENTS only, not as backgrounds
-3. Typography-driven hierarchy — large headings, clear labels
-4. Generous spacing — don't crowd the interface
-5. Cards with subtle borders, not heavy shadows
-6. The pentagon logo colors are the only vibrant element
-7. Professional, editorial, trustworthy feel
-8. Module accent color: Coral/Orange-Red for labels/badges
+---
+
+## Typography
+
+| Role | Font | Token / class |
+|------|------|---------------|
+| Display headings (h1/h2, card titles) | **Playfair Display** (serif) | `--font-serif`, `.font-display` |
+| Body & UI | **Inter** (Latin) / **Noto Sans Arabic** | `--font-sans` |
+| Eyebrow labels, code, keys | **JetBrains Mono** | `--font-mono`, `.label-eyebrow` |
+| Decorative script (sparingly) | Pacifico | `--font-script` |
+
+**Rules**
+
+- Serif headings are **LTR-only**. In RTL (`dir="rtl"`), `h1/h2` and `.font-display`
+  fall back to the Arabic sans — Playfair has no Arabic glyphs, and فصحى must stay crisp.
+- Use `.label-eyebrow` (mono, uppercase, `0.14em` tracking, coral) for the
+  "01 · THE PLATFORM" / module-subtitle treatment.
+- Body stays sans for long-form readability — physicians spend hours here.
+
+```html
+<p class="label-eyebrow">Intelligent consultation engine</p>
+<h1>Clinical intelligence, unified</h1>   <!-- serif (LTR), Arabic sans (RTL) -->
+<Badge variant="label">MediScript</Badge>  <!-- coral eyebrow label -->
+```
+
+---
+
+## Components
+
+- **Cards** — hairline border + barely-there shadow (`0_1px_2px_rgba(16,24,40,0.03)`), `rounded-2xl`. No heavy elevation. Titles use `.font-display`.
+- **Buttons** — `default` is now deep navy (editorial dark CTA); `brand` keeps the pink→navy gradient for hero moments; `outline`/`ghost` for calm actions.
+- **Badge** — status variants (`success`/`warning`/`info`/`critical`) unchanged; new `label` variant = coral mono eyebrow for module/section labels.
+- **Sidebar** — warm-tinted surface, pink active state with a pink→navy indicator bar. Brand lockup at top.
+
+---
+
+## RTL & i18n
+
+- Logical properties only: `border-s`, `text-start`, `ps-`/`pe-`, `ms-`/`me-`.
+- All UI strings live in both `messages/ar.json` and `messages/en.json`.
+- Arabic is Modern Standard Arabic (فصحى) — never dialect.
+- Test every change in both `/en/` and `/ar/`.
+
+---
+
+## Do / Don't
+
+| Do | Don't |
+|----|-------|
+| Use coral for labels and pink/navy for accents | Flood backgrounds with brand color |
+| Keep surfaces warm-paper / white | Introduce cool gray or pure-black page fills |
+| Let the pentagon logo be the vibrant focal point | Add competing vibrant blocks |
+| Use serif for Latin display headings | Force serif on Arabic text |
+| Lean on thin borders for separation | Stack heavy drop-shadows |
+
+---
+
+## Token source of truth
+
+All tokens live in [`src/app/globals.css`](../app/globals.css) under `@theme`
+(Tailwind 4, OKLCH). Change colors there — components read the tokens, so the
+palette stays consistent across the whole app from one place.
