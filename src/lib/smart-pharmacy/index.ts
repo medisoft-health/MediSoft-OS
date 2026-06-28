@@ -386,23 +386,17 @@ function generatePrice(medication: string): number {
 }
 
 function checkDrugInteractions(
-  medications: Array<{ name: string }>
+  _medications: Array<{ name: string }>
 ): DrugInteractionAlert[] {
-  // In production, this would use a real drug interaction database (DrugBank, RxNorm)
-  const interactions: DrugInteractionAlert[] = [];
-
-  if (medications.length > 1) {
-    // Demo interaction for illustration
-    interactions.push({
-      severity: "mild",
-      drug1: medications[0].name,
-      drug2: medications.length > 1 ? medications[1]?.name || "Unknown" : "Unknown",
-      description: "تفاعل خفيف — قد يزيد من تأثير الدواء الأول",
-      descriptionEn: "Mild interaction — may increase the effect of the first drug",
-      recommendation: "راقب الأعراض. لا حاجة لتعديل الجرعة عادةً.",
-      recommendationEn: "Monitor symptoms. Usually no dose adjustment needed.",
-    });
-  }
-
-  return interactions;
+  // ⚠️ DISABLED — Mock interaction removed for patient safety.
+  // This function previously returned a fake "mild interaction" for ANY two drugs,
+  // which is clinically dangerous (e.g., Warfarin + Aspirin would show as "mild").
+  //
+  // TODO: Wire to the real PharmaX safety pipeline:
+  //   1. RxNorm normalization (src/lib/ai/rxnorm.ts)
+  //   2. OpenFDA label lookup (src/lib/ai/openfda.ts)
+  //   3. MediGuard AI analysis (src/lib/ai/mediguard.ts)
+  //
+  // Until properly implemented, return empty array (no false safety signals).
+  return [];
 }
