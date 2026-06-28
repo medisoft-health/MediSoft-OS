@@ -12,7 +12,8 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const API_KEY = process.env.MUSCLEWIKI_API_KEY || "mw_IeDTFlmM_isPSviCDMWRxgDRceiD96wuNy8WcV6Y700";
+const API_KEY = process.env.MUSCLEWIKI_API_KEY;
+if (!API_KEY) { console.error("ERROR: MUSCLEWIKI_API_KEY not set in environment"); process.exit(1); }
 const BASE_URL = "https://api.musclewiki.com";
 const CONCURRENCY = 2; // Only 2 at a time
 const DELAY_MS = 1000; // 1 second between batches
